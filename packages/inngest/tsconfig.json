@@ -4,7 +4,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@career-code/inngest/*": ["./src/*"]
+      "@careeright/inngest/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts"]

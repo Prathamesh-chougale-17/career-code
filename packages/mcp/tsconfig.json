@@ -4,7 +4,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@career-code/mcp/*": ["./src/*"]
+      "@careeright/mcp/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts"]

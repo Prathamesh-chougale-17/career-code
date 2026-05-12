@@ -1,4 +1,4 @@
-import { createDefaultColumns } from "@career-code/domain/kanban/defaults";
+import { createDefaultColumns } from "@careeright/domain/kanban/defaults";
 import {
   columnIdSchema,
   prioritySchema,
@@ -9,27 +9,27 @@ import {
   type BoardColumn,
   type BoardSnapshot,
   type KanbanTask,
-} from "@career-code/domain/kanban/schema";
+} from "@careeright/domain/kanban/schema";
 import {
   getBoardSnapshot,
   listMcpTokens,
   listProposalHistory,
-} from "@career-code/domain/kanban/store";
+} from "@careeright/domain/kanban/store";
 import {
   dashboardAnalyticsSchema,
   type DashboardAnalytics,
   type DashboardCount,
-} from "@career-code/domain/dashboard/schema";
-import type { DiaryDay } from "@career-code/domain/diary/schema";
-import { listDiaryDays } from "@career-code/domain/diary/store";
-import { jobStatusSchema, type JobRecord } from "@career-code/domain/jobs/schema";
-import { listJobs } from "@career-code/domain/jobs/store";
+} from "@careeright/domain/dashboard/schema";
+import type { DiaryDay } from "@careeright/domain/diary/schema";
+import { listDiaryDays } from "@careeright/domain/diary/store";
+import { jobStatusSchema, type JobRecord } from "@careeright/domain/jobs/schema";
+import { listJobs } from "@careeright/domain/jobs/store";
 import {
   profileApplicationDefaultsSchema,
   type ProfileImportStatus,
   type ProfileSnapshot,
-} from "@career-code/domain/profile/schema";
-import { getProfileSnapshot, listProfileImports } from "@career-code/domain/profile/store";
+} from "@careeright/domain/profile/schema";
+import { getProfileSnapshot, listProfileImports } from "@careeright/domain/profile/store";
 
 const jobStatusLabels = {
   not_applied: "Not applied",

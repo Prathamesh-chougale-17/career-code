@@ -9,8 +9,8 @@ import type {
   AiProposal,
   KanbanTask,
   ProposedTask,
-} from "@career-code/domain/kanban/schema";
-import { taskFingerprint } from "@career-code/domain/kanban/task-fingerprint";
+} from "@careeright/domain/kanban/schema";
+import { taskFingerprint } from "@careeright/domain/kanban/task-fingerprint";
 import { cn } from "@/lib/utils";
 
 const priorityStyles: Record<KanbanTask["priority"], string> = {

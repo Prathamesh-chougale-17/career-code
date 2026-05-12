@@ -37,9 +37,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { HistorySnapshot } from "@career-code/domain/history/schema";
-import { rpcClient } from "@career-code/api/client";
-import { historySnapshotQueryKey } from "@career-code/api/query-keys";
+import type { HistorySnapshot } from "@careeright/domain/history/schema";
+import { rpcClient } from "@careeright/api/client";
+import { historySnapshotQueryKey } from "@careeright/api/query-keys";
 
 const dsaChartConfig = {
   solvedQuestions: {

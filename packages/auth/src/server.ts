@@ -2,23 +2,25 @@ import { memoryAdapter, type MemoryDB } from "@better-auth/memory-adapter";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { betterAuth } from "better-auth";
 
-import { getMongoClient, getMongoDb, isMongoConfigured } from "@career-code/db";
+import { getMongoClient, getMongoDb, isMongoConfigured } from "@careeright/db";
 
 let authPromise: ReturnType<typeof createAuth> | undefined;
 
 type AuthRuntimeEnv = Record<string, string | undefined>;
 
 const globalForAuth = globalThis as typeof globalThis & {
-  __careerCodeAuthMemoryDb?: MemoryDB;
+  __careerightAuthMemoryDb?: MemoryDB;
 };
 
 export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
   const isProduction = env.NODE_ENV === "production";
   const baseURL =
+    env.CAREERIGHT_AUTH_URL?.trim() ||
     env.CAREER_CODE_AUTH_URL?.trim() ||
     env.BETTER_AUTH_URL?.trim() ||
     "http://localhost:3000";
   const secret =
+    env.CAREERIGHT_AUTH_SECRET?.trim() ||
     env.CAREER_CODE_AUTH_SECRET?.trim() ||
     env.BETTER_AUTH_SECRET?.trim() ||
     (!isProduction ? "f4e7c2d9b8a14f0d9c3b6a217e5d8c0a" : undefined);
@@ -26,7 +28,9 @@ export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
   const googleClientSecret = env.GOOGLE_CLIENT_SECRET?.trim();
 
   if (!secret) {
-    throw new Error("CAREER_CODE_AUTH_SECRET or BETTER_AUTH_SECRET is required.");
+    throw new Error(
+      "CAREERIGHT_AUTH_SECRET, CAREER_CODE_AUTH_SECRET, or BETTER_AUTH_SECRET is required.",
+    );
   }
 
   if (
@@ -71,7 +75,7 @@ async function createAuth() {
     : memoryAdapter(getAuthMemoryDb());
 
   return betterAuth({
-    appName: "Career Code",
+    appName: "Careeright",
     baseURL: runtimeConfig.baseURL,
     secret: runtimeConfig.secret,
     database,
@@ -81,9 +85,9 @@ async function createAuth() {
 }
 
 function getAuthMemoryDb() {
-  globalForAuth.__careerCodeAuthMemoryDb ??= {};
+  globalForAuth.__careerightAuthMemoryDb ??= {};
 
-  return globalForAuth.__careerCodeAuthMemoryDb;
+  return globalForAuth.__careerightAuthMemoryDb;
 }
 
 export function normalizeAuthCallbackPath(

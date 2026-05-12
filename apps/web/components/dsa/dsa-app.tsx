@@ -60,16 +60,16 @@ import type {
   DsaSubtopic,
   DsaTrack,
   UpdateDsaQuestionProgressInput,
-} from "@career-code/domain/dsa/schema";
+} from "@careeright/domain/dsa/schema";
 import {
   buildDsaPlaylistEmbedUrl,
   buildDsaVideoEmbedUrl,
-} from "@career-code/domain/dsa/youtube";
-import { rpcClient } from "@career-code/api/client";
+} from "@careeright/domain/dsa/youtube";
+import { rpcClient } from "@careeright/api/client";
 import {
   dsaSnapshotQueryKey,
   historySnapshotQueryKey,
-} from "@career-code/api/query-keys";
+} from "@careeright/api/query-keys";
 import { cn } from "@/lib/utils";
 
 const DSA_SURFACE_TONES = [

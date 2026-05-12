@@ -81,14 +81,14 @@ import {
   type JobSearchProfile,
   type JobSearchProfileInput,
   type JobStatus,
-} from "@career-code/domain/jobs/schema";
-import { rpcClient } from "@career-code/api/client";
+} from "@careeright/domain/jobs/schema";
+import { rpcClient } from "@careeright/api/client";
 import {
   dashboardAnalyticsQueryKey,
   jobDigestsQueryKey,
   jobSearchProfileQueryKey,
   jobsQueryKey,
-} from "@career-code/api/query-keys";
+} from "@careeright/api/query-keys";
 import { cn } from "@/lib/utils";
 
 type JobDateSection = {
@@ -613,7 +613,7 @@ async function downloadJobsExcel(section: JobDateSection, nowMs: number) {
   );
   XLSX.writeFile(
     workbook,
-    `${sanitizeFilePart(`career-code-jobs-${section.dateKey}`)}.xlsx`,
+    `${sanitizeFilePart(`careeright-jobs-${section.dateKey}`)}.xlsx`,
     { compression: true },
   );
 }
@@ -899,7 +899,7 @@ export function JobsApp({
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">Jobs</p>
           <p className="truncate text-xs text-muted-foreground">
-            MCP-seeded opportunities grouped by the date they entered Career Code
+            MCP-seeded opportunities grouped by the date they entered Careeright
           </p>
         </div>
       </header>
@@ -1650,7 +1650,7 @@ function JobDateTable({
       <CardHeader>
         <CardTitle>{section.label}</CardTitle>
         <CardDescription>
-          Jobs seeded into Career Code on this date.
+          Jobs seeded into Careeright on this date.
         </CardDescription>
         <CardAction className="flex flex-wrap items-center justify-end gap-2">
           <Badge variant="secondary">

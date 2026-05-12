@@ -74,12 +74,12 @@ import type {
   ProfileSnapshot,
   UpdateProfileApplicationDefaultsInput,
   UserProfile,
-} from "@career-code/domain/profile/schema";
-import { rpcClient } from "@career-code/api/client";
+} from "@careeright/domain/profile/schema";
+import { rpcClient } from "@careeright/api/client";
 import {
   profileImportsQueryKey,
   profileSnapshotQueryKey,
-} from "@career-code/api/query-keys";
+} from "@careeright/api/query-keys";
 import { cn } from "@/lib/utils";
 
 type ProfileBasicsDraft = {

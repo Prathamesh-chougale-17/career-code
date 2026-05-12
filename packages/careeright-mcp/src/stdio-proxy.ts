@@ -3,7 +3,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
 
-const DEFAULT_MCP_URL = "https://career-code.vercel.app/mcp";
+const DEFAULT_MCP_URL = "https://careeright.vercel.app/mcp";
 
 function toError(error: unknown) {
   return error instanceof Error ? error : new Error(String(error));
@@ -11,11 +11,12 @@ function toError(error: unknown) {
 
 function logError(message: string, error?: unknown) {
   const suffix = error ? ` ${toError(error).message}` : "";
-  process.stderr.write(`[career-code-mcp] ${message}${suffix}\n`);
+  process.stderr.write(`[careeright-mcp] ${message}${suffix}\n`);
 }
 
 function readMcpUrl() {
   const rawUrl =
+    process.env.CAREERIGHT_MCP_URL?.trim() ||
     process.env.CAREER_CODE_MCP_URL?.trim() ||
     process.env.HABAGE_MCP_URL?.trim() ||
     DEFAULT_MCP_URL;
@@ -29,18 +30,19 @@ function readMcpUrl() {
 
     return url;
   } catch (error) {
-    throw new Error(`Invalid CAREER_CODE_MCP_URL "${rawUrl}". ${toError(error).message}`);
+    throw new Error(`Invalid CAREERIGHT_MCP_URL "${rawUrl}". ${toError(error).message}`);
   }
 }
 
 function readMcpToken() {
   const token =
+    process.env.CAREERIGHT_MCP_TOKEN?.trim() ||
     process.env.CAREER_CODE_MCP_TOKEN?.trim() ||
     process.env.HABAGE_MCP_TOKEN?.trim();
 
   if (!token) {
     throw new Error(
-      "CAREER_CODE_MCP_TOKEN is required. Create one in Career Code at /dashboard/mcp-tools.",
+      "CAREERIGHT_MCP_TOKEN or CAREER_CODE_MCP_TOKEN is required. Create one in Careeright at /dashboard/mcp-tools.",
     );
   }
 
@@ -74,7 +76,7 @@ async function main() {
     try {
       await httpTransport.send(message);
     } catch (error) {
-      logError("Failed to forward stdio message to Career Code.", error);
+      logError("Failed to forward stdio message to Careeright.", error);
       await closeTransports();
     }
   }
@@ -83,7 +85,7 @@ async function main() {
     try {
       await stdioTransport.send(message);
     } catch (error) {
-      logError("Failed to forward Career Code response to stdio.", error);
+      logError("Failed to forward Careeright response to stdio.", error);
       await closeTransports();
     }
   }
@@ -98,7 +100,7 @@ async function main() {
     logError("Stdio transport error.", error);
   };
   httpTransport.onerror = (error) => {
-    logError("Career Code HTTP transport error.", error);
+    logError("Careeright HTTP transport error.", error);
   };
   stdioTransport.onclose = () => {
     void closeTransports();
@@ -118,6 +120,6 @@ async function main() {
 }
 
 main().catch(async (error) => {
-  logError("Unable to start Career Code MCP bridge.", error);
+  logError("Unable to start Careeright MCP bridge.", error);
   process.exitCode = 1;
 });

@@ -1,7 +1,7 @@
 import { serve } from "inngest/next";
 
-import { inngest } from "@career-code/inngest/client";
-import { inngestFunctions } from "@career-code/inngest/functions";
+import { inngest } from "@careeright/inngest/client";
+import { inngestFunctions } from "@careeright/inngest/functions";
 
 export const runtime = "nodejs";
 

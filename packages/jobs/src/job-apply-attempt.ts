@@ -1,6 +1,6 @@
-import { jobApplicationAttemptStatusSchema } from "@career-code/domain/jobs/schema";
-import { updateJobApplicationAttempt } from "@career-code/domain/jobs/store";
-import { SOLO_USER_ID } from "@career-code/domain/kanban/schema";
+import { jobApplicationAttemptStatusSchema } from "@careeright/domain/jobs/schema";
+import { updateJobApplicationAttempt } from "@careeright/domain/jobs/store";
+import { SOLO_USER_ID } from "@careeright/domain/kanban/schema";
 
 function readFlag(name: string) {
   const index = process.argv.findIndex((arg) => arg === name);
@@ -25,6 +25,7 @@ function requireFlag(name: string) {
 async function main() {
   const userId =
     readFlag("--user") ||
+    process.env.CAREERIGHT_USER_ID ||
     process.env.CAREER_CODE_USER_ID ||
     process.env.HABAGE_USER_ID ||
     SOLO_USER_ID;

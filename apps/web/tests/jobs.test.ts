@@ -6,14 +6,14 @@ import {
   jobSchema,
   seedJobInputSchema,
   seedJobsInputSchema,
-} from "@career-code/domain/jobs/schema";
+} from "@careeright/domain/jobs/schema";
 import {
   buildApplicationFormDefaults,
   buildSimpleFormFillPlan,
   classifyApplyUrl,
   generateJobApplicationRunReport,
-} from "@career-code/domain/jobs/application-runner";
-import { scoreJobCandidate } from "@career-code/domain/jobs/matcher";
+} from "@careeright/domain/jobs/application-runner";
+import { scoreJobCandidate } from "@careeright/domain/jobs/matcher";
 import {
   createJobApplicationRun,
   deleteJob,
@@ -29,8 +29,8 @@ import {
   updateJobApplicationAttempt,
   updateJobSearchProfile,
   updateJobStatus,
-} from "@career-code/domain/jobs/store";
-import { profileSnapshotSchema } from "@career-code/domain/profile/schema";
+} from "@careeright/domain/jobs/store";
+import { profileSnapshotSchema } from "@careeright/domain/profile/schema";
 
 process.env.MONGODB_URI = "";
 
@@ -94,7 +94,7 @@ describe("job schemas", () => {
       jobs: [
         {
           title: "Full Stack Engineer",
-          company: "Career Code",
+          company: "Careeright",
           applyUrl: "https://example.com/jobs/1",
           status: "expired",
         },
@@ -809,14 +809,14 @@ describe("job application runner helpers", () => {
         id: "profile-item-project",
         userId: "runner-user",
         type: "project",
-        title: "Career Code Job Tracker",
+        title: "Careeright Job Tracker",
         organization: "Open Source",
         location: "",
         startDate: "2026",
         endDate: "",
         description:
           "Built TypeScript APIs, MongoDB persistence, and a React dashboard.",
-        url: "https://example.com/career-code",
+        url: "https://example.com/careeright",
         tags: ["TypeScript", "MongoDB", "React"],
         createdAt: "2026-05-08T00:00:00.000Z",
         updatedAt: "2026-05-08T00:00:00.000Z",
@@ -843,7 +843,7 @@ describe("job application runner helpers", () => {
 
     expect(report).toContain("Latest seeded date: 2026-05-08");
     expect(report).toContain("TypeScript Backend Engineer");
-    expect(report).toContain("Career Code Job Tracker");
+    expect(report).toContain("Careeright Job Tracker");
     expect(report).toContain("Prathamesh_Chougale_Resume.pdf");
     expect(report).not.toContain("Older Frontend Engineer");
   });

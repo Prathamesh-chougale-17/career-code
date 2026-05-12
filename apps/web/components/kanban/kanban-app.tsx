@@ -87,12 +87,12 @@ import type {
   BoardColumn,
   KanbanTask,
   ReorderTaskInput,
-} from "@career-code/domain/kanban/schema";
-import { rpcClient } from "@career-code/api/client";
+} from "@careeright/domain/kanban/schema";
+import { rpcClient } from "@careeright/api/client";
 import {
   boardSnapshotQueryKey,
   dashboardMetricsQueryKey,
-} from "@career-code/api/query-keys";
+} from "@careeright/api/query-keys";
 import { cn } from "@/lib/utils";
 
 type DraftTask = {

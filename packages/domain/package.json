@@ -1,5 +1,5 @@
 {
-  "name": "@career-code/domain",
+  "name": "@careeright/domain",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -19,7 +19,7 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "@career-code/db": "workspace:*",
+    "@careeright/db": "workspace:*",
     "ai": "^6.0.172",
     "mongodb": "^7.2.0",
     "zod": "^4.4.1"

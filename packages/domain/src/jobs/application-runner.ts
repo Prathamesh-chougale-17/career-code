@@ -1,5 +1,5 @@
-import type { JobRecord } from "@career-code/domain/jobs/schema";
-import type { ProfileSnapshot } from "@career-code/domain/profile/schema";
+import type { JobRecord } from "@careeright/domain/jobs/schema";
+import type { ProfileSnapshot } from "@careeright/domain/profile/schema";
 
 type ApplyClassification =
   | {

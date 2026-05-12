@@ -80,7 +80,7 @@ export function UserAccountMenu({ className }: { className?: string }) {
         <UserCircle className="size-5 shrink-0 text-primary" aria-hidden="true" />
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-foreground">
-            {session.user.name || "Career Code user"}
+            {session.user.name || "Careeright user"}
           </p>
           <p className="truncate text-xs text-muted-foreground">
             {session.user.email}

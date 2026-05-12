@@ -1,14 +1,14 @@
-const CACHE_NAME = "career-code-pwa-v2";
+const CACHE_NAME = "careeright-pwa-v1";
 const OFFLINE_URL = "/offline.html";
 const CORE_ASSETS = [
   "/",
   OFFLINE_URL,
   "/manifest.webmanifest",
-  "/career-code-logo.png",
-  "/career-code-icon-192.png",
-  "/career-code-icon-512.png",
-  "/career-code-maskable-512.png",
-  "/career-code-apple-touch-icon.png",
+  "/careeright-logo.png",
+  "/careeright-icon-192.png",
+  "/careeright-icon-512.png",
+  "/careeright-maskable-512.png",
+  "/careeright-apple-touch-icon.png",
 ];
 
 self.addEventListener("install", (event) => {

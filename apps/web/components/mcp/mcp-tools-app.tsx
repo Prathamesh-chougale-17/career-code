@@ -33,9 +33,9 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { McpTokenView } from "@career-code/domain/kanban/schema";
-import { rpcClient } from "@career-code/api/client";
-import { mcpTokensQueryKey } from "@career-code/api/query-keys";
+import type { McpTokenView } from "@careeright/domain/kanban/schema";
+import { rpcClient } from "@careeright/api/client";
+import { mcpTokensQueryKey } from "@careeright/api/query-keys";
 
 type ToolDetail = {
   name: string;
@@ -46,38 +46,38 @@ type ToolDetail = {
 const connectionDetails = [
   {
     label: "HTTP endpoint",
-    value: "https://career-code.vercel.app/mcp",
+    value: "https://careeright.vercel.app/mcp",
     description:
-      "Use this with Authorization: Bearer <Career Code user MCP token>.",
+      "Use this with Authorization: Bearer <Careeright user MCP token>.",
     icon: <Server aria-hidden="true" />,
   },
   {
     label: "Stdio command",
-    value: "npx -y career-code-mcp",
-    description: "Use this package with CAREER_CODE_MCP_TOKEN for local stdio clients.",
+    value: "npx -y careeright-mcp",
+    description: "Use this package with CAREERIGHT_MCP_TOKEN for local stdio clients.",
     icon: <Terminal aria-hidden="true" />,
   },
   {
     label: "Board resource",
-    value: "career-code://boards/default/snapshot",
+    value: "careeright://boards/default/snapshot",
     description: "Read the current board, columns, cards, and pending proposals.",
     icon: <FileJson aria-hidden="true" />,
   },
   {
     label: "Profile resource",
-    value: "career-code://profile/snapshot",
+    value: "careeright://profile/snapshot",
     description: "Read profile basics, saved items, and pending resume imports.",
     icon: <FileJson aria-hidden="true" />,
   },
   {
     label: "Job search resource",
-    value: "career-code://jobs/search-profile",
+    value: "careeright://jobs/search-profile",
     description: "Read profile-derived job search settings and ranking limits.",
     icon: <FileJson aria-hidden="true" />,
   },
   {
     label: "Latest job digest",
-    value: "career-code://jobs/latest-digest",
+    value: "careeright://jobs/latest-digest",
     description: "Read the latest ranked job curation summary.",
     icon: <FileJson aria-hidden="true" />,
   },
@@ -153,7 +153,7 @@ const mcpTools: ToolDetail[] = [
     name: "seed_jobs",
     mode: "direct upsert",
     description:
-      "Upsert external job listings into the job tracker. Career Code dedupes by source job ID, apply URL, then normalized role/company/location.",
+      "Upsert external job listings into the job tracker. Careeright dedupes by source job ID, apply URL, then normalized role/company/location.",
   },
   {
     name: "list_jobs",
@@ -189,7 +189,7 @@ const mcpTools: ToolDetail[] = [
     name: "propose_profile_import",
     mode: "pending profile import",
     description:
-      "Submit structured resume data extracted by the external AI app. Career Code stores it as a pending profile import for review on the profile page.",
+      "Submit structured resume data extracted by the external AI app. Careeright stores it as a pending profile import for review on the profile page.",
   },
   {
     name: "list_boards",
@@ -373,7 +373,7 @@ export function McpToolsApp({
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
                     Required input is a prompt and a non-empty tasks array.
                     Optional title and summary become the proposal heading in
-                    Career Code.
+                    Careeright.
                   </p>
                 </div>
                 <div className="rounded-xl border border-border bg-muted/30 p-4">
@@ -565,7 +565,7 @@ function McpTokenManager({
                 Copy this token now
               </p>
               <p className="text-sm leading-6 text-muted-foreground">
-                Career Code stores only a hash. The full token will not be shown
+                Careeright stores only a hash. The full token will not be shown
                 again after this page state changes.
               </p>
             </div>

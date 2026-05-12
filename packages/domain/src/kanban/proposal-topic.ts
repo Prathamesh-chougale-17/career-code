@@ -1,4 +1,4 @@
-import type { AiProposal } from "@career-code/domain/kanban/schema";
+import type { AiProposal } from "@careeright/domain/kanban/schema";
 
 export type ProposalTopic = {
   name: string;

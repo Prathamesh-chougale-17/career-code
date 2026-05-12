@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { SignInCard } from "@/components/auth/sign-in-card";
-import { CareerCodeLogo } from "@/components/brand/career-code-logo";
+import { CareerightLogo } from "@/components/brand/careeright-logo";
 import {
   Card,
   CardContent,
@@ -69,11 +69,11 @@ function AuthSetupCard({ message }: { message: string }) {
   return (
     <Card size="sm" className="w-full max-w-md rounded-xl">
       <CardHeader className="gap-3">
-        <CareerCodeLogo className="size-12" sizes="48px" />
+        <CareerightLogo className="size-12" sizes="48px" />
         <div className="grid gap-1.5">
           <CardTitle className="text-2xl">Auth setup required</CardTitle>
           <CardDescription>
-            Career Code now uses Google OAuth for user-specific boards and MCP tokens.
+            Careeright now uses Google OAuth for user-specific boards and MCP tokens.
           </CardDescription>
         </div>
       </CardHeader>
@@ -82,7 +82,7 @@ function AuthSetupCard({ message }: { message: string }) {
         <div className="rounded-lg border border-border bg-muted/30 p-3">
           Configure <code>GOOGLE_CLIENT_ID</code>,{" "}
           <code>GOOGLE_CLIENT_SECRET</code>, and optionally{" "}
-          <code>CAREER_CODE_AUTH_SECRET</code>, <code>CAREER_CODE_AUTH_URL</code>,{" "}
+          <code>CAREERIGHT_AUTH_SECRET</code>, <code>CAREERIGHT_AUTH_URL</code>,{" "}
           and <code>MONGODB_URI</code>.
         </div>
       </CardContent>

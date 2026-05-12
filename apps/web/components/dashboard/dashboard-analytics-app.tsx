@@ -49,9 +49,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { DashboardAnalytics, DashboardCount } from "@career-code/domain/dashboard/schema";
-import { rpcClient } from "@career-code/api/client";
-import { dashboardAnalyticsQueryKey } from "@career-code/api/query-keys";
+import type { DashboardAnalytics, DashboardCount } from "@careeright/domain/dashboard/schema";
+import { rpcClient } from "@careeright/api/client";
+import { dashboardAnalyticsQueryKey } from "@careeright/api/query-keys";
 
 type CountWithMeta = DashboardCount & {
   color?: string;
@@ -204,7 +204,7 @@ export function DashboardAnalyticsApp({
                 <EmptyTitle>Could not load analytics</EmptyTitle>
                 <EmptyDescription>
                   Refresh the page and try again. Analytics are derived from
-                  your scoped Career Code stores.
+                  your scoped Careeright stores.
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
@@ -251,7 +251,7 @@ function DashboardHero({ data }: { data: DashboardAnalytics }) {
           <div className="space-y-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-heading text-2xl font-semibold tracking-normal sm:text-3xl">
-                Career Code at a glance
+                Careeright at a glance
               </h1>
               <Badge variant="outline" className="border-primary/30 bg-primary/10">
                 {readySignalCount(data)}/5 ready
@@ -635,7 +635,7 @@ function ProfileSystemsPanel({ data }: { data: DashboardAnalytics }) {
         <div>
           <CardTitle>Profile, diary, and tools</CardTitle>
           <CardDescription>
-            The context Career Code uses to keep work and job matching useful.
+            The context Careeright uses to keep work and job matching useful.
           </CardDescription>
         </div>
         <CardAction className="flex gap-2">

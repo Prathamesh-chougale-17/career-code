@@ -5,8 +5,8 @@ import {
   prioritySchema,
   proposalSourceSchema,
   proposalStatusSchema,
-} from "@career-code/domain/kanban/schema";
-import { jobStatusSchema } from "@career-code/domain/jobs/schema";
+} from "@careeright/domain/kanban/schema";
+import { jobStatusSchema } from "@careeright/domain/jobs/schema";
 
 export const dashboardCountSchema = z.object({
   label: z.string(),

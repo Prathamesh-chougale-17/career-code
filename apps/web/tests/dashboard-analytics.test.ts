@@ -2,8 +2,8 @@ import { readFile } from "node:fs/promises";
 
 import { describe, expect, test } from "vitest";
 
-import { getDashboardAnalytics } from "@career-code/domain/dashboard/analytics";
-import { saveDiaryDay } from "@career-code/domain/diary/store";
+import { getDashboardAnalytics } from "@careeright/domain/dashboard/analytics";
+import { saveDiaryDay } from "@careeright/domain/diary/store";
 import {
   acceptProposal,
   createMcpToken,
@@ -12,14 +12,14 @@ import {
   rejectProposal,
   resolveMcpToken,
   revokeMcpToken,
-} from "@career-code/domain/kanban/store";
-import { seedJobs, updateJobStatus } from "@career-code/domain/jobs/store";
+} from "@careeright/domain/kanban/store";
+import { seedJobs, updateJobStatus } from "@careeright/domain/jobs/store";
 import {
   createProfileImport,
   createProfileItem,
   rejectProfileImport,
   updateProfileBasics,
-} from "@career-code/domain/profile/store";
+} from "@careeright/domain/profile/store";
 
 process.env.MONGODB_URI = "";
 
@@ -133,7 +133,7 @@ describe("dashboard analytics", () => {
           {
             sourceJobId: `backend-${suffix}`,
             title: "Backend Engineer",
-            company: "Career Code Labs",
+            company: "Careeright Labs",
             location: "Pune",
             applyUrl: "https://example.com/backend",
             fitScore: 80,
@@ -209,7 +209,7 @@ describe("dashboard analytics", () => {
       createProfileItem(
         {
           type: "project",
-          title: "Career Code",
+          title: "Careeright",
           description: "AI-safe Kanban and job workflow.",
           tags: ["Next.js", "MongoDB"],
         },

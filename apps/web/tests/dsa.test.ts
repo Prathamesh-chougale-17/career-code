@@ -7,25 +7,25 @@ import {
   DSA_QUESTIONS,
   STATIC_DSA_TRACKS,
   buildDsaCatalogFromTrackMetadata,
-} from "@career-code/domain/dsa/catalog";
-import { LINKED_LIST_LEETCODE_QUESTIONS } from "@career-code/domain/dsa/linked-list-leetcode";
-import { updateDsaQuestionProgressInputSchema } from "@career-code/domain/dsa/schema";
+} from "@careeright/domain/dsa/catalog";
+import { LINKED_LIST_LEETCODE_QUESTIONS } from "@careeright/domain/dsa/linked-list-leetcode";
+import { updateDsaQuestionProgressInputSchema } from "@careeright/domain/dsa/schema";
 import {
   getDsaSnapshot,
   updateDsaQuestionProgress,
-} from "@career-code/domain/dsa/store";
+} from "@careeright/domain/dsa/store";
 import {
   buildDsaPlaylistEmbedUrl,
   buildDsaVideoEmbedUrl,
-} from "@career-code/domain/dsa/youtube";
-import { appRouter } from "@career-code/api/router";
+} from "@careeright/domain/dsa/youtube";
+import { appRouter } from "@careeright/api/router";
 import {
   buildCuratedDsaQuestionDocuments,
   buildGraphDsaSeed,
   buildHeapDsaSeed,
   type GraphQuestionDocument,
   type HeapQuestionDocument,
-} from "@career-code/domain/dsa/seed-data";
+} from "@careeright/domain/dsa/seed-data";
 
 process.env.MONGODB_URI = "";
 

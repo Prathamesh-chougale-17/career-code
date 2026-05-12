@@ -58,13 +58,13 @@ import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import type { DiaryDay, DiaryStatus } from "@career-code/domain/diary/schema";
-import { rpcClient } from "@career-code/api/client";
+import type { DiaryDay, DiaryStatus } from "@careeright/domain/diary/schema";
+import { rpcClient } from "@careeright/api/client";
 import {
   dashboardAnalyticsQueryKey,
   diaryDayQueryKey,
   diaryRecentQueryKey,
-} from "@career-code/api/query-keys";
+} from "@careeright/api/query-keys";
 import { cn } from "@/lib/utils";
 
 type DiaryIntervalDraft = {

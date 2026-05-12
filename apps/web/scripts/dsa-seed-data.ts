@@ -4,4 +4,4 @@ export {
   buildHeapDsaSeed,
   type GraphQuestionDocument,
   type HeapQuestionDocument,
-} from "@career-code/domain/dsa/seed-data";
+} from "@careeright/domain/dsa/seed-data";

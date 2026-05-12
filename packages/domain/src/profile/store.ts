@@ -1,7 +1,7 @@
 import type { Collection, Document } from "mongodb";
 
-import { getMongoDb, isMongoConfigured } from "@career-code/db";
-import { SOLO_USER_ID } from "@career-code/domain/kanban/schema";
+import { getMongoDb, isMongoConfigured } from "@careeright/db";
+import { SOLO_USER_ID } from "@careeright/domain/kanban/schema";
 import {
   createProfileImportInputSchema,
   createProfileItemInputSchema,
@@ -32,7 +32,7 @@ import {
   type ProfileItemType,
   type UpdateProfileApplicationDefaultsInput,
   type UpdateProfileItemInput,
-} from "@career-code/domain/profile/schema";
+} from "@careeright/domain/profile/schema";
 
 type ProfileMemoryState = {
   profiles: UserProfile[];
@@ -55,7 +55,7 @@ const sectionOrder = profileItemTypeSchema.options.reduce(
 );
 
 const globalForProfile = globalThis as typeof globalThis & {
-  __careerCodeProfileMemoryState?: ProfileMemoryState;
+  __careerightProfileMemoryState?: ProfileMemoryState;
 };
 
 function now() {
@@ -73,15 +73,15 @@ function withoutMongoId<T extends Document>(doc: T): Omit<T, "_id"> {
 }
 
 function getMemoryState(): ProfileMemoryState {
-  if (!globalForProfile.__careerCodeProfileMemoryState) {
-    globalForProfile.__careerCodeProfileMemoryState = {
+  if (!globalForProfile.__careerightProfileMemoryState) {
+    globalForProfile.__careerightProfileMemoryState = {
       profiles: [],
       items: [],
       imports: [],
     };
   }
 
-  return globalForProfile.__careerCodeProfileMemoryState;
+  return globalForProfile.__careerightProfileMemoryState;
 }
 
 function createEmptyProfile(userId: string, createdAt = now()): UserProfile {

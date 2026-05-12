@@ -20,26 +20,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  applicationName: "Career Code",
-  title: "Career Code",
+  applicationName: "Careeright",
+  title: "Careeright",
   description: "AI-to-Kanban workspace with MCP proposal tools.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Career Code",
+    title: "Careeright",
   },
   formatDetection: {
     telephone: false,
   },
   icons: {
     icon: [
-      { url: "/career-code-logo.png", sizes: "1024x1024", type: "image/png" },
-      { url: "/career-code-icon-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/career-code-icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/careeright-logo.png", sizes: "1024x1024", type: "image/png" },
+      { url: "/careeright-icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/careeright-icon-512.png", sizes: "512x512", type: "image/png" },
     ],
     apple: [
-      { url: "/career-code-apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/careeright-apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
 };

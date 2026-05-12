@@ -1,5 +1,5 @@
 {
-  "name": "@career-code/api",
+  "name": "@careeright/api",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -27,7 +27,7 @@
     "lint": "eslint . --max-warnings 0"
   },
   "dependencies": {
-    "@career-code/domain": "workspace:*",
+    "@careeright/domain": "workspace:*",
     "@orpc/client": "^1.14.0",
     "@orpc/server": "^1.14.0",
     "@orpc/tanstack-query": "^1.14.0",

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import {
   getSessionFromHeaders,
   normalizeAuthCallbackPath,
-} from "@career-code/auth/server";
+} from "@careeright/auth/server";
 
 export { getSessionFromHeaders, normalizeAuthCallbackPath };
 

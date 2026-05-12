@@ -6,8 +6,8 @@ import {
   profileApplicationDefaultsSchema,
   profileBasicsInputSchema,
   profileSchema,
-} from "@career-code/domain/profile/schema";
-import { parseResumeText } from "@career-code/domain/profile/resume-parser";
+} from "@careeright/domain/profile/schema";
+import { parseResumeText } from "@careeright/domain/profile/resume-parser";
 import {
   applyProfileImport,
   createProfileImport,
@@ -20,7 +20,7 @@ import {
   updateProfileApplicationDefaults,
   updateProfileBasics,
   updateProfileItem,
-} from "@career-code/domain/profile/store";
+} from "@careeright/domain/profile/store";
 
 process.env.MONGODB_URI = "";
 
@@ -68,7 +68,7 @@ describe("profile schemas", () => {
         {
           type: "experience",
           title: "Frontend Developer",
-          organization: "Career Code",
+          organization: "Careeright",
           tags: ["React", "TypeScript"],
         },
         {
@@ -97,7 +97,7 @@ Developer focused on reliable study tools and full-stack product workflows.
 
 Experience
 Frontend Developer
-Career Code Labs
+Careeright Labs
 Jan 2024 - Present
 - Built profile tooling with Next.js and MongoDB.
 - Improved task workflows with TypeScript.
@@ -108,7 +108,7 @@ Example University
 2021 - 2025
 
 Projects
-Career Code Dashboard | Next.js, TypeScript
+Careeright Dashboard | Next.js, TypeScript
 - Built a kanban and profile workspace.
 
 Achievements
@@ -132,7 +132,7 @@ Tools: MongoDB, React, Next.js
     expect(parsed.items.some((item) => item.type === "project")).toBe(true);
     expect(
       parsed.items.find((item) => item.type === "project")?.title,
-    ).toBe("Career Code Dashboard");
+    ).toBe("Careeright Dashboard");
     expect(parsed.items.some((item) => item.type === "achievement")).toBe(true);
     expect(
       parsed.items.some(
@@ -251,8 +251,8 @@ describe("profile store", () => {
     const project = await createProfileItem(
       {
         type: "project",
-        title: "Career Code profile section",
-        organization: "Career Code",
+        title: "Careeright profile section",
+        organization: "Careeright",
         description: "Added a profile builder with saved sections.",
         tags: ["Next.js", "MongoDB"],
       },
@@ -340,7 +340,7 @@ describe("profile store", () => {
     const existingProject = await createProfileItem(
       {
         type: "project",
-        title: "Career Code",
+        title: "Careeright",
         organization: "Open Source",
         startDate: "2026",
         tags: ["Next.js"],

@@ -4,7 +4,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "paths": {
-      "@career-code/api/*": ["./src/*"]
+      "@careeright/api/*": ["./src/*"]
     }
   },
   "include": ["src/**/*.ts"]

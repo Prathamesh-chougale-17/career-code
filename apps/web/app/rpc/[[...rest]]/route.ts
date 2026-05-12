@@ -1,7 +1,7 @@
 import { RPCHandler } from "@orpc/server/fetch";
 
-import { getSessionFromHeaders } from "@career-code/auth/server";
-import { appRouter } from "@career-code/api/router";
+import { getSessionFromHeaders } from "@careeright/auth/server";
+import { appRouter } from "@careeright/api/router";
 
 export const runtime = "nodejs";
 

@@ -8,7 +8,7 @@ import {
   prepareTaskBreakdownPromptInputSchema,
   taskBreakdownProposalReviewInputSchema,
   taskBreakdownProposalReviewSchema,
-} from "@career-code/domain/kanban/schema";
+} from "@careeright/domain/kanban/schema";
 
 const MAX_CLARIFICATION_ROUNDS = 2;
 

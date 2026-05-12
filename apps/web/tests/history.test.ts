@@ -1,12 +1,12 @@
 import { describe, expect, test } from "vitest";
 
-import { DSA_CATALOG } from "@career-code/domain/dsa/catalog";
+import { DSA_CATALOG } from "@careeright/domain/dsa/catalog";
 import {
   recordDsaVideoWatch,
   updateDsaQuestionProgress,
-} from "@career-code/domain/dsa/store";
-import { getHistorySnapshot } from "@career-code/domain/history/store";
-import { seedJobs } from "@career-code/domain/jobs/store";
+} from "@careeright/domain/dsa/store";
+import { getHistorySnapshot } from "@careeright/domain/history/store";
+import { seedJobs } from "@careeright/domain/jobs/store";
 
 process.env.MONGODB_URI = "";
 

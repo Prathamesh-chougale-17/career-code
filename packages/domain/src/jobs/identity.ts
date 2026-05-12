@@ -1,4 +1,4 @@
-import type { ParsedSeedJob, JobRecord } from "@career-code/domain/jobs/schema";
+import type { ParsedSeedJob, JobRecord } from "@careeright/domain/jobs/schema";
 
 export function normalizeJobIdentityText(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, " ");

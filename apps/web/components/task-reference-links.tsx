@@ -1,6 +1,6 @@
 import { ExternalLink } from "lucide-react";
 
-import type { ReferenceLink } from "@career-code/domain/kanban/schema";
+import type { ReferenceLink } from "@careeright/domain/kanban/schema";
 import { cn } from "@/lib/utils";
 
 type LinkableTask = {

@@ -4,10 +4,10 @@ import { resolve } from "node:path";
 import {
   createJobApplicationRun,
   getLatestUnappliedJobBatch,
-} from "@career-code/domain/jobs/store";
-import { generateJobApplicationRunReport } from "@career-code/domain/jobs/application-runner";
-import { SOLO_USER_ID } from "@career-code/domain/kanban/schema";
-import { getProfileSnapshot } from "@career-code/domain/profile/store";
+} from "@careeright/domain/jobs/store";
+import { generateJobApplicationRunReport } from "@careeright/domain/jobs/application-runner";
+import { SOLO_USER_ID } from "@careeright/domain/kanban/schema";
+import { getProfileSnapshot } from "@careeright/domain/profile/store";
 
 function userIdFromArgs() {
   const userFlagIndex = process.argv.findIndex((arg) => arg === "--user");
@@ -16,6 +16,7 @@ function userIdFromArgs() {
 
   return (
     userFlagValue?.trim() ||
+    process.env.CAREERIGHT_USER_ID ||
     process.env.CAREER_CODE_USER_ID ||
     process.env.HABAGE_USER_ID ||
     SOLO_USER_ID

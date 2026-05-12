@@ -12,12 +12,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { CareerCodeLogo } from "@/components/brand/career-code-logo";
+import { CareerightLogo } from "@/components/brand/careeright-logo";
 
 export const metadata: Metadata = {
-  title: "Career Code | MCP workspace for tasks and jobs",
+  title: "Careeright | MCP workspace for tasks and jobs",
   description:
-    "Career Code turns AI-generated plans into reviewable Kanban proposals and tracks MCP-seeded job opportunities by date and status.",
+    "Careeright turns AI-generated plans into reviewable Kanban proposals and tracks MCP-seeded job opportunities by date and status.",
 };
 
 const workflowSteps = [
@@ -54,12 +54,12 @@ export default function Home() {
             <Link
               href="/"
               className="flex items-center gap-3"
-              aria-label="Career Code home"
+              aria-label="Careeright home"
             >
-              <CareerCodeLogo priority />
+              <CareerightLogo priority />
               <span className="grid">
                 <span className="font-heading text-lg font-semibold leading-none">
-                  Career Code
+                  Careeright
                 </span>
                 <span className="mt-1 text-xs text-lime-100/70">
                   AI-safe Kanban
@@ -88,7 +88,7 @@ export default function Home() {
               MCP-native planning and job tracking
             </p>
             <h1 className="max-w-3xl font-heading text-5xl font-semibold leading-[1.02] tracking-normal text-white sm:text-6xl lg:text-7xl">
-              Career Code
+              Careeright
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-8 text-zinc-300">
               A focused workspace where AI clients prepare reviewable task
@@ -179,7 +179,7 @@ export default function Home() {
           <div className="rounded-3xl border border-white/10 bg-[#141612] p-6">
             <p className="text-sm font-medium text-lime-300">Trust model</p>
             <h2 className="mt-3 font-heading text-3xl font-semibold tracking-normal text-white">
-              MCP clients write into Career Code with clear boundaries.
+              MCP clients write into Careeright with clear boundaries.
             </h2>
             <ul className="mt-6 grid gap-4 text-sm leading-6 text-zinc-300">
               {trustPoints.map((point) => (
@@ -246,7 +246,7 @@ function WorkspacePreview() {
     <div className="relative w-full overflow-hidden rounded-[2rem] border border-white/10 bg-[#151713] p-4 shadow-2xl shadow-black/40">
       <div className="flex items-center justify-between border-b border-white/10 pb-4">
         <div>
-          <p className="text-sm font-semibold text-white">Career Code workspace</p>
+          <p className="text-sm font-semibold text-white">Careeright workspace</p>
           <p className="mt-1 text-xs text-zinc-400">
             Proposals and jobs waiting for review
           </p>

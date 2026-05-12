@@ -6,13 +6,13 @@ import {
   diaryDaySchema,
   saveDiaryDayInputSchema,
   saveDiaryIntervalInputSchema,
-} from "@career-code/domain/diary/schema";
+} from "@careeright/domain/diary/schema";
 import {
   deleteDiaryDay,
   getDiaryDay,
   listRecentDiaryDays,
   saveDiaryDay,
-} from "@career-code/domain/diary/store";
+} from "@careeright/domain/diary/store";
 
 process.env.MONGODB_URI = "";
 

@@ -1,5 +1,5 @@
 {
-  "name": "@career-code/auth",
+  "name": "@careeright/auth",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -21,7 +21,7 @@
   "dependencies": {
     "@better-auth/memory-adapter": "^1.6.10",
     "@better-auth/mongo-adapter": "^1.6.9",
-    "@career-code/db": "workspace:*",
+    "@careeright/db": "workspace:*",
     "better-auth": "^1.6.9"
   },
   "devDependencies": {

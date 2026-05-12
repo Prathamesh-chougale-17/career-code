@@ -8,8 +8,8 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: [
     "pdf-parse",
-    "@career-code/auth",
-    "@career-code/db",
+    "@careeright/auth",
+    "@careeright/db",
     "better-auth",
     "@better-auth/mongo-adapter",
     "@better-auth/kysely-adapter",

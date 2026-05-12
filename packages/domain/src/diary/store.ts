@@ -1,7 +1,7 @@
 import type { Collection, Document } from "mongodb";
 
-import { getMongoDb, isMongoConfigured } from "@career-code/db";
-import { SOLO_USER_ID } from "@career-code/domain/kanban/schema";
+import { getMongoDb, isMongoConfigured } from "@careeright/db";
+import { SOLO_USER_ID } from "@careeright/domain/kanban/schema";
 import {
   deleteDiaryDayInputSchema,
   deleteDiaryDayResultSchema,
@@ -19,7 +19,7 @@ import {
   type ParsedSaveDiaryIntervalInput,
   type SaveDiaryDayInput,
   type DeleteDiaryDayInput,
-} from "@career-code/domain/diary/schema";
+} from "@careeright/domain/diary/schema";
 
 type DiaryMemoryState = {
   days: DiaryDay[];
@@ -30,7 +30,7 @@ type DiaryCollections = {
 };
 
 const globalForDiary = globalThis as typeof globalThis & {
-  __careerCodeDiaryMemoryState?: DiaryMemoryState;
+  __careerightDiaryMemoryState?: DiaryMemoryState;
 };
 
 function now() {
@@ -48,13 +48,13 @@ function withoutMongoId<T extends Document>(doc: T): Omit<T, "_id"> {
 }
 
 function getMemoryState(): DiaryMemoryState {
-  if (!globalForDiary.__careerCodeDiaryMemoryState) {
-    globalForDiary.__careerCodeDiaryMemoryState = {
+  if (!globalForDiary.__careerightDiaryMemoryState) {
+    globalForDiary.__careerightDiaryMemoryState = {
       days: [],
     };
   }
 
-  return globalForDiary.__careerCodeDiaryMemoryState;
+  return globalForDiary.__careerightDiaryMemoryState;
 }
 
 async function getCollections(): Promise<DiaryCollections> {

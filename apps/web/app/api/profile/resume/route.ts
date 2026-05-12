@@ -1,8 +1,8 @@
 import { Buffer } from "node:buffer";
 
-import { getSessionFromHeaders } from "@career-code/auth/server";
-import { parseResumeText } from "@career-code/domain/profile/resume-parser";
-import { createProfileImport } from "@career-code/domain/profile/store";
+import { getSessionFromHeaders } from "@careeright/auth/server";
+import { parseResumeText } from "@careeright/domain/profile/resume-parser";
+import { createProfileImport } from "@careeright/domain/profile/store";
 
 export const runtime = "nodejs";
 

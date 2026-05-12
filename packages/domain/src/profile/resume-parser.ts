@@ -2,7 +2,7 @@ import type {
   CreateProfileItemInput,
   ProfileBasicsDraft,
   ProfileItemType,
-} from "@career-code/domain/profile/schema";
+} from "@careeright/domain/profile/schema";
 
 type ResumeSectionKey =
   | "summary"

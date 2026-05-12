@@ -9,6 +9,6 @@ if (
 }
 
 export const inngest = new Inngest({
-  id: "career-code",
+  id: "careeright",
 });
 

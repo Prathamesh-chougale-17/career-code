@@ -1,28 +1,28 @@
 import { os } from "@orpc/server";
 
-import { getDashboardAnalytics } from "@career-code/domain/dashboard/analytics";
+import { getDashboardAnalytics } from "@careeright/domain/dashboard/analytics";
 import {
   deleteDiaryDay,
   getDiaryDay,
   listRecentDiaryDays,
   saveDiaryDay,
-} from "@career-code/domain/diary/store";
+} from "@careeright/domain/diary/store";
 import {
   deleteDiaryDayInputSchema,
   getDiaryDayInputSchema,
   listRecentDiaryInputSchema,
   saveDiaryDayInputSchema,
-} from "@career-code/domain/diary/schema";
+} from "@careeright/domain/diary/schema";
 import {
   getDsaSnapshot,
   recordDsaVideoWatch,
   updateDsaQuestionProgress,
-} from "@career-code/domain/dsa/store";
+} from "@careeright/domain/dsa/store";
 import {
   recordDsaVideoWatchInputSchema,
   updateDsaQuestionProgressInputSchema,
-} from "@career-code/domain/dsa/schema";
-import { getHistorySnapshot } from "@career-code/domain/history/store";
+} from "@careeright/domain/dsa/schema";
+import { getHistorySnapshot } from "@careeright/domain/history/store";
 import {
   acceptProposal,
   createMcpToken,
@@ -42,7 +42,7 @@ import {
   revokeMcpToken,
   revertTaskToProposal,
   updateTask,
-} from "@career-code/domain/kanban/store";
+} from "@careeright/domain/kanban/store";
 import {
   createJobApplicationRun,
   deleteJob,
@@ -54,7 +54,7 @@ import {
   updateJobApplicationAttempt,
   updateJobSearchProfile,
   updateJobStatus,
-} from "@career-code/domain/jobs/store";
+} from "@careeright/domain/jobs/store";
 import {
   createJobApplicationRunInputSchema,
   deleteJobInputSchema,
@@ -62,7 +62,7 @@ import {
   updateJobApplicationAttemptInputSchema,
   updateJobSearchProfileInputSchema,
   updateJobStatusInputSchema,
-} from "@career-code/domain/jobs/schema";
+} from "@careeright/domain/jobs/schema";
 import {
   breakdownPromptInputSchema,
   createMcpTokenInputSchema,
@@ -76,7 +76,7 @@ import {
   revokeMcpTokenInputSchema,
   revertTaskToProposalInputSchema,
   updateTaskInputSchema,
-} from "@career-code/domain/kanban/schema";
+} from "@careeright/domain/kanban/schema";
 import {
   applyProfileImport,
   createProfileItem,
@@ -87,7 +87,7 @@ import {
   updateProfileApplicationDefaults,
   updateProfileBasics,
   updateProfileItem,
-} from "@career-code/domain/profile/store";
+} from "@careeright/domain/profile/store";
 import {
   createProfileItemInputSchema,
   deleteProfileItemInputSchema,
@@ -95,7 +95,7 @@ import {
   profileBasicsInputSchema,
   updateProfileApplicationDefaultsInputSchema,
   updateProfileItemInputSchema,
-} from "@career-code/domain/profile/schema";
+} from "@careeright/domain/profile/schema";
 
 type AuthenticatedRpcContext = {
   userId: string;

@@ -1,4 +1,4 @@
-import { getAuth } from "@career-code/auth/server";
+import { getAuth } from "@careeright/auth/server";
 
 export const runtime = "nodejs";
 

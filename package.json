@@ -1,5 +1,5 @@
 {
-  "name": "careercode",
+  "name": "careeright",
   "private": true,
   "scripts": {
     "build": "turbo run build",
@@ -8,13 +8,13 @@
     "test": "turbo run test",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "mcp": "pnpm --filter @career-code/mcp build && pnpm --filter @career-code/mcp stdio",
-    "mcp:package:build": "pnpm --filter career-code-mcp build",
-    "mcp:package:pack": "pnpm run mcp:package:build && pnpm --filter career-code-mcp exec npm pack --dry-run",
-    "mcp:package:publish": "pnpm run mcp:package:build && pnpm --filter career-code-mcp exec npm publish",
-    "jobs:apply:attempt": "pnpm --filter @career-code/jobs apply:attempt",
-    "jobs:apply:plan": "pnpm --filter @career-code/jobs apply:plan",
-    "cleanup:solo-user": "pnpm --filter @career-code/jobs cleanup:solo-user"
+    "mcp": "pnpm --filter @careeright/mcp build && pnpm --filter @careeright/mcp stdio",
+    "mcp:package:build": "pnpm --filter careeright-mcp build",
+    "mcp:package:pack": "pnpm run mcp:package:build && pnpm --filter careeright-mcp exec npm pack --dry-run",
+    "mcp:package:publish": "pnpm run mcp:package:build && pnpm --filter careeright-mcp exec npm publish",
+    "jobs:apply:attempt": "pnpm --filter @careeright/jobs apply:attempt",
+    "jobs:apply:plan": "pnpm --filter @careeright/jobs apply:plan",
+    "cleanup:solo-user": "pnpm --filter @careeright/jobs cleanup:solo-user"
   },
   "devDependencies": {
     "prettier": "^3.7.4",

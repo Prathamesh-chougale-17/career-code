@@ -1,5 +1,5 @@
-import type { Board, BoardColumn } from "@career-code/domain/kanban/schema";
-import { DEFAULT_BOARD_ID, SOLO_USER_ID } from "@career-code/domain/kanban/schema";
+import type { Board, BoardColumn } from "@careeright/domain/kanban/schema";
+import { DEFAULT_BOARD_ID, SOLO_USER_ID } from "@careeright/domain/kanban/schema";
 
 export const defaultColumnDefinitions = [
   {

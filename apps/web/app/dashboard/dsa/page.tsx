@@ -1,6 +1,6 @@
 import { DsaApp } from "@/components/dsa/dsa-app";
 import { requirePageSession } from "@/lib/auth/session";
-import { getDsaSnapshot } from "@career-code/domain/dsa/store";
+import { getDsaSnapshot } from "@careeright/domain/dsa/store";
 import { loadInitialData } from "@/lib/server/initial-data";
 
 export default async function DashboardDsaPage() {

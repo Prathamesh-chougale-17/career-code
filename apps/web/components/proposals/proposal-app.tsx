@@ -50,16 +50,16 @@ import {
   type AiProposal,
   type BoardSnapshot,
   type ProposedTask,
-} from "@career-code/domain/kanban/schema";
-import { proposalTopic, type ProposalTopic } from "@career-code/domain/kanban/proposal-topic";
-import { taskFingerprint } from "@career-code/domain/kanban/task-fingerprint";
-import { rpcClient } from "@career-code/api/client";
+} from "@careeright/domain/kanban/schema";
+import { proposalTopic, type ProposalTopic } from "@careeright/domain/kanban/proposal-topic";
+import { taskFingerprint } from "@careeright/domain/kanban/task-fingerprint";
+import { rpcClient } from "@careeright/api/client";
 import {
   boardSnapshotQueryKey,
   dashboardAnalyticsQueryKey,
   dashboardMetricsQueryKey,
   proposalHistoryQueryKey,
-} from "@career-code/api/query-keys";
+} from "@careeright/api/query-keys";
 import { cn } from "@/lib/utils";
 
 type TopicGroup = {

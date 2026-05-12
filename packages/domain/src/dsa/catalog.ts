@@ -4,8 +4,8 @@ import {
   type DsaCatalog,
   type DsaQuestion,
   type DsaTrackMetadata,
-} from "@career-code/domain/dsa/schema";
-import { LINKED_LIST_LEETCODE_QUESTIONS } from "@career-code/domain/dsa/linked-list-leetcode";
+} from "@careeright/domain/dsa/schema";
+import { LINKED_LIST_LEETCODE_QUESTIONS } from "@careeright/domain/dsa/linked-list-leetcode";
 
 const LINKED_LIST_TRACK_ID = "linked-list";
 const LINKED_LIST_PLAYLIST_ID = "PLgUwDviBIf0rAuz8tVcM0AymmhTRsfaLU";

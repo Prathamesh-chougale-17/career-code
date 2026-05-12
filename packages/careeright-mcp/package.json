@@ -1,20 +1,20 @@
 {
-  "name": "career-code-mcp",
+  "name": "careeright-mcp",
   "version": "0.1.0",
-  "description": "Stdio MCP bridge for connecting AI clients to a Career Code workspace.",
+  "description": "Stdio MCP bridge for connecting AI clients to a Careeright workspace.",
   "type": "module",
   "license": "UNLICENSED",
   "homepage": "https://github.com/Prathamesh-chougale-17/career-code#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Prathamesh-chougale-17/career-code.git",
-    "directory": "packages/career-code-mcp"
+    "directory": "packages/careeright-mcp"
   },
   "bugs": {
     "url": "https://github.com/Prathamesh-chougale-17/career-code/issues"
   },
   "keywords": [
-    "career-code",
+    "careeright",
     "mcp",
     "model-context-protocol",
     "kanban",
@@ -23,7 +23,7 @@
   "main": "./dist/stdio-proxy.js",
   "types": "./dist/stdio-proxy.d.ts",
   "bin": {
-    "career-code-mcp": "dist/stdio-proxy.js"
+    "careeright-mcp": "dist/stdio-proxy.js"
   },
   "files": [
     "dist",

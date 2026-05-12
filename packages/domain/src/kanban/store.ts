@@ -5,16 +5,16 @@ import type { Collection, Document, Filter } from "mongodb";
 import {
   createTaskBreakdown,
   type TaskBreakdownResult,
-} from "@career-code/domain/ai/task-breakdown";
-import { getMongoDb, isMongoConfigured } from "@career-code/db";
-import { deleteDiaryUserData } from "@career-code/domain/diary/store";
-import { deleteDsaUserData } from "@career-code/domain/dsa/store";
-import { deleteJobUserData } from "@career-code/domain/jobs/store";
+} from "@careeright/domain/ai/task-breakdown";
+import { getMongoDb, isMongoConfigured } from "@careeright/db";
+import { deleteDiaryUserData } from "@careeright/domain/diary/store";
+import { deleteDsaUserData } from "@careeright/domain/dsa/store";
+import { deleteJobUserData } from "@careeright/domain/jobs/store";
 import {
   createDefaultBoard,
   createDefaultColumns,
-} from "@career-code/domain/kanban/defaults";
-import { deleteProfileUserData } from "@career-code/domain/profile/store";
+} from "@careeright/domain/kanban/defaults";
+import { deleteProfileUserData } from "@careeright/domain/profile/store";
 import {
   type AiProposal,
   type AiRun,
@@ -58,7 +58,7 @@ import {
   taskReferenceSchema,
   taskUpdatePayloadSchema,
   updateTaskInputSchema,
-} from "@career-code/domain/kanban/schema";
+} from "@careeright/domain/kanban/schema";
 
 type TaskWithOptionalNumber = Omit<KanbanTask, "taskNumber"> & {
   taskNumber?: number;
@@ -90,7 +90,7 @@ type Collections = {
 };
 
 const globalForKanban = globalThis as typeof globalThis & {
-  __careerCodeMemoryState?: MemoryState;
+  __careerightMemoryState?: MemoryState;
 };
 
 type Counter = {
@@ -222,10 +222,10 @@ function ensureMemoryTaskNumbers(boardId?: string, userId = SOLO_USER_ID) {
 }
 
 function getMemoryState(): MemoryState {
-  if (!globalForKanban.__careerCodeMemoryState) {
+  if (!globalForKanban.__careerightMemoryState) {
     const createdAt = now();
 
-    globalForKanban.__careerCodeMemoryState = {
+    globalForKanban.__careerightMemoryState = {
       boards: [createDefaultBoard(createdAt)],
       columns: createDefaultColumns(DEFAULT_BOARD_ID, SOLO_USER_ID, createdAt),
       tasks: [],
@@ -237,7 +237,7 @@ function getMemoryState(): MemoryState {
     };
   }
 
-  return globalForKanban.__careerCodeMemoryState;
+  return globalForKanban.__careerightMemoryState;
 }
 
 function ensureMemoryWorkspace(userId = SOLO_USER_ID) {

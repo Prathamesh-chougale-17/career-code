@@ -1,7 +1,7 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 
-import { createKanbanMcpServer } from "@career-code/mcp/server";
-import { resolveMcpToken } from "@career-code/domain/kanban/store";
+import { createKanbanMcpServer } from "@careeright/mcp/server";
+import { resolveMcpToken } from "@careeright/domain/kanban/store";
 
 export const runtime = "nodejs";
 

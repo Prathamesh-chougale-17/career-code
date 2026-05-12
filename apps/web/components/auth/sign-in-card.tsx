@@ -3,7 +3,7 @@
 import { Loader2, LogIn } from "lucide-react";
 import { useState } from "react";
 
-import { CareerCodeLogo } from "@/components/brand/career-code-logo";
+import { CareerightLogo } from "@/components/brand/careeright-logo";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -45,9 +45,9 @@ export function SignInCard({ callbackURL }: { callbackURL: string }) {
   return (
     <Card size="sm" className="w-full max-w-md rounded-xl">
       <CardHeader className="gap-3">
-        <CareerCodeLogo className="size-12" sizes="48px" />
+        <CareerightLogo className="size-12" sizes="48px" />
         <div className="grid gap-1.5">
-          <CardTitle className="text-2xl">Sign in to Career Code</CardTitle>
+          <CardTitle className="text-2xl">Sign in to Careeright</CardTitle>
           <CardDescription>
             Use your Google account to open your personal board, proposals, and
             MCP tokens.

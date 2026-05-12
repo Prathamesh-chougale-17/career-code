@@ -1,6 +1,6 @@
 import { McpToolsApp } from "@/components/mcp/mcp-tools-app";
 import { requirePageSession } from "@/lib/auth/session";
-import { listMcpTokens } from "@career-code/domain/kanban/store";
+import { listMcpTokens } from "@careeright/domain/kanban/store";
 import { loadInitialData } from "@/lib/server/initial-data";
 
 export default async function DashboardMcpToolsPage() {

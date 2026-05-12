@@ -16,7 +16,7 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 
 import { UserAccountMenu } from "@/components/auth/user-account-menu";
-import { CareerCodeLogo } from "@/components/brand/career-code-logo";
+import { CareerightLogo } from "@/components/brand/careeright-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Sidebar,
@@ -33,8 +33,8 @@ import {
   SidebarSeparator,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { dashboardMetricsQueryKey } from "@career-code/api/query-keys";
-import { rpcClient } from "@career-code/api/client";
+import { dashboardMetricsQueryKey } from "@careeright/api/query-keys";
+import { rpcClient } from "@careeright/api/client";
 
 export type DashboardSidebarSection =
   | "analytics"
@@ -104,13 +104,13 @@ export function DashboardSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               size="lg"
-              tooltip="Career Code"
+              tooltip="Careeright"
               className="group-data-[collapsible=icon]:justify-center"
               render={<Link href="/" />}
             >
-              <CareerCodeLogo className="size-8 rounded-lg" sizes="32px" />
+              <CareerightLogo className="size-8 rounded-lg" sizes="32px" />
               <span className="flex min-w-0 flex-col group-data-[collapsible=icon]:hidden">
-                <span className="truncate font-semibold">Career Code</span>
+                <span className="truncate font-semibold">Careeright</span>
                 <span className="truncate text-xs text-sidebar-foreground/70">
                   AI-safe Kanban
                 </span>

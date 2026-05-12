@@ -6,7 +6,7 @@ import {
   buildDsaCatalogFromTrackMetadata,
   dsaCatalogQuestionIds,
   dsaCatalogQuestionOrder,
-} from "@career-code/domain/dsa/catalog";
+} from "@careeright/domain/dsa/catalog";
 import {
   dsaCatalogSchema,
   dsaQuestionSchema,
@@ -25,9 +25,9 @@ import {
   type DsaSnapshot,
   type RecordDsaVideoWatchInput,
   type UpdateDsaQuestionProgressInput,
-} from "@career-code/domain/dsa/schema";
-import { getMongoDb, isMongoConfigured } from "@career-code/db";
-import { SOLO_USER_ID } from "@career-code/domain/kanban/schema";
+} from "@careeright/domain/dsa/schema";
+import { getMongoDb, isMongoConfigured } from "@careeright/db";
+import { SOLO_USER_ID } from "@careeright/domain/kanban/schema";
 
 type DsaMemoryState = {
   tracks: DsaTrackMetadata[];
@@ -44,7 +44,7 @@ type DsaCollections = {
 };
 
 const globalForDsa = globalThis as typeof globalThis & {
-  __careerCodeDsaMemoryState?: DsaMemoryState;
+  __careerightDsaMemoryState?: DsaMemoryState;
 };
 
 function now() {
@@ -62,8 +62,8 @@ function withoutMongoId<T extends Document>(doc: T): Omit<T, "_id"> {
 }
 
 function getMemoryState(): DsaMemoryState {
-  if (!globalForDsa.__careerCodeDsaMemoryState) {
-    globalForDsa.__careerCodeDsaMemoryState = {
+  if (!globalForDsa.__careerightDsaMemoryState) {
+    globalForDsa.__careerightDsaMemoryState = {
       tracks: STATIC_DSA_TRACKS,
       questions: DSA_QUESTIONS,
       progress: [],
@@ -71,7 +71,7 @@ function getMemoryState(): DsaMemoryState {
     };
   }
 
-  return globalForDsa.__careerCodeDsaMemoryState;
+  return globalForDsa.__careerightDsaMemoryState;
 }
 
 async function getCollections(): Promise<DsaCollections> {

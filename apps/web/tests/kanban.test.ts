@@ -5,9 +5,9 @@ import {
   createTaskBreakdown,
   taskBreakdownOutputSchema,
   type TaskBreakdownResult,
-} from "@career-code/domain/ai/task-breakdown";
-import { getAuthRuntimeConfig } from "@career-code/auth/server";
-import { getMongoDatabaseName } from "@career-code/db";
+} from "@careeright/domain/ai/task-breakdown";
+import { getAuthRuntimeConfig } from "@careeright/auth/server";
+import { getMongoDatabaseName } from "@careeright/db";
 import { POST as handleMcpPost } from "../app/mcp/route";
 import {
   type AiProposal,
@@ -20,13 +20,13 @@ import {
   taskReferenceSchema,
   taskSchema,
   taskUpdatePatchSchema,
-} from "@career-code/domain/kanban/schema";
+} from "@careeright/domain/kanban/schema";
 import {
   prepareTaskBreakdownPrompt,
   reviewTaskBreakdownProposal,
-} from "@career-code/domain/kanban/prompt-preparation";
-import { proposalTopic } from "@career-code/domain/kanban/proposal-topic";
-import { taskFingerprint } from "@career-code/domain/kanban/task-fingerprint";
+} from "@careeright/domain/kanban/prompt-preparation";
+import { proposalTopic } from "@careeright/domain/kanban/proposal-topic";
+import { taskFingerprint } from "@careeright/domain/kanban/task-fingerprint";
 import {
   acceptProposal,
   createMcpToken,
@@ -47,11 +47,11 @@ import {
   resolveTaskReference,
   revokeMcpToken,
   revertTaskToProposal,
-} from "@career-code/domain/kanban/store";
+} from "@careeright/domain/kanban/store";
 import {
   createKanbanMcpServer,
   mcpTaskReferenceSchema,
-} from "@career-code/mcp/server";
+} from "@careeright/mcp/server";
 
 process.env.MONGODB_URI = "";
 
@@ -86,10 +86,10 @@ describe("db config", () => {
   test("prefers MONGODB_DB and supports legacy MONGODB_DB_NAME", () => {
     expect(
       getMongoDatabaseName({
-        MONGODB_DB: "career-code-custom",
+        MONGODB_DB: "careeright-custom",
         MONGODB_DB_NAME: "legacy-name",
       }),
-    ).toBe("career-code-custom");
+    ).toBe("careeright-custom");
 
     expect(
       getMongoDatabaseName({
@@ -97,7 +97,7 @@ describe("db config", () => {
       }),
     ).toBe("legacy-name");
 
-    expect(getMongoDatabaseName({})).toBe("career-code");
+    expect(getMongoDatabaseName({})).toBe("careeright");
   });
 });
 
@@ -1759,7 +1759,7 @@ describe("mcp permissions", () => {
         {
           type: "experience",
           title: "Frontend Developer",
-          organization: "Career Code",
+          organization: "Careeright",
           startDate: "2025",
           endDate: "Present",
           description: "Built profile and MCP workflows.",

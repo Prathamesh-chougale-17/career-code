@@ -4,7 +4,7 @@ import {
   getJobSearchProfile,
   listJobDigests,
   listJobs,
-} from "@career-code/domain/jobs/store";
+} from "@careeright/domain/jobs/store";
 import { loadInitialData } from "@/lib/server/initial-data";
 
 export default async function DashboardJobsPage() {

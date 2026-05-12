@@ -1,22 +1,22 @@
 import type { Collection, Document, Filter } from "mongodb";
 
-import { getMongoDb, isMongoConfigured } from "@career-code/db";
-import { enrichScoredJobsWithAi } from "@career-code/domain/jobs/ai-fit";
+import { getMongoDb, isMongoConfigured } from "@careeright/db";
+import { enrichScoredJobsWithAi } from "@careeright/domain/jobs/ai-fit";
 import {
   jobFingerprint,
   jobIdentityKeySet,
   matchesJobFingerprint,
   normalizeJobIdentityText,
   seedJobIdentityKeySet,
-} from "@career-code/domain/jobs/identity";
+} from "@careeright/domain/jobs/identity";
 import {
   defaultJobSearchProfileInput,
   enrichSeedJobWithScore,
   scoreJobCandidate,
   searchKeywordsForProfile,
   type ScoredJobCandidate,
-} from "@career-code/domain/jobs/matcher";
-import { SOLO_USER_ID } from "@career-code/domain/kanban/schema";
+} from "@careeright/domain/jobs/matcher";
+import { SOLO_USER_ID } from "@careeright/domain/kanban/schema";
 import {
   jobDigestListSchema,
   jobDigestSchema,
@@ -56,8 +56,8 @@ import {
   type UpdateJobApplicationAttemptInput,
   type UpdateJobSearchProfileInput,
   type UpdateJobStatusInput,
-} from "@career-code/domain/jobs/schema";
-import { getProfileSnapshot } from "@career-code/domain/profile/store";
+} from "@careeright/domain/jobs/schema";
+import { getProfileSnapshot } from "@careeright/domain/profile/store";
 
 type JobsMemoryState = {
   jobs: JobRecord[];
@@ -74,7 +74,7 @@ type JobsCollections = {
 };
 
 const globalForJobs = globalThis as typeof globalThis & {
-  __careerCodeJobsMemoryState?: JobsMemoryState;
+  __careerightJobsMemoryState?: JobsMemoryState;
 };
 
 function now() {
@@ -103,8 +103,8 @@ function isActiveJob(job: JobRecord) {
 }
 
 function getMemoryState(): JobsMemoryState {
-  if (!globalForJobs.__careerCodeJobsMemoryState) {
-    globalForJobs.__careerCodeJobsMemoryState = {
+  if (!globalForJobs.__careerightJobsMemoryState) {
+    globalForJobs.__careerightJobsMemoryState = {
       jobs: [],
       searchProfiles: [],
       digests: [],
@@ -112,7 +112,7 @@ function getMemoryState(): JobsMemoryState {
     };
   }
 
-  return globalForJobs.__careerCodeJobsMemoryState;
+  return globalForJobs.__careerightJobsMemoryState;
 }
 
 async function getCollections(): Promise<JobsCollections> {

@@ -1,8 +1,8 @@
 import { generateText, Output } from "ai";
 import { z } from "zod";
 
-import type { ScoredJobCandidate } from "@career-code/domain/jobs/matcher";
-import type { JobSearchProfile } from "@career-code/domain/jobs/schema";
+import type { ScoredJobCandidate } from "@careeright/domain/jobs/matcher";
+import type { JobSearchProfile } from "@careeright/domain/jobs/schema";
 
 const aiJobFitOutputSchema = z.object({
   fitReasons: z.array(z.string().trim().min(1).max(220)).max(4).default([]),
@@ -10,7 +10,7 @@ const aiJobFitOutputSchema = z.object({
 });
 
 const AI_JOB_FIT_SYSTEM_PROMPT = [
-  "You write concise job-fit explanations for Career Code.",
+  "You write concise job-fit explanations for Careeright.",
   "Do not change scores, invent facts, or use salary as a ranking signal.",
   "Prefer concrete reasons tied to role, skills, experience level, location, and company quality.",
   "Return only short fitReasons and riskFlags that are directly supported by the job data.",

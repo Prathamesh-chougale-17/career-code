@@ -4,14 +4,14 @@ import { z } from "zod";
 import {
   type ProposedTask,
   proposedTaskSchema,
-} from "@career-code/domain/kanban/schema";
+} from "@careeright/domain/kanban/schema";
 
 export const taskBreakdownOutputSchema = z.object({
   tasks: z.array(proposedTaskSchema).min(1),
 });
 
 export const TASK_BREAKDOWN_SYSTEM_PROMPT = [
-  "You create pending Career Code task_breakdown proposals. You do not create direct Todo cards.",
+  "You create pending Careeright task_breakdown proposals. You do not create direct Todo cards.",
   "Create as many concise, actionable tasks as needed for the user's request; avoid padding, artificial caps, or stopping early when the plan needs more tasks.",
   "Use a foundation-to-advanced progression with exact dependencies that reference earlier task titles.",
   "Every task must include a short title, concrete description, priority, suggestedColumn, acceptanceCriteria, and dependencies.",

@@ -1,8 +1,8 @@
 import { Db, MongoClient } from "mongodb";
 
 const globalForMongo = globalThis as typeof globalThis & {
-  __careerCodeMongoClientPromise?: Promise<MongoClient>;
-  __careerCodeMongoIndexPromise?: Promise<void>;
+  __careerightMongoClientPromise?: Promise<MongoClient>;
+  __careerightMongoIndexPromise?: Promise<void>;
 };
 
 type MongoRuntimeEnv = Record<string, string | undefined>;
@@ -18,33 +18,33 @@ export async function getMongoClient() {
     throw new Error("MONGODB_URI is not configured.");
   }
 
-  if (!globalForMongo.__careerCodeMongoClientPromise) {
+  if (!globalForMongo.__careerightMongoClientPromise) {
     const client = new MongoClient(uri);
-    globalForMongo.__careerCodeMongoClientPromise = client.connect();
+    globalForMongo.__careerightMongoClientPromise = client.connect();
   }
 
-  return globalForMongo.__careerCodeMongoClientPromise;
+  return globalForMongo.__careerightMongoClientPromise;
 }
 
 export async function getMongoDb(): Promise<Db> {
   const client = await getMongoClient();
   const db = client.db(getMongoDatabaseName());
 
-  if (!globalForMongo.__careerCodeMongoIndexPromise) {
-    globalForMongo.__careerCodeMongoIndexPromise = ensureMongoIndexes(db).catch(
+  if (!globalForMongo.__careerightMongoIndexPromise) {
+    globalForMongo.__careerightMongoIndexPromise = ensureMongoIndexes(db).catch(
       (error) => {
         console.error("[mongodb] Could not ensure application indexes.", error);
       },
     );
   }
 
-  await globalForMongo.__careerCodeMongoIndexPromise;
+  await globalForMongo.__careerightMongoIndexPromise;
 
   return db;
 }
 
 export function getMongoDatabaseName(env: MongoRuntimeEnv = process.env) {
-  return env.MONGODB_DB?.trim() || env.MONGODB_DB_NAME?.trim() || "career-code";
+  return env.MONGODB_DB?.trim() || env.MONGODB_DB_NAME?.trim() || "careeright";
 }
 
 async function ensureMongoIndexes(db: Db) {

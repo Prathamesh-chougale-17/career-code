@@ -1,7 +1,7 @@
-import { getDsaSnapshot, listDsaVideoWatchEvents } from "@career-code/domain/dsa/store";
-import { historySnapshotSchema, type HistoryDay } from "@career-code/domain/history/schema";
-import { listJobs } from "@career-code/domain/jobs/store";
-import { SOLO_USER_ID } from "@career-code/domain/kanban/schema";
+import { getDsaSnapshot, listDsaVideoWatchEvents } from "@careeright/domain/dsa/store";
+import { historySnapshotSchema, type HistoryDay } from "@careeright/domain/history/schema";
+import { listJobs } from "@careeright/domain/jobs/store";
+import { SOLO_USER_ID } from "@careeright/domain/kanban/schema";
 
 const HISTORY_DAY_COUNT = 30;
 const TRACKED_JOB_STATUS_KEYS = {

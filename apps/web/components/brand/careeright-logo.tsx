@@ -2,7 +2,7 @@ import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 
-type CareerCodeLogoProps = {
+type CareerightLogoProps = {
   alt?: string;
   className?: string;
   imageClassName?: string;
@@ -10,13 +10,13 @@ type CareerCodeLogoProps = {
   sizes?: string;
 };
 
-export function CareerCodeLogo({
+export function CareerightLogo({
   alt = "",
   className,
   imageClassName,
   priority = false,
   sizes = "40px",
-}: CareerCodeLogoProps) {
+}: CareerightLogoProps) {
   return (
     <span
       className={cn(
@@ -25,7 +25,7 @@ export function CareerCodeLogo({
       )}
     >
       <Image
-        src="/career-code-logo.png"
+        src="/careeright-logo.png"
         alt={alt}
         fill
         sizes={sizes}

@@ -5,7 +5,7 @@ import {
   type JobSearchProfile,
   type ParsedSeedJob,
   type SeedJobInput,
-} from "@career-code/domain/jobs/schema";
+} from "@careeright/domain/jobs/schema";
 
 export const JOB_SCORE_VERSION = "job-match-v1";
 

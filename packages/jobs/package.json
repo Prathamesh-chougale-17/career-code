@@ -1,5 +1,5 @@
 {
-  "name": "@career-code/jobs",
+  "name": "@careeright/jobs",
   "version": "0.0.0",
   "type": "module",
   "private": true,
@@ -18,7 +18,7 @@
     "cleanup:solo-user": "tsx src/delete-solo-user-data.ts"
   },
   "dependencies": {
-    "@career-code/domain": "workspace:*"
+    "@careeright/domain": "workspace:*"
   },
   "devDependencies": {
     "@repo/eslint-config": "workspace:*",
