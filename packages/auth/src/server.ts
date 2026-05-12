@@ -17,17 +17,18 @@ const globalForAuth = globalThis as typeof globalThis & {
 export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
   const isProduction = env.NODE_ENV === "production";
   const baseURL =
+    env.BETTER_AUTH_URL?.trim() ||
     env.CAREERIGHT_AUTH_URL?.trim() ||
     env.CAREER_CODE_AUTH_URL?.trim() ||
-    env.BETTER_AUTH_URL?.trim() ||
     "http://localhost:3000";
   const secret =
+    env.BETTER_AUTH_SECRET?.trim() ||
     env.CAREERIGHT_AUTH_SECRET?.trim() ||
     env.CAREER_CODE_AUTH_SECRET?.trim() ||
-    env.BETTER_AUTH_SECRET?.trim() ||
     (!isProduction ? "f4e7c2d9b8a14f0d9c3b6a217e5d8c0a" : undefined);
   const googleClientId = env.GOOGLE_CLIENT_ID?.trim();
   const googleClientSecret = env.GOOGLE_CLIENT_SECRET?.trim();
+  const hasGoogleOAuth = Boolean(googleClientId && googleClientSecret);
 
   if (!secret) {
     throw new Error(
@@ -37,7 +38,7 @@ export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
 
   if (
     isProduction &&
-    (!googleClientId || !googleClientSecret)
+    !hasGoogleOAuth
   ) {
     throw new Error(
       "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required for Google OAuth.",
@@ -46,10 +47,14 @@ export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
 
   return {
     baseURL,
+    requiresPersistentAuth: isProduction || hasGoogleOAuth,
     secret,
-    trustedOrigins: [baseURL],
+    trustedOrigins: getTrustedOrigins(env, baseURL, isProduction),
+    verification: {
+      storeInDatabase: true,
+    },
     socialProviders:
-      googleClientId && googleClientSecret
+      hasGoogleOAuth
         ? {
             google: {
               clientId: googleClientId,
@@ -70,7 +75,15 @@ export async function getAuth() {
 
 async function createAuth() {
   const runtimeConfig = getAuthRuntimeConfig();
-  const database = isMongoConfigured()
+  const hasMongo = isMongoConfigured();
+
+  if (!hasMongo && runtimeConfig.requiresPersistentAuth) {
+    throw new Error(
+      "MONGODB_URI is required for Google OAuth and production auth state.",
+    );
+  }
+
+  const database = hasMongo
     ? await getAuthMongoAdapter()
     : memoryAdapter(getAuthMemoryDb());
 
@@ -81,6 +94,7 @@ async function createAuth() {
     database,
     socialProviders: runtimeConfig.socialProviders,
     trustedOrigins: runtimeConfig.trustedOrigins,
+    verification: runtimeConfig.verification,
   });
 }
 
@@ -109,6 +123,28 @@ function getAuthMemoryDb() {
   globalForAuth.__careerightAuthMemoryDb ??= {};
 
   return globalForAuth.__careerightAuthMemoryDb;
+}
+
+function getTrustedOrigins(
+  env: AuthRuntimeEnv,
+  baseURL: string,
+  isProduction: boolean,
+) {
+  return Array.from(
+    new Set(
+      [
+        baseURL,
+        env.BETTER_AUTH_URL,
+        env.CAREERIGHT_AUTH_URL,
+        env.CAREER_CODE_AUTH_URL,
+        env.NEXT_PUBLIC_APP_URL,
+        env.VERCEL_URL ? `https://${env.VERCEL_URL}` : undefined,
+        !isProduction ? "http://localhost:3000" : undefined,
+      ]
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
 }
 
 export function normalizeAuthCallbackPath(

@@ -68,8 +68,25 @@ describe("auth config", () => {
     expect(config.socialProviders?.google.clientSecret).toBe(
       "google-client-secret",
     );
+    expect(config.requiresPersistentAuth).toBe(true);
+    expect(config.verification.storeInDatabase).toBe(true);
     expect("advanced" in config).toBe(false);
     expect("emailAndPassword" in config).toBe(false);
+  });
+
+  test("prefers standard Better Auth URL over compatibility aliases", () => {
+    const config = getAuthRuntimeConfig({
+      BETTER_AUTH_SECRET: "test-secret-with-at-least-32-characters",
+      BETTER_AUTH_URL: "https://careeright.vercel.app",
+      CAREERIGHT_AUTH_URL: "http://localhost:3000",
+      GOOGLE_CLIENT_ID: "google-client-id",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
+      NODE_ENV: "production",
+    });
+
+    expect(config.baseURL).toBe("https://careeright.vercel.app");
+    expect(config.trustedOrigins).toContain("https://careeright.vercel.app");
+    expect(config.trustedOrigins).toContain("http://localhost:3000");
   });
 
   test("fails clearly in production without Google OAuth credentials", () => {
