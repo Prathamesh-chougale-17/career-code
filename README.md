@@ -1,159 +1,183 @@
-# Turborepo starter
+# Career Code
 
-This Turborepo starter is maintained by the Turborepo core team.
+Career Code is a user-specific AI-to-Kanban workspace. The web app uses typed oRPC procedures for normal product interactions, while MCP exposes safe AI-client tools that create proposals instead of directly mutating destructive board state.
 
-## Using this example
+## Stack
 
-Run the following command:
+- Next.js App Router, React, TypeScript, Tailwind v4, next-themes
+- oRPC for app APIs
+- TanStack Query for client data refresh
+- MongoDB Node driver, with an empty local memory store when `MONGODB_URI` is not set
+- Better Auth with MongoDB adapter and Google OAuth
+- Vercel AI SDK structured output for task breakdowns
+- MCP TypeScript SDK for `/mcp` and `pnpm run mcp`
+- Inngest route for background AI proposal processing
 
-```sh
-npx create-turbo@latest
+## Run
+
+```bash
+pnpm install
+pnpm dev
 ```
 
-## What's inside?
+Open [http://localhost:3000](http://localhost:3000) for the public landing page,
+then use [http://localhost:3000/dashboard](http://localhost:3000/dashboard) for
+the signed-in workspace.
 
-This Turborepo includes the following packages/apps:
+Configure `MONGODB_URI`, optional `MONGODB_DB`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` before signing in. Without `MONGODB_URI`, the app can still run in local memory mode for development, but Google OAuth requires MongoDB-backed Better Auth. Set `AI_TASK_MODEL` before using app-generated AI task breakdown proposals; MCP structured proposal ingestion does not call the backend model.
 
-### Apps and Packages
+Google OAuth redirect URI:
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```text
+http://localhost:3000/api/auth/callback/google
 ```
 
-Without global `turbo`, use your package manager:
+## MCP
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+HTTP MCP endpoint:
+
+```text
+https://career-code.vercel.app/mcp
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Local stdio MCP server:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo build --filter=docs
+```bash
+CAREER_CODE_MCP_TOKEN=<user-token> pnpm run mcp
 ```
 
-Without global `turbo`:
+Distributable stdio bridge package for external MCP clients:
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+```bash
+pnpm run mcp:package:build
+node packages/career-code-mcp/dist/stdio-proxy.js
 ```
 
-### Develop
+Create a user MCP token from `/dashboard/mcp-tools`. HTTP clients must send `Authorization: Bearer <user-token>` to `/mcp`; stdio clients must set `CAREER_CODE_MCP_TOKEN`. The old global `KANBAN_MCP_TOKEN` flow is no longer supported.
 
-To develop all apps and packages, run the following command:
+The package lives at `packages/career-code-mcp`. It proxies stdio MCP traffic to `CAREER_CODE_MCP_URL` (default `https://career-code.vercel.app/mcp`) and keeps all data writes scoped to the token owner.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+After publishing to npm, stdio MCP clients can run it with `npx career-code-mcp`.
 
-```sh
-cd my-turborepo
-turbo dev
+Claude Desktop, Claude Code, Codex-style local clients, and Gemini CLI can use the npm package as a local stdio MCP server. ChatGPT custom connectors use remote MCP endpoints, so connect ChatGPT to `https://career-code.vercel.app/mcp` rather than the local npm package.
+
+Publish the MCP package after logging into npm:
+
+```bash
+npm login
+pnpm run mcp:package:pack
+pnpm run mcp:package:publish
 ```
 
-Without global `turbo`, use your package manager:
+Available tools include `list_boards`, `list_tasks`, `get_task`, `get_profile_snapshot`, `prepare_task_breakdown_prompt`, `propose_task_breakdown_from_tasks`, `propose_task_update`, `propose_task_delete`, `propose_start_work`, `propose_profile_import`, `list_jobs`, `seed_jobs`, `get_job_search_profile`, `prepare_job_search_brief`, `score_job_candidates`, `seed_ranked_jobs`, `list_job_digests`, `get_latest_unapplied_job_batch`, `create_job_application_run`, `list_job_application_runs`, and `update_job_application_attempt`. Proposal and profile-import acceptance still happens in the app UI by default.
 
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
+### Latest-Batch Chrome Apply Automation
+
+Save application defaults on `/dashboard/profile`, including phone, LinkedIn,
+resume path, education details, source, and joining availability.
+
+For production Codex users, use the standalone prompt at
+`prompts/latest-batch-chrome-job-apply.md`. It tells Codex to fetch the latest
+Not applied batch through Career Code MCP, then use Chrome only for external
+application pages. It does not require localhost, terminal commands, repository
+code, hidden DB access, or local scripts.
+
+The production prompt is MCP-driven: it creates a Career Code application run, gets
+the exact latest-batch apply links from MCP, and updates attempt outcomes through
+MCP after Chrome fills or skips each form.
+LinkedIn, Workday, Lever, Greenhouse, CAPTCHA/login-heavy, or ambiguous portals
+should be recorded as manual review instead of being auto-filled.
+
+### Resume Profile Import
+
+Career Code does not parse resume files inside `/mcp`. Give the resume PDF, document, or text to the external AI app first, let that app extract structured profile data, then call `propose_profile_import`.
+
+Example prompt for an external AI client:
+
+```text
+Parse this resume and call Career Code MCP `propose_profile_import` with profileBasics and items. Use item types experience, education, project, skill, and certification. Do not invent missing dates or links.
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+Expected MCP input shape:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
+```json
+{
+  "profileBasics": {
+    "displayName": "Your Name",
+    "headline": "Full-stack developer",
+    "location": "India",
+    "email": "you@example.com",
+    "website": "https://example.com",
+    "summary": "Short resume summary"
+  },
+  "summary": "Resume profile import",
+  "items": [
+    {
+      "type": "experience",
+      "title": "Frontend Developer",
+      "organization": "Company",
+      "location": "Remote",
+      "startDate": "Jan 2024",
+      "endDate": "Present",
+      "description": "Built React and TypeScript interfaces.",
+      "url": "https://example.com",
+      "tags": ["React", "TypeScript"]
+    }
+  ]
+}
 ```
 
-Without global `turbo`:
+The app shows pending resume imports on `/dashboard/profile`. Applying an import fills only empty basic fields and adds new section items without deleting existing profile data.
 
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+### AI Client Smoke Test
+
+For stdio-based clients such as Claude Desktop, Claude Code-style clients, or any MCP client that accepts a command, add a server like this:
+
+```json
+{
+  "mcpServers": {
+    "habage": {
+      "command": "node",
+      "args": [
+        "C:\\Users\\prath\\OneDrive\\Desktop\\study\\temp\\open-source\\habage\\packages\\career-code-mcp\\dist\\stdio-proxy.js"
+      ],
+      "env": {
+        "CAREER_CODE_MCP_URL": "https://career-code.vercel.app/mcp",
+        "CAREER_CODE_MCP_TOKEN": "<user-token-from-mcp-tools>"
+      }
+    }
+  }
+}
 ```
 
-### Remote Caching
+Restart the AI client, then ask it:
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
+```text
+Use the Career Code MCP tools. Call list_boards, then list_tasks for the board, then propose_start_work for one task.
 ```
 
-Without global `turbo`, use your package manager:
+Expected result: the app should show a pending proposal in the proposal library. The task should not silently move to `In Progress` until you accept the proposal in the UI.
 
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
+For remote-capable MCP clients, use `https://career-code.vercel.app/mcp` with `Authorization: Bearer <user-token>`.
+
+## Legacy cleanup
+
+After enabling authentication, remove old unauthenticated `solo-user` data once:
+
+```bash
+pnpm run cleanup:solo-user
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+## Langfuse
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+Langfuse is an open-source observability platform for LLM apps. It helps trace prompts, model calls, tool calls, outputs, latency, token usage, cost, errors, and evaluations across AI workflows.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+In Career Code, Langfuse would be useful for answering questions like: which prompt generated this task proposal, which model ran, how long it took, why it failed, and whether users accepted or rejected the result. It is optional; the app runs without Langfuse today.
 
-```sh
-turbo link
+## Quality
+
+```bash
+pnpm run lint
+pnpm run test
+pnpm run build
 ```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)

@@ -1,17 +1,43 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "AI_JOB_MATCH_MODEL",
+    "AI_TASK_MODEL",
+    "BETTER_AUTH_SECRET",
+    "BETTER_AUTH_URL",
+    "CAREER_CODE_AUTH_SECRET",
+    "CAREER_CODE_AUTH_URL",
+    "CAREER_CODE_MCP_TOKEN",
+    "CAREER_CODE_MCP_URL",
+    "CAREER_CODE_USER_ID",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "HABAGE_MCP_TOKEN",
+    "HABAGE_MCP_URL",
+    "HABAGE_USER_ID",
+    "INNGEST_DEV",
+    "INNGEST_SIGNING_KEY",
+    "KANBAN_MCP_TOKEN",
+    "MONGODB_DB",
+    "MONGODB_DB_NAME",
+    "MONGODB_URI",
+    "NODE_ENV"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
     },
     "lint": {
       "dependsOn": ["^lint"]
     },
     "check-types": {
-      "dependsOn": ["^check-types"]
+      "dependsOn": ["^build", "^check-types"]
+    },
+    "test": {
+      "dependsOn": ["^build"]
     },
     "dev": {
       "cache": false,

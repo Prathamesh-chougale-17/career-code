@@ -1,0 +1,11 @@
+{
+  "extends": "@repo/typescript-config/library.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "paths": {
+      "@career-code/inngest/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}
