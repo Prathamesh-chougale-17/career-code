@@ -6,7 +6,10 @@ import {
   taskBreakdownOutputSchema,
   type TaskBreakdownResult,
 } from "@careeright/domain/ai/task-breakdown";
-import { getAuthRuntimeConfig } from "@careeright/auth/server";
+import {
+  generateAuthDatabaseId,
+  getAuthRuntimeConfig,
+} from "@careeright/auth/server";
 import { getMongoDatabaseName } from "@careeright/db";
 import { POST as handleMcpPost } from "../app/mcp/route";
 import {
@@ -68,7 +71,17 @@ describe("auth config", () => {
     expect(config.socialProviders?.google.clientSecret).toBe(
       "google-client-secret",
     );
+    expect(config.advanced.database.generateId).toBe(generateAuthDatabaseId);
     expect("emailAndPassword" in config).toBe(false);
+  });
+
+  test("uses non-ObjectId auth ids for MongoDB compatibility", () => {
+    const id = generateAuthDatabaseId();
+
+    expect(id).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
+    expect(id).not.toMatch(/^[a-f0-9]{24}$/i);
   });
 
   test("fails clearly in production without Google OAuth credentials", () => {
