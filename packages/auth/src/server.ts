@@ -28,11 +28,26 @@ export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
     (!isProduction ? "f4e7c2d9b8a14f0d9c3b6a217e5d8c0a" : undefined);
   const googleClientId = env.GOOGLE_CLIENT_ID?.trim();
   const googleClientSecret = env.GOOGLE_CLIENT_SECRET?.trim();
-  const hasGoogleOAuth = Boolean(googleClientId && googleClientSecret);
+  const socialProviders =
+    googleClientId && googleClientSecret
+      ? {
+          google: {
+            clientId: googleClientId,
+            clientSecret: googleClientSecret,
+          },
+        }
+      : undefined;
+  const hasGoogleOAuth = Boolean(socialProviders);
 
   if (!secret) {
     throw new Error(
       "CAREERIGHT_AUTH_SECRET, CAREER_CODE_AUTH_SECRET, or BETTER_AUTH_SECRET is required.",
+    );
+  }
+
+  if (isProduction && isLoopbackOrigin(baseURL)) {
+    throw new Error(
+      "BETTER_AUTH_URL or CAREERIGHT_AUTH_URL must be set to the public HTTPS app URL in production.",
     );
   }
 
@@ -53,15 +68,7 @@ export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
     verification: {
       storeInDatabase: true,
     },
-    socialProviders:
-      hasGoogleOAuth
-        ? {
-            google: {
-              clientId: googleClientId,
-              clientSecret: googleClientSecret,
-            },
-          }
-        : undefined,
+    socialProviders,
   };
 }
 
@@ -142,9 +149,28 @@ function getTrustedOrigins(
         !isProduction ? "http://localhost:3000" : undefined,
       ]
         .map((value) => value?.trim())
-        .filter((value): value is string => Boolean(value)),
+        .filter((value): value is string => {
+          if (!value) {
+            return false;
+          }
+
+          return !isProduction || !isLoopbackOrigin(value);
+        }),
     ),
   );
+}
+
+function isLoopbackOrigin(value: string) {
+  try {
+    const { hostname } = new URL(value);
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "[::1]"
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function normalizeAuthCallbackPath(

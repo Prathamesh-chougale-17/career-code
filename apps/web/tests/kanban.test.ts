@@ -86,14 +86,26 @@ describe("auth config", () => {
 
     expect(config.baseURL).toBe("https://careeright.vercel.app");
     expect(config.trustedOrigins).toContain("https://careeright.vercel.app");
-    expect(config.trustedOrigins).toContain("http://localhost:3000");
+    expect(config.trustedOrigins).not.toContain("http://localhost:3000");
+  });
+
+  test("fails clearly when production auth URL points to localhost", () => {
+    expect(() =>
+      getAuthRuntimeConfig({
+        BETTER_AUTH_SECRET: "test-secret-with-at-least-32-characters",
+        BETTER_AUTH_URL: "http://localhost:3000",
+        GOOGLE_CLIENT_ID: "google-client-id",
+        GOOGLE_CLIENT_SECRET: "google-client-secret",
+        NODE_ENV: "production",
+      }),
+    ).toThrow("public HTTPS app URL");
   });
 
   test("fails clearly in production without Google OAuth credentials", () => {
     expect(() =>
       getAuthRuntimeConfig({
         BETTER_AUTH_SECRET: "test-secret-with-at-least-32-characters",
-        BETTER_AUTH_URL: "http://localhost:3000",
+        BETTER_AUTH_URL: "https://careeright.vercel.app",
         NODE_ENV: "production",
       }),
     ).toThrow("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required");
