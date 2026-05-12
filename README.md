@@ -24,7 +24,7 @@ Open [http://localhost:3000](http://localhost:3000) for the public landing page,
 then use [http://localhost:3000/dashboard](http://localhost:3000/dashboard) for
 the signed-in workspace.
 
-Configure `MONGODB_URI`, optional `MONGODB_DB`, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` before signing in. Without `MONGODB_URI`, the app can still run in local memory mode for development, but Google OAuth requires MongoDB-backed Better Auth. Set `AI_TASK_MODEL` before using app-generated AI task breakdown proposals; MCP structured proposal ingestion does not call the backend model.
+Configure `MONGODB_URI`, optional `MONGODB_DB`, `CAREERIGHT_AUTH_SECRET`, `CAREERIGHT_AUTH_URL`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` before signing in. `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL` remain supported for compatibility with the original app. For Vercel production, set `CAREERIGHT_AUTH_URL=https://careeright.vercel.app`; for local Google OAuth, keep it on `http://localhost:3000`. Without `MONGODB_URI`, the app can still run in local memory mode for development, but Google OAuth requires MongoDB-backed Better Auth. Set `AI_TASK_MODEL` before using app-generated AI task breakdown proposals; MCP structured proposal ingestion does not call the backend model.
 
 Google OAuth redirect URI:
 

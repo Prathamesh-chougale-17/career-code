@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 import { memoryAdapter, type MemoryDB } from "@better-auth/memory-adapter";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { betterAuth } from "better-auth";
@@ -47,11 +45,6 @@ export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
   }
 
   return {
-    advanced: {
-      database: {
-        generateId: generateAuthDatabaseId,
-      },
-    },
     baseURL,
     secret,
     trustedOrigins: [baseURL],
@@ -65,10 +58,6 @@ export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
           }
         : undefined,
   };
-}
-
-export function generateAuthDatabaseId() {
-  return randomUUID();
 }
 
 export async function getAuth() {
@@ -89,7 +78,6 @@ async function createAuth() {
     appName: "Careeright",
     baseURL: runtimeConfig.baseURL,
     secret: runtimeConfig.secret,
-    advanced: runtimeConfig.advanced,
     database,
     socialProviders: runtimeConfig.socialProviders,
     trustedOrigins: runtimeConfig.trustedOrigins,
