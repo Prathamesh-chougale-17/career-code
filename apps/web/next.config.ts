@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
     "@better-auth/mongo-adapter",
     "@better-auth/kysely-adapter",
     "@better-auth/memory-adapter",
+    "mongodb",
   ],
   turbopack: {
     resolveAlias: {

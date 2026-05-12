@@ -1,8 +1,9 @@
 import { memoryAdapter, type MemoryDB } from "@better-auth/memory-adapter";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { betterAuth } from "better-auth";
+import { MongoClient } from "mongodb";
 
-import { getMongoClient, getMongoDb, isMongoConfigured } from "@careeright/db";
+import { getMongoDatabaseName, isMongoConfigured } from "@careeright/db";
 
 let authPromise: ReturnType<typeof createAuth> | undefined;
 
@@ -10,6 +11,7 @@ type AuthRuntimeEnv = Record<string, string | undefined>;
 
 const globalForAuth = globalThis as typeof globalThis & {
   __careerightAuthMemoryDb?: MemoryDB;
+  __careerightAuthMongoClientPromise?: Promise<MongoClient>;
 };
 
 export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
@@ -69,9 +71,7 @@ export async function getAuth() {
 async function createAuth() {
   const runtimeConfig = getAuthRuntimeConfig();
   const database = isMongoConfigured()
-    ? mongodbAdapter(await getMongoDb(), {
-        client: await getMongoClient(),
-      })
+    ? await getAuthMongoAdapter()
     : memoryAdapter(getAuthMemoryDb());
 
   return betterAuth({
@@ -82,6 +82,27 @@ async function createAuth() {
     socialProviders: runtimeConfig.socialProviders,
     trustedOrigins: runtimeConfig.trustedOrigins,
   });
+}
+
+async function getAuthMongoAdapter() {
+  const client = await getAuthMongoClient();
+  const db = client.db(getMongoDatabaseName());
+
+  return mongodbAdapter(db, { client });
+}
+
+async function getAuthMongoClient() {
+  const uri = process.env.MONGODB_URI;
+
+  if (!uri) {
+    throw new Error("MONGODB_URI is not configured.");
+  }
+
+  globalForAuth.__careerightAuthMongoClientPromise ??= new MongoClient(
+    uri,
+  ).connect();
+
+  return globalForAuth.__careerightAuthMongoClientPromise;
 }
 
 function getAuthMemoryDb() {
