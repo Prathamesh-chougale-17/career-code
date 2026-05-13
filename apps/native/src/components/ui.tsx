@@ -236,6 +236,12 @@ export function Button({
       {React.Children.map(children, (child) =>
         typeof child === "string" || typeof child === "number" ? (
           <Text style={[styles.buttonText, { color: textColor }]}>{child}</Text>
+        ) : React.isValidElement(child) ? (
+          React.cloneElement(child as React.ReactElement<{ color?: string }>, {
+            color:
+              (child as React.ReactElement<{ color?: string }>).props.color ??
+              textColor,
+          })
         ) : (
           child
         ),

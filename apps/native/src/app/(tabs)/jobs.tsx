@@ -454,6 +454,7 @@ function JobRunsView({
   view: JobsView;
 }) {
   const queryClient = useQueryClient();
+  const { colors } = useAppTheme();
   const digestsQuery = useQuery({
     queryKey: jobDigestsQueryKey,
     queryFn: () => rpcClient.jobs.digests(),
@@ -513,14 +514,22 @@ function JobRunsView({
               <Badge tone={digest.status === "completed" ? "success" : "danger"}>
                 {titleCase(digest.status)}
               </Badge>
-              <Text style={styles.mutedText}>{formatLongDate(digest.createdAt)}</Text>
+              <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+                {formatLongDate(digest.createdAt)}
+              </Text>
             </View>
-            <Text style={styles.jobTitle}>{digest.source}</Text>
-            <Text style={styles.mutedText}>
+            <Text style={[styles.jobTitle, { color: colors.text }]}>
+              {digest.source}
+            </Text>
+            <Text style={[styles.mutedText, { color: colors.textMuted }]}>
               {digest.seededCount} saved, {digest.scoredCount} scored,{" "}
               {digest.duplicateCount} duplicates
             </Text>
-            {digest.summary ? <Text style={styles.mutedText}>{digest.summary}</Text> : null}
+            {digest.summary ? (
+              <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+                {digest.summary}
+              </Text>
+            ) : null}
           </Card>
         ))
       )}
@@ -538,13 +547,18 @@ function JobRunsView({
           <Card key={run.id}>
             <View style={styles.taskTopRow}>
               <Badge tone="violet">{run.attempts.length} attempts</Badge>
-              <Text style={styles.mutedText}>{formatLongDate(run.createdAt)}</Text>
+              <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+                {formatLongDate(run.createdAt)}
+              </Text>
             </View>
-            <Text style={styles.mutedText}>
+            <Text style={[styles.mutedText, { color: colors.textMuted }]}>
               Latest seeded date: {run.latestSeededDateKey ?? "none"}
             </Text>
             {run.attempts.slice(0, 4).map((attempt) => (
-              <Text key={attempt.jobId} style={styles.mutedText}>
+              <Text
+                key={attempt.jobId}
+                style={[styles.mutedText, { color: colors.textMuted }]}
+              >
                 {titleCase(attempt.status)} - {attempt.advice || attempt.skipReason || attempt.error || attempt.formUrl}
               </Text>
             ))}

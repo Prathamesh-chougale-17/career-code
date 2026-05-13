@@ -82,6 +82,7 @@ function DiaryView({
   view: LearnView;
 }) {
   const queryClient = useQueryClient();
+  const { colors } = useAppTheme();
   const [dateKey, setDateKey] = useState(todayDateKey());
   const dayQuery = useQuery({
     queryKey: diaryDayQueryKey(dateKey),
@@ -213,8 +214,12 @@ function DiaryView({
             <ChevronLeft size={16} />
           </Button>
           <View style={styles.dateCopy}>
-            <Text style={styles.dateLabel}>Diary day</Text>
-            <Text style={styles.dateValue}>{formatLongDate(dateKey)}</Text>
+            <Text style={[styles.dateLabel, { color: colors.textMuted }]}>
+              Diary day
+            </Text>
+            <Text style={[styles.dateValue, { color: colors.text }]}>
+              {formatLongDate(dateKey)}
+            </Text>
           </View>
           <Button onPress={() => setDateKey(addDays(dateKey, 1))} variant="secondary">
             <ChevronRight size={16} />
@@ -283,12 +288,16 @@ function DiaryView({
                       )
                     }
                   >
-                    <Trash2 size={16} />
+                    <Trash2 color={colors.danger} size={16} />
                   </Pressable>
                 </View>
-                <Text style={styles.intervalTitle}>{interval.title}</Text>
+                <Text style={[styles.intervalTitle, { color: colors.text }]}>
+                  {interval.title}
+                </Text>
                 {interval.summary ? (
-                  <Text style={styles.mutedText}>{interval.summary}</Text>
+                  <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+                    {interval.summary}
+                  </Text>
                 ) : null}
               </View>
             ))}

@@ -578,6 +578,7 @@ function McpView({
   view: MoreView;
 }) {
   const queryClient = useQueryClient();
+  const { colors } = useAppTheme();
   const [tokenName, setTokenName] = useState("Careeright mobile token");
   const [latestToken, setLatestToken] = useState<string | null>(null);
   const tokensQuery = useQuery({
@@ -615,8 +616,12 @@ function McpView({
       <SegmentedControl onChange={setView} options={moreOptions} value={view} />
       <Card>
         <SectionTitle title="Connection" />
-        <Text style={styles.mutedText}>Server: {getCareerightOrigin()}</Text>
-        <Text style={styles.mutedText}>Auth: Bearer token via MCP client</Text>
+        <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+          Server: {getCareerightOrigin()}
+        </Text>
+        <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+          Auth: Bearer token via MCP client
+        </Text>
       </Card>
       <Card>
         <SectionTitle title="Create token" subtitle="The raw token is shown once and copied automatically." />
@@ -648,10 +653,16 @@ function McpView({
               <Badge tone={token.revokedAt ? "danger" : "success"}>
                 {token.revokedAt ? "Revoked" : "Active"}
               </Badge>
-              <Text style={styles.mutedText}>{formatLongDate(token.createdAt)}</Text>
+              <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+                {formatLongDate(token.createdAt)}
+              </Text>
             </View>
-            <Text style={styles.itemTitle}>{token.name}</Text>
-            <Text style={styles.mutedText}>{token.tokenPrefix}</Text>
+            <Text style={[styles.itemTitle, { color: colors.text }]}>
+              {token.name}
+            </Text>
+            <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+              {token.tokenPrefix}
+            </Text>
             <Button
               disabled={Boolean(token.revokedAt) || revokeMutation.isPending}
               onPress={() =>
@@ -682,7 +693,7 @@ function SettingsView({
   setView: (view: MoreView) => void;
   view: MoreView;
 }) {
-  const { mode, setMode } = useAppTheme();
+  const { colors, mode, setMode } = useAppTheme();
 
   return (
     <ScreenScroll tabBar>
@@ -705,7 +716,9 @@ function SettingsView({
       </Card>
       <Card>
         <SectionTitle title="Backend" />
-        <Text style={styles.mutedText}>{getCareerightOrigin()}</Text>
+        <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+          {getCareerightOrigin()}
+        </Text>
       </Card>
       <Card>
         <SectionTitle title="Account" />
@@ -730,17 +743,29 @@ function ProfileItemCard({
   item: ProfileItem;
   onDelete: () => void;
 }) {
+  const { colors } = useAppTheme();
+
   return (
     <Card>
       <View style={styles.taskTopRow}>
         <Badge tone="primary">{titleCase(item.type)}</Badge>
         <Pressable onPress={onDelete}>
-          <Trash2 size={16} />
+          <Trash2 color={colors.danger} size={16} />
         </Pressable>
       </View>
-      <Text style={styles.itemTitle}>{item.title}</Text>
-      {item.organization ? <Text style={styles.mutedText}>{item.organization}</Text> : null}
-      {item.description ? <Text style={styles.mutedText}>{item.description}</Text> : null}
+      <Text style={[styles.itemTitle, { color: colors.text }]}>
+        {item.title}
+      </Text>
+      {item.organization ? (
+        <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+          {item.organization}
+        </Text>
+      ) : null}
+      {item.description ? (
+        <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+          {item.description}
+        </Text>
+      ) : null}
     </Card>
   );
 }
@@ -756,14 +781,22 @@ function ImportCard({
   onReject: () => void;
   profileImport: ProfileImport;
 }) {
+  const { colors } = useAppTheme();
+
   return (
     <Card>
       <View style={styles.taskTopRow}>
         <Badge tone="accent">{profileImport.source}</Badge>
-        <Text style={styles.mutedText}>{formatLongDate(profileImport.createdAt)}</Text>
+        <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+          {formatLongDate(profileImport.createdAt)}
+        </Text>
       </View>
-      <Text style={styles.itemTitle}>{profileImport.summary || "Resume import"}</Text>
-      <Text style={styles.mutedText}>{profileImport.items.length} profile items</Text>
+      <Text style={[styles.itemTitle, { color: colors.text }]}>
+        {profileImport.summary || "Resume import"}
+      </Text>
+      <Text style={[styles.mutedText, { color: colors.textMuted }]}>
+        {profileImport.items.length} profile items
+      </Text>
       <View style={styles.taskActions}>
         <Button disabled={isBusy} onPress={onApply}>
           <CheckCircle2 color="#FFFFFF" size={16} /> Apply
