@@ -49,10 +49,13 @@ export function getMongoDatabaseName(env: MongoRuntimeEnv = process.env) {
 
 async function ensureMongoIndexes(db: Db) {
   await Promise.all([
-    db.collection("boards").createIndexes([{ key: { userId: 1 } }]),
     db
-      .collection("columns")
-      .createIndexes([{ key: { userId: 1, boardId: 1, order: 1 } }]),
+      .collection("boards")
+      .createIndexes([{ key: { userId: 1, id: 1 }, unique: true }]),
+    db.collection("columns").createIndexes([
+      { key: { userId: 1, boardId: 1, id: 1 }, unique: true },
+      { key: { userId: 1, boardId: 1, order: 1 } },
+    ]),
     db.collection("tasks").createIndexes([
       { key: { userId: 1, boardId: 1, columnId: 1, order: 1 } },
       { key: { userId: 1, boardId: 1, taskNumber: 1 } },

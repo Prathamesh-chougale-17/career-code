@@ -271,7 +271,7 @@ export async function saveDiaryDay(
 
     const created = createDayRecord(parsed, userId, updatedAt);
 
-    await collections.days.insertOne(created);
+    await collections.days.insertOne({ ...created });
     return diaryDaySchema.parse(created);
   }
 

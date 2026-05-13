@@ -333,7 +333,7 @@ export async function createJobApplicationRun(
 
   if (isMongoConfigured()) {
     const collections = await getCollections();
-    await collections.applicationRuns.insertOne(run);
+    await collections.applicationRuns.insertOne({ ...run });
   } else {
     getMemoryState().applicationRuns.unshift(run);
   }
@@ -539,7 +539,7 @@ export async function getJobSearchProfile(userId = SOLO_USER_ID) {
     }
 
     const created = await createDefaultSearchProfileRecord(userId);
-    await collections.searchProfiles.insertOne(created);
+    await collections.searchProfiles.insertOne({ ...created });
     return created;
   }
 
@@ -706,7 +706,7 @@ async function findDigestByRunKey(userId: string, runKey: string) {
 async function createJobDigest(digest: JobDigest) {
   if (isMongoConfigured()) {
     const collections = await getCollections();
-    await collections.digests.insertOne(digest);
+    await collections.digests.insertOne({ ...digest });
   } else {
     getMemoryState().digests.unshift(digest);
   }
@@ -881,7 +881,7 @@ export async function seedJobs(input: SeedJobsInput, userId = SOLO_USER_ID) {
           updatedAt,
         );
 
-        await collections.jobs.insertOne(created);
+        await collections.jobs.insertOne({ ...created });
         existingJobs.push(created);
         seededJobs.push(created);
       }

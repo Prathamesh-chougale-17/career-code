@@ -413,7 +413,7 @@ export async function recordDsaVideoWatch(
 
   if (isMongoConfigured()) {
     const collections = await getCollections();
-    await collections.videoWatches.insertOne(event);
+    await collections.videoWatches.insertOne({ ...event });
   } else {
     getMemoryState().videoWatches.push(event);
   }

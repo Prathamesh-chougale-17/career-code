@@ -250,7 +250,7 @@ async function ensureMongoProfile(userId = SOLO_USER_ID) {
   }
 
   const profile = createEmptyProfile(userId);
-  await collections.profiles.insertOne(profile);
+  await collections.profiles.insertOne({ ...profile });
   return profile;
 }
 
@@ -379,7 +379,7 @@ export async function createProfileItem(
   if (isMongoConfigured()) {
     await ensureMongoProfile(userId);
     const collections = await getCollections();
-    await collections.items.insertOne(item);
+    await collections.items.insertOne({ ...item });
   } else {
     ensureMemoryProfile(userId);
     getMemoryState().items.push(item);
@@ -408,7 +408,7 @@ export async function createProfileImport(
   if (isMongoConfigured()) {
     await ensureMongoProfile(userId);
     const collections = await getCollections();
-    await collections.imports.insertOne(profileImport);
+    await collections.imports.insertOne({ ...profileImport });
   } else {
     ensureMemoryProfile(userId);
     getMemoryState().imports.unshift(profileImport);
@@ -488,7 +488,7 @@ export async function applyProfileImport(
           )
         : Promise.resolve(),
       newItems.length > 0
-        ? collections.items.insertMany(newItems)
+        ? collections.items.insertMany(newItems.map((item) => ({ ...item })))
         : Promise.resolve(),
       collections.imports.updateOne(
         { id: importId, userId },

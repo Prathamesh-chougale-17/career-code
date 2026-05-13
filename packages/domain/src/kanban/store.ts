@@ -278,11 +278,76 @@ async function getCollections(): Promise<Collections> {
   };
 }
 
+async function findMongoDefaultBoard(collections: Collections, userId: string) {
+  const boardDocs = await collections.boards
+    .find({ userId, id: DEFAULT_BOARD_ID })
+    .sort({ createdAt: 1, updatedAt: 1 })
+    .toArray();
+  const [defaultBoard, ...duplicateBoards] = boardDocs;
+
+  if (duplicateBoards.length > 0) {
+    await collections.boards.deleteMany({
+      _id: { $in: duplicateBoards.map((board) => board._id) },
+    } as Filter<Board>);
+  }
+
+  return defaultBoard;
+}
+
+async function ensureMongoDefaultColumns(
+  collections: Collections,
+  boardId: string,
+  userId: string,
+) {
+  const createdAt = now();
+  const columns = createDefaultColumns(boardId, userId, createdAt);
+
+  try {
+    await collections.columns.bulkWrite(
+      columns.map((column) => ({
+        updateOne: {
+          filter: { userId, boardId, id: column.id },
+          update: { $setOnInsert: column },
+          upsert: true,
+        },
+      })),
+      { ordered: false },
+    );
+  } catch (error) {
+    if (!isDuplicateKeyError(error)) {
+      throw error;
+    }
+  }
+
+  const columnDocs = await collections.columns
+    .find({ userId, boardId })
+    .sort({ order: 1, createdAt: 1 })
+    .toArray();
+  const seenColumnIds = new Set<string>();
+  const duplicateColumnIds = columnDocs
+    .filter((column) => {
+      if (seenColumnIds.has(column.id)) {
+        return true;
+      }
+
+      seenColumnIds.add(column.id);
+      return false;
+    })
+    .map((column) => column._id);
+
+  if (duplicateColumnIds.length > 0) {
+    await collections.columns.deleteMany({
+      _id: { $in: duplicateColumnIds },
+    } as Filter<BoardColumn>);
+  }
+}
+
 async function ensureMongoWorkspace(userId = SOLO_USER_ID) {
   const collections = await getCollections();
-  const existingBoard = await collections.boards.findOne({ userId });
+  const existingBoard = await findMongoDefaultBoard(collections, userId);
 
   if (existingBoard) {
+    await ensureMongoDefaultColumns(collections, existingBoard.id, userId);
     await removeMongoLegacySampleTasks(existingBoard.id, userId);
     await ensureMongoTaskNumbers(existingBoard.id, userId);
     return;
@@ -290,10 +355,20 @@ async function ensureMongoWorkspace(userId = SOLO_USER_ID) {
 
   const createdAt = now();
   const board = createDefaultBoard(createdAt);
-  const columns = createDefaultColumns(board.id, userId, createdAt);
 
-  await collections.boards.insertOne({ ...board, userId });
-  await collections.columns.insertMany(columns);
+  try {
+    await collections.boards.updateOne(
+      { userId, id: board.id },
+      { $setOnInsert: { ...board, userId } },
+      { upsert: true },
+    );
+  } catch (error) {
+    if (!isDuplicateKeyError(error)) {
+      throw error;
+    }
+  }
+
+  await ensureMongoDefaultColumns(collections, board.id, userId);
 }
 
 async function removeMongoLegacySampleTasks(
@@ -363,7 +438,7 @@ async function addEvent(event: Omit<TaskEvent, "id" | "createdAt">) {
 
   if (isMongoConfigured()) {
     const collections = await getCollections();
-    await collections.events.insertOne(taskEvent);
+    await collections.events.insertOne({ ...taskEvent });
     return taskEvent;
   }
 
@@ -377,7 +452,7 @@ export async function getBoardSnapshot(
   if (isMongoConfigured()) {
     await ensureMongoWorkspace(userId);
     const collections = await getCollections();
-    const boardDoc = await collections.boards.findOne({ userId });
+    const boardDoc = await findMongoDefaultBoard(collections, userId);
 
     if (!boardDoc) {
       throw new Error("Board initialization failed.");
@@ -439,7 +514,7 @@ async function getDefaultBoardRecord(userId = SOLO_USER_ID): Promise<Board> {
   if (isMongoConfigured()) {
     await ensureMongoWorkspace(userId);
     const collections = await getCollections();
-    const boardDoc = await collections.boards.findOne({ userId });
+    const boardDoc = await findMongoDefaultBoard(collections, userId);
 
     if (!boardDoc) {
       throw new Error("Board initialization failed.");
@@ -685,7 +760,7 @@ export async function createMcpToken(
 
   if (isMongoConfigured()) {
     const collections = await getCollections();
-    await collections.mcpTokens.insertOne(token);
+    await collections.mcpTokens.insertOne({ ...token });
   } else {
     getMemoryState().mcpTokens.unshift(token);
   }
@@ -833,7 +908,7 @@ export async function createTask(
 
   if (isMongoConfigured()) {
     const collections = await getCollections();
-    await collections.tasks.insertOne(task);
+    await collections.tasks.insertOne({ ...task });
   } else {
     getMemoryState().tasks.push(task);
   }
@@ -1408,7 +1483,7 @@ export async function proposeStartWork(
 async function saveProposal(proposal: AiProposal) {
   if (isMongoConfigured()) {
     const collections = await getCollections();
-    await collections.proposals.insertOne(proposal);
+    await collections.proposals.insertOne({ ...proposal });
     return;
   }
 
@@ -1418,7 +1493,7 @@ async function saveProposal(proposal: AiProposal) {
 async function saveAiRun(run: AiRun) {
   if (isMongoConfigured()) {
     const collections = await getCollections();
-    await collections.aiRuns.insertOne(run);
+    await collections.aiRuns.insertOne({ ...run });
     return;
   }
 
