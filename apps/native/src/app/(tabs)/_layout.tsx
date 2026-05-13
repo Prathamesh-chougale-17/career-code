@@ -36,7 +36,7 @@ export default function TabsLayout() {
 
   return (
     <SafeAreaView
-      edges={["top", "bottom"]}
+      edges={["top"]}
       style={[styles.safeArea, { backgroundColor: colors.background }]}
     >
       <NativeTabs

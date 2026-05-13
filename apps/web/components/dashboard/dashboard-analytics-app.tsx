@@ -479,7 +479,7 @@ function InsightCards({ data }: { data: DashboardAnalytics }) {
         icon={<ClipboardList aria-hidden="true" />}
         title="Board"
         value={`${data.board.completionRate}%`}
-        detail={`${data.board.inProgressCount} active, ${data.board.reviewCount} in review`}
+        detail={`${data.board.inProgressCount} active, ${data.board.taskCount} total`}
         progress={data.board.completionRate}
         accent="var(--primary)"
       />
@@ -599,7 +599,7 @@ function ExecutionPanel({ data }: { data: DashboardAnalytics }) {
           <ProgressStat
             label="Board completion"
             value={data.board.completionRate}
-            detail={`${data.board.inProgressCount} in progress, ${data.board.reviewCount} in review`}
+            detail={`${data.board.inProgressCount} in progress, ${data.board.taskCount} total`}
           />
           <DistributionList
             title="Columns"

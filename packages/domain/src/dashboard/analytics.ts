@@ -123,24 +123,35 @@ function boardAnalytics(
   columns: BoardColumn[],
   tasks: KanbanTask[],
 ): DashboardAnalytics["board"] {
+  const visibleColumns = columns.filter((column) => column.id !== "review");
+  const visibleTasks = tasks.map((task) =>
+    task.columnId === "review"
+      ? {
+          ...task,
+          columnId: "in_progress" as const,
+        }
+      : task,
+  );
   const columnCounts = countBy(
-    tasks.map((task) => task.columnId),
+    visibleTasks.map((task) => task.columnId),
     columnIdSchema.options,
   );
   const priorityCounts = countBy(
-    tasks.map((task) => task.priority),
+    visibleTasks.map((task) => task.priority),
     prioritySchema.options,
   );
   const doneCount = columnCounts.done;
   const completionRate =
-    tasks.length === 0 ? 0 : Math.round((doneCount / tasks.length) * 100);
+    visibleTasks.length === 0
+      ? 0
+      : Math.round((doneCount / visibleTasks.length) * 100);
   return {
     title,
-    taskCount: tasks.length,
+    taskCount: visibleTasks.length,
     completionRate,
     inProgressCount: columnCounts.in_progress,
-    reviewCount: columnCounts.review,
-    columnCounts: columns.map((column) => ({
+    reviewCount: 0,
+    columnCounts: visibleColumns.map((column) => ({
       id: column.id,
       label: column.title,
       color: column.color,
@@ -151,7 +162,7 @@ function boardAnalytics(
       label: priorityLabels[priority],
       count: priorityCounts[priority],
     })),
-    recentTasks: [...tasks]
+    recentTasks: [...visibleTasks]
       .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
       .slice(0, 5)
       .map((task) => ({

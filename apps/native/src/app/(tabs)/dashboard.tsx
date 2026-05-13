@@ -163,7 +163,6 @@ export default function DashboardScreen() {
               data={[
                 { label: "Todo", value: columnCount(data, "todo") },
                 { label: "In progress", value: data.board.inProgressCount },
-                { label: "Review", value: data.board.reviewCount },
                 { label: "Done", value: columnCount(data, "done") },
               ]}
             />

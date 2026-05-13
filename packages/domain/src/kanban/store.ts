@@ -149,6 +149,31 @@ function sortByOrder<T extends { order: number }>(items: T[]) {
   return [...items].sort((a, b) => a.order - b.order);
 }
 
+function normalizeBoardColumnId(columnId: KanbanTask["columnId"]) {
+  return columnId === "review" ? "in_progress" : columnId;
+}
+
+function normalizeBoardColumnsForSnapshot(columns: BoardColumn[]) {
+  return sortByOrder(
+    columns.filter((column) => column.id !== "review"),
+  );
+}
+
+function normalizeBoardTasksForSnapshot(tasks: KanbanTask[]) {
+  return sortByOrder(
+    tasks.map((task) => {
+      const columnId = normalizeBoardColumnId(task.columnId);
+
+      return columnId === task.columnId
+        ? task
+        : {
+            ...task,
+            columnId,
+          };
+    }),
+  );
+}
+
 const legacySampleTaskIds = [
   "seed-map-ai-flow",
   "seed-connect-mcp-client",
@@ -470,8 +495,8 @@ export async function getBoardSnapshot(
 
     return snapshotSchema.parse({
       board,
-      columns: sortByOrder(columnDocs.map(withoutMongoId)),
-      tasks: sortByOrder(taskDocs.map(withoutMongoId)),
+      columns: normalizeBoardColumnsForSnapshot(columnDocs.map(withoutMongoId)),
+      tasks: normalizeBoardTasksForSnapshot(taskDocs.map(withoutMongoId)),
       proposals: proposalDocs
         .map(withoutMongoId)
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
@@ -487,12 +512,12 @@ export async function getBoardSnapshot(
 
   return snapshotSchema.parse({
     board,
-    columns: sortByOrder(
+    columns: normalizeBoardColumnsForSnapshot(
       memory.columns.filter(
         (column) => column.boardId === board.id && column.userId === userId,
       ),
     ),
-    tasks: sortByOrder(
+    tasks: normalizeBoardTasksForSnapshot(
       memory.tasks.filter(
         (task) => task.boardId === board.id && task.userId === userId,
       ),
@@ -544,7 +569,7 @@ export async function getDashboardMetrics(
         collections.tasks.countDocuments(baseFilter),
         collections.tasks.countDocuments({
           ...baseFilter,
-          columnId: "in_progress",
+          columnId: { $in: ["in_progress", "review"] },
         }),
         collections.tasks.countDocuments({ ...baseFilter, columnId: "done" }),
         collections.proposals.countDocuments(proposalFilter),
@@ -574,8 +599,9 @@ export async function getDashboardMetrics(
     boardTitle: board.title,
     proposalCount,
     taskCount: tasks.length,
-    inProgressCount: tasks.filter((task) => task.columnId === "in_progress")
-      .length,
+    inProgressCount: tasks.filter(
+      (task) => normalizeBoardColumnId(task.columnId) === "in_progress",
+    ).length,
     doneCount: tasks.filter((task) => task.columnId === "done").length,
   });
 }
@@ -867,6 +893,7 @@ export async function createTask(
   userId = SOLO_USER_ID,
 ) {
   const parsed = createTaskInputSchema.parse(input);
+  const columnId = normalizeBoardColumnId(parsed.columnId);
   const board = parsed.boardId
     ? (await getBoardSnapshot(userId)).board
     : await getDefaultBoard(userId);
@@ -891,7 +918,7 @@ export async function createTask(
     taskNumber: await getNextTaskNumber(boardId, userId),
     boardId,
     userId,
-    columnId: parsed.columnId,
+    columnId,
     title: parsed.title,
     description: parsed.description,
     priority: parsed.priority,
@@ -901,7 +928,7 @@ export async function createTask(
     helpfulLinks: parsed.helpfulLinks,
     problemLinks: parsed.problemLinks,
     ...sourceFields,
-    order: await getNextTaskOrder(boardId, parsed.columnId, userId),
+    order: await getNextTaskOrder(boardId, columnId, userId),
     createdAt,
     updatedAt: createdAt,
   };
@@ -1004,13 +1031,18 @@ async function normalizePatchForColumnMove(
   patch: TaskUpdatePatch,
   userId: string,
 ) {
-  if (!patch.columnId || patch.columnId === task.columnId) {
+  const columnId = patch.columnId
+    ? normalizeBoardColumnId(patch.columnId)
+    : undefined;
+
+  if (!columnId || columnId === task.columnId) {
     return patch;
   }
 
   return {
     ...patch,
-    order: await getNextTaskOrder(task.boardId, patch.columnId, userId),
+    columnId,
+    order: await getNextTaskOrder(task.boardId, columnId, userId),
     userId,
   };
 }
@@ -1137,6 +1169,7 @@ export async function reorderTask(
   userId = SOLO_USER_ID,
 ) {
   const parsed = reorderTaskInputSchema.parse(input);
+  const columnId = normalizeBoardColumnId(parsed.columnId);
 
   if (isMongoConfigured()) {
     const collections = await getCollections();
@@ -1155,7 +1188,7 @@ export async function reorderTask(
     const reordered = reorderTaskList(
       taskDocs.map(withoutMongoId),
       parsed.taskId,
-      parsed.columnId,
+      columnId,
       parsed.index,
     );
     await persistMongoTaskOrdering(collections.tasks, reordered, userId);
@@ -1165,8 +1198,8 @@ export async function reorderTask(
       userId,
       taskId: movingTask.id,
       type: "task.reordered",
-      summary: `Moved "${movingTask.title}" to ${parsed.columnId}`,
-      data: { columnId: parsed.columnId, index: parsed.index },
+      summary: `Moved "${movingTask.title}" to ${columnId}`,
+      data: { columnId, index: parsed.index },
     });
 
     return reordered.find((task) => task.id === parsed.taskId);
@@ -1187,7 +1220,7 @@ export async function reorderTask(
   const reordered = reorderTaskList(
     scopedTasks,
     parsed.taskId,
-    parsed.columnId,
+    columnId,
     parsed.index,
   );
   const reorderedIds = new Set(reordered.map((item) => item.id));
@@ -1201,8 +1234,8 @@ export async function reorderTask(
     userId,
     taskId: task.id,
     type: "task.reordered",
-    summary: `Moved "${task.title}" to ${parsed.columnId}`,
-    data: { columnId: parsed.columnId, index: parsed.index },
+    summary: `Moved "${task.title}" to ${columnId}`,
+    data: { columnId, index: parsed.index },
   });
 
   return reordered.find((item) => item.id === parsed.taskId);

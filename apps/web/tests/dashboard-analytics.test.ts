@@ -299,9 +299,10 @@ describe("dashboard analytics", () => {
     expect(analytics.board.taskCount).toBe(4);
     expect(analytics.board.completionRate).toBe(25);
     expect(columns.todo).toBe(1);
-    expect(columns.in_progress).toBe(1);
-    expect(columns.review).toBe(1);
+    expect(columns.in_progress).toBe(2);
+    expect(columns.review).toBeUndefined();
     expect(columns.done).toBe(1);
+    expect(analytics.board.reviewCount).toBe(0);
     expect(priorities.low).toBe(1);
     expect(priorities.medium).toBe(1);
     expect(priorities.high).toBe(1);

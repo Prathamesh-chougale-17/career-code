@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react-native";
 import React from "react";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,8 +11,14 @@ import {
   View,
   type TextInputProps,
   type ViewStyle,
+  useWindowDimensions,
 } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, {
+  FadeIn,
+  FadeOut,
+  SlideInDown,
+  SlideOutDown,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { lightImpact } from "@/lib/haptics";
@@ -27,7 +34,13 @@ export const spacing = {
   seven: 32,
 };
 
-type Tone = "default" | "primary" | "accent" | "success" | "danger" | "violet";
+export type Tone =
+  | "default"
+  | "primary"
+  | "accent"
+  | "success"
+  | "danger"
+  | "violet";
 
 export function ScreenScroll({
   children,
@@ -484,10 +497,295 @@ export function SelectSheet<T extends string>({
   );
 }
 
+export function ChoiceDialog<T extends string>({
+  isBusy = false,
+  onClose,
+  onSelect,
+  options,
+  selectedValue,
+  subtitle,
+  title,
+  visible,
+}: {
+  isBusy?: boolean;
+  onClose: () => void;
+  onSelect: (value: T) => void;
+  options: {
+    count?: number;
+    description?: string;
+    disabled?: boolean;
+    label: string;
+    meta?: string;
+    tone?: Tone;
+    value: T;
+  }[];
+  selectedValue?: T;
+  subtitle?: string;
+  title: string;
+  visible: boolean;
+}) {
+  const { colors } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+
+  return (
+    <Modal
+      animationType="none"
+      onRequestClose={onClose}
+      transparent
+      visible={visible}
+    >
+      <View style={styles.dialogRoot}>
+        <Animated.View
+          entering={FadeIn.duration(140)}
+          exiting={FadeOut.duration(100)}
+          style={[
+            StyleSheet.absoluteFillObject,
+            styles.dialogBackdrop,
+          ]}
+        >
+          <Pressable
+            accessibilityLabel="Close dialog"
+            accessibilityRole="button"
+            disabled={isBusy}
+            onPress={onClose}
+            style={StyleSheet.absoluteFillObject}
+          />
+        </Animated.View>
+
+        <View
+          pointerEvents="box-none"
+          style={[
+            styles.dialogPosition,
+            {
+              paddingBottom: insets.bottom + spacing.three,
+              paddingHorizontal: spacing.four,
+              paddingTop: insets.top + spacing.three,
+            },
+          ]}
+        >
+          <Animated.View
+            entering={SlideInDown.springify().damping(22).stiffness(220)}
+            exiting={SlideOutDown.duration(160)}
+            style={[
+              styles.dialogSheet,
+              {
+                backgroundColor: colors.surface,
+                borderColor: colors.border,
+                boxShadow: `0 18px 40px ${colors.shadow}`,
+                maxHeight: Math.max(360, height - insets.top - insets.bottom - 48),
+              } as ViewStyle,
+            ]}
+          >
+            <View
+              style={[
+                styles.dialogHandle,
+                { backgroundColor: colors.surfaceStrong },
+              ]}
+            />
+            <View style={styles.dialogHeader}>
+              <View style={styles.dialogTitleWrap}>
+                <Text
+                  selectable
+                  style={[styles.dialogTitle, { color: colors.text }]}
+                >
+                  {title}
+                </Text>
+                {subtitle ? (
+                  <Text
+                    selectable
+                    style={[styles.dialogSubtitle, { color: colors.textMuted }]}
+                  >
+                    {subtitle}
+                  </Text>
+                ) : null}
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                disabled={isBusy}
+                onPress={onClose}
+                style={({ pressed }) => [
+                  styles.dialogCloseButton,
+                  {
+                    backgroundColor: colors.surfaceMuted,
+                    opacity: isBusy ? 0.5 : pressed ? 0.72 : 1,
+                  },
+                ]}
+              >
+                <Text style={[styles.dialogCloseText, { color: colors.text }]}>
+                  Close
+                </Text>
+              </Pressable>
+            </View>
+
+            <ScrollView
+              contentContainerStyle={styles.dialogOptions}
+              showsVerticalScrollIndicator={false}
+            >
+              {options.map((option) => {
+                const selected = option.value === selectedValue;
+                const tone = option.tone ?? "default";
+                const toneColor = getToneColor(colors, tone);
+                const disabled = isBusy || option.disabled;
+
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={disabled}
+                    key={option.value}
+                    onPress={() => {
+                      lightImpact();
+                      onSelect(option.value);
+                    }}
+                    style={({ pressed }) => [
+                      styles.dialogOption,
+                      {
+                        backgroundColor: selected
+                          ? getToneBackgroundColor(colors, tone)
+                          : colors.surfaceMuted,
+                        borderColor: selected ? toneColor : colors.border,
+                        opacity: disabled ? 0.54 : pressed ? 0.76 : 1,
+                      },
+                    ]}
+                  >
+                    <View
+                      style={[
+                        styles.dialogOptionMark,
+                        {
+                          backgroundColor: selected ? toneColor : "transparent",
+                          borderColor: toneColor,
+                        },
+                      ]}
+                    >
+                      {selected ? (
+                        <View style={styles.dialogOptionMarkInner} />
+                      ) : null}
+                    </View>
+                    <View style={styles.dialogOptionCopy}>
+                      <View style={styles.dialogOptionTopRow}>
+                        <Text
+                          style={[
+                            styles.dialogOptionLabel,
+                            { color: colors.text },
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                        {option.meta ? (
+                          <Text
+                            style={[
+                              styles.dialogOptionMeta,
+                              { color: colors.textMuted },
+                            ]}
+                          >
+                            {option.meta}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {option.description ? (
+                        <Text
+                          style={[
+                            styles.dialogOptionDescription,
+                            { color: colors.textMuted },
+                          ]}
+                        >
+                          {option.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {typeof option.count === "number" ? (
+                      <View
+                        style={[
+                          styles.dialogCount,
+                          {
+                            backgroundColor: selected
+                              ? colors.surface
+                              : colors.surfaceStrong,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.dialogCountText,
+                            { color: selected ? toneColor : colors.textMuted },
+                          ]}
+                        >
+                          {option.count}
+                        </Text>
+                      </View>
+                    ) : null}
+                    {isBusy && selected ? (
+                      <ActivityIndicator color={toneColor} size="small" />
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export function Divider() {
   const { colors } = useAppTheme();
 
   return <View style={[styles.divider, { backgroundColor: colors.border }]} />;
+}
+
+function getToneColor(
+  colors: ReturnType<typeof useAppTheme>["colors"],
+  tone: Tone,
+) {
+  if (tone === "primary") {
+    return colors.primary;
+  }
+
+  if (tone === "accent") {
+    return colors.accent;
+  }
+
+  if (tone === "success") {
+    return colors.success;
+  }
+
+  if (tone === "danger") {
+    return colors.danger;
+  }
+
+  if (tone === "violet") {
+    return colors.violet;
+  }
+
+  return colors.textMuted;
+}
+
+function getToneBackgroundColor(
+  colors: ReturnType<typeof useAppTheme>["colors"],
+  tone: Tone,
+) {
+  if (tone === "primary") {
+    return colors.primarySoft;
+  }
+
+  if (tone === "accent") {
+    return colors.accentSoft;
+  }
+
+  if (tone === "success") {
+    return colors.successSoft;
+  }
+
+  if (tone === "danger") {
+    return colors.dangerSoft;
+  }
+
+  if (tone === "violet") {
+    return colors.violetSoft;
+  }
+
+  return colors.surfaceMuted;
 }
 
 const styles = StyleSheet.create({
@@ -538,6 +836,124 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
+  },
+  dialogBackdrop: {
+    backgroundColor: "rgba(10, 15, 17, 0.56)",
+  },
+  dialogCloseButton: {
+    alignItems: "center",
+    borderCurve: "continuous",
+    borderRadius: 999,
+    justifyContent: "center",
+    minHeight: 36,
+    paddingHorizontal: spacing.three,
+  },
+  dialogCloseText: {
+    fontSize: 13,
+    fontWeight: "800",
+  },
+  dialogCount: {
+    alignItems: "center",
+    borderRadius: 999,
+    justifyContent: "center",
+    minWidth: 34,
+    paddingHorizontal: spacing.two,
+    paddingVertical: spacing.one,
+  },
+  dialogCountText: {
+    fontSize: 12,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "900",
+  },
+  dialogHandle: {
+    alignSelf: "center",
+    borderRadius: 999,
+    height: 5,
+    width: 42,
+  },
+  dialogHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: spacing.three,
+    justifyContent: "space-between",
+  },
+  dialogOption: {
+    alignItems: "center",
+    borderCurve: "continuous",
+    borderRadius: 18,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: spacing.three,
+    minHeight: 68,
+    padding: spacing.three,
+  },
+  dialogOptionCopy: {
+    flex: 1,
+    gap: spacing.one,
+  },
+  dialogOptionDescription: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  dialogOptionLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "900",
+  },
+  dialogOptionMark: {
+    alignItems: "center",
+    borderRadius: 999,
+    borderWidth: 2,
+    height: 24,
+    justifyContent: "center",
+    width: 24,
+  },
+  dialogOptionMarkInner: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 999,
+    height: 8,
+    width: 8,
+  },
+  dialogOptionMeta: {
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  dialogOptionTopRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.two,
+  },
+  dialogOptions: {
+    gap: spacing.two,
+    paddingTop: spacing.one,
+  },
+  dialogPosition: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  dialogRoot: {
+    flex: 1,
+  },
+  dialogSheet: {
+    borderCurve: "continuous",
+    borderRadius: 28,
+    borderWidth: 1,
+    gap: spacing.four,
+    overflow: "hidden",
+    padding: spacing.four,
+  },
+  dialogSubtitle: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  dialogTitle: {
+    fontSize: 24,
+    fontWeight: "900",
+    lineHeight: 29,
+  },
+  dialogTitleWrap: {
+    flex: 1,
+    gap: spacing.one,
   },
   emptyState: {
     alignItems: "flex-start",

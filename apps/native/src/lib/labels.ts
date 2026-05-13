@@ -8,7 +8,6 @@ export const boardColumnOptions: { label: string; value: ColumnId }[] = [
   { label: "Backlog", value: "backlog" },
   { label: "Todo", value: "todo" },
   { label: "Doing", value: "in_progress" },
-  { label: "Review", value: "review" },
   { label: "Done", value: "done" },
 ];
 

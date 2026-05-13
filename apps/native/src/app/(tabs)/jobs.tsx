@@ -14,6 +14,7 @@ import {
   Badge,
   Button,
   Card,
+  ChoiceDialog,
   EmptyState,
   LoadingState,
   ScreenHeader,
@@ -94,6 +95,7 @@ function JobsListView({
   const listContentStyle = useScreenContentStyle({ tabBar: true });
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState("");
+  const [statusJob, setStatusJob] = useState<JobRecord | null>(null);
   const [statusFilter, setStatusFilter] = useState<JobStatus | "all">("all");
   const jobsQuery = useQuery({
     queryKey: jobsQueryKey,
@@ -154,21 +156,24 @@ function JobsListView({
   });
 
   function chooseStatus(job: JobRecord) {
-    Alert.alert(
-      "Update status",
-      `${job.company} - ${job.title}`,
-      [
-        ...jobStatusOptions.map((option) => ({
-          onPress: () =>
-            updateStatusMutation.mutate({
-              jobId: job.id,
-              status: option.value,
-            }),
-          text: option.label,
-        })),
-        { style: "cancel" as const, text: "Cancel" },
-      ],
-    );
+    setStatusJob(job);
+  }
+
+  function updateJobStatus(status: JobStatus) {
+    if (!statusJob) {
+      return;
+    }
+
+    if (status === statusJob.status) {
+      setStatusJob(null);
+      return;
+    }
+
+    updateStatusMutation.mutate({
+      jobId: statusJob.id,
+      status,
+    });
+    setStatusJob(null);
   }
 
   function deleteJob(job: JobRecord) {
@@ -243,27 +248,49 @@ function JobsListView({
   }
 
   return (
-    <FlashList
-      ListEmptyComponent={
-        <EmptyState
-          title="No jobs match"
-          message="Adjust the search or status filter to see more saved jobs."
-        />
-      }
-      ListHeaderComponent={header}
-      contentContainerStyle={[styles.listContent, listContentStyle]}
-      contentInsetAdjustmentBehavior="automatic"
-      data={filteredJobs}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <JobCard
-          isBusy={updateStatusMutation.isPending || deleteJobMutation.isPending}
-          job={item}
-          onDelete={() => deleteJob(item)}
-          onStatus={() => chooseStatus(item)}
-        />
-      )}
-    />
+    <>
+      <FlashList
+        ListEmptyComponent={
+          <EmptyState
+            title="No jobs match"
+            message="Adjust the search or status filter to see more saved jobs."
+          />
+        }
+        ListHeaderComponent={header}
+        contentContainerStyle={[styles.listContent, listContentStyle]}
+        contentInsetAdjustmentBehavior="automatic"
+        data={filteredJobs}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <JobCard
+            isBusy={updateStatusMutation.isPending || deleteJobMutation.isPending}
+            job={item}
+            onDelete={() => deleteJob(item)}
+            onStatus={() => chooseStatus(item)}
+          />
+        )}
+      />
+      <ChoiceDialog
+        isBusy={updateStatusMutation.isPending}
+        onClose={() => setStatusJob(null)}
+        onSelect={updateJobStatus}
+        options={jobStatusOptions.map((option) => ({
+          description: jobStatusDescription(option.value),
+          label: option.label,
+          meta: option.value === statusJob?.status ? "Current" : undefined,
+          tone: jobStatusTone(option.value),
+          value: option.value,
+        }))}
+        selectedValue={statusJob?.status}
+        subtitle={
+          statusJob
+            ? `${statusJob.company || "Unknown company"} - ${statusJob.title}`
+            : undefined
+        }
+        title="Change job status"
+        visible={Boolean(statusJob)}
+      />
+    </>
   );
 }
 
@@ -577,6 +604,30 @@ function profileToDraft(profile: JobSearchProfile): SearchProfileDraft {
     secondarySkills: listText(profile.secondarySkills),
     targetRoles: listText(profile.targetRoles),
   };
+}
+
+function jobStatusDescription(status: JobStatus) {
+  if (status === "not_applied") {
+    return "Keep it in the pipeline without marking any outreach yet.";
+  }
+
+  if (status === "applied") {
+    return "You have submitted the application or sent the outreach.";
+  }
+
+  if (status === "interviewing") {
+    return "There is an active interview, screen, or recruiter conversation.";
+  }
+
+  if (status === "offer") {
+    return "A positive outcome worth tracking for comparison and follow-up.";
+  }
+
+  if (status === "expired") {
+    return "The role is closed, stale, or no longer worth action.";
+  }
+
+  return "The company has declined or you have decided not to continue.";
 }
 
 const styles = StyleSheet.create({

@@ -14,6 +14,7 @@ import {
   Badge,
   Button,
   Card,
+  ChoiceDialog,
   EmptyState,
   LoadingState,
   ScreenHeader,
@@ -21,6 +22,7 @@ import {
   SegmentedControl,
   SelectSheet,
   TextField,
+  type Tone,
   spacing,
   useScreenContentStyle,
 } from "@/components/ui";
@@ -52,6 +54,7 @@ export default function BoardScreen() {
   const { colors } = useAppTheme();
   const listContentStyle = useScreenContentStyle({ tabBar: true });
   const queryClient = useQueryClient();
+  const [movingTask, setMovingTask] = useState<KanbanTask | null>(null);
   const [selectedColumn, setSelectedColumn] = useState<ColumnId>("todo");
   const snapshotQuery = useQuery({
     queryKey: boardSnapshotQueryKey,
@@ -139,23 +142,24 @@ export default function BoardScreen() {
   });
 
   function onMoveTask(task: KanbanTask) {
-    Alert.alert(
-      "Move task",
-      `Send #${task.taskNumber} to another board column.`,
-      [
-        ...boardColumnOptions
-          .filter((column) => column.value !== task.columnId)
-          .map((column) => ({
-            onPress: () =>
-              moveTaskMutation.mutate({
-                columnId: column.value,
-                taskId: task.id,
-              }),
-            text: column.label,
-          })),
-        { style: "cancel" as const, text: "Cancel" },
-      ],
-    );
+    setMovingTask(task);
+  }
+
+  function moveTaskToColumn(columnId: ColumnId) {
+    if (!movingTask) {
+      return;
+    }
+
+    if (columnId === movingTask.columnId) {
+      setMovingTask(null);
+      return;
+    }
+
+    moveTaskMutation.mutate({
+      columnId,
+      taskId: movingTask.id,
+    });
+    setMovingTask(null);
   }
 
   function onDeleteTask(task: KanbanTask) {
@@ -300,6 +304,27 @@ export default function BoardScreen() {
           />
         )}
       />
+      <ChoiceDialog
+        isBusy={moveTaskMutation.isPending}
+        onClose={() => setMovingTask(null)}
+        onSelect={moveTaskToColumn}
+        options={boardColumnOptions.map((column) => ({
+          count: columnCounts.find((item) => item.value === column.value)?.count,
+          description: boardColumnDescription(column.value),
+          label: column.label,
+          meta: column.value === movingTask?.columnId ? "Current" : undefined,
+          tone: boardColumnTone(column.value),
+          value: column.value,
+        }))}
+        selectedValue={movingTask?.columnId}
+        subtitle={
+          movingTask
+            ? `#${movingTask.taskNumber} - ${movingTask.title}`
+            : undefined
+        }
+        title="Move board task"
+        visible={Boolean(movingTask)}
+      />
     </View>
   );
 }
@@ -364,6 +389,38 @@ function TaskCard({
       </View>
     </Card>
   );
+}
+
+function boardColumnDescription(columnId: ColumnId) {
+  if (columnId === "backlog") {
+    return "Park ideas and future work without crowding today's plan.";
+  }
+
+  if (columnId === "todo") {
+    return "Ready to start when you pick up the next focused task.";
+  }
+
+  if (columnId === "in_progress") {
+    return "Actively being worked on right now.";
+  }
+
+  return "Finished work that should stay visible in your progress.";
+}
+
+function boardColumnTone(columnId: ColumnId): Tone {
+  if (columnId === "in_progress") {
+    return "primary";
+  }
+
+  if (columnId === "done") {
+    return "success";
+  }
+
+  if (columnId === "backlog") {
+    return "violet";
+  }
+
+  return "default";
 }
 
 const styles = StyleSheet.create({

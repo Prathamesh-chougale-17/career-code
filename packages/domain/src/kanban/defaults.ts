@@ -18,11 +18,6 @@ export const defaultColumnDefinitions = [
     color: "bg-amber-500",
   },
   {
-    id: "review",
-    title: "Review",
-    color: "bg-violet-500",
-  },
-  {
     id: "done",
     title: "Done",
     color: "bg-emerald-500",

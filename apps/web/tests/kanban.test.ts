@@ -693,6 +693,34 @@ describe("proposal flow", () => {
     expect(snapshot.tasks).toHaveLength(0);
   });
 
+  test("hides the legacy review lane and treats review tasks as in progress", async () => {
+    const userId = `legacy-review-${crypto.randomUUID()}`;
+    const created = await createTask(
+      {
+        columnId: "review",
+        title: "Legacy review task",
+        description: "",
+        priority: "medium",
+        acceptanceCriteria: [],
+        dependencies: [],
+      },
+      userId,
+    );
+
+    const snapshot = await getBoardSnapshot(userId);
+
+    expect(snapshot.columns.map((column) => column.id)).toEqual([
+      "backlog",
+      "todo",
+      "in_progress",
+      "done",
+    ]);
+    expect(created.columnId).toBe("in_progress");
+    expect(snapshot.tasks.find((task) => task.id === created.id)?.columnId).toBe(
+      "in_progress",
+    );
+  });
+
   test("keeps board data isolated per user", async () => {
     const userA = `user-a-${crypto.randomUUID()}`;
     const userB = `user-b-${crypto.randomUUID()}`;
