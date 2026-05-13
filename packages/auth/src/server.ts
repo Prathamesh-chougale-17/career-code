@@ -1,20 +1,41 @@
+import { expo } from "@better-auth/expo";
 import { memoryAdapter, type MemoryDB } from "@better-auth/memory-adapter";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
-import { betterAuth } from "better-auth";
+import { betterAuth, type Auth, type BetterAuthPlugin } from "better-auth";
 import { MongoClient } from "mongodb";
 
 import { getMongoDatabaseName, isMongoConfigured } from "@careeright/db";
 
-let authPromise: ReturnType<typeof createAuth> | undefined;
+let authPromise: Promise<Auth> | undefined;
 
 type AuthRuntimeEnv = Record<string, string | undefined>;
+type AuthRuntimeConfig = {
+  baseURL: string;
+  plugins: BetterAuthPlugin[];
+  requiresPersistentAuth: boolean;
+  secret: string;
+  socialProviders:
+    | {
+        google: {
+          clientId: string;
+          clientSecret: string;
+        };
+      }
+    | undefined;
+  trustedOrigins: string[];
+  verification: {
+    storeInDatabase: true;
+  };
+};
 
 const globalForAuth = globalThis as typeof globalThis & {
   __careerightAuthMemoryDb?: MemoryDB;
   __careerightAuthMongoClientPromise?: Promise<MongoClient>;
 };
 
-export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
+export function getAuthRuntimeConfig(
+  env: AuthRuntimeEnv = process.env,
+): AuthRuntimeConfig {
   const isProduction = env.NODE_ENV === "production";
   const baseURL =
     env.BETTER_AUTH_URL?.trim() ||
@@ -68,11 +89,12 @@ export function getAuthRuntimeConfig(env: AuthRuntimeEnv = process.env) {
     verification: {
       storeInDatabase: true,
     },
+    plugins: [expo() as BetterAuthPlugin],
     socialProviders,
   };
 }
 
-export async function getAuth() {
+export async function getAuth(): Promise<Auth> {
   if (!authPromise) {
     authPromise = createAuth();
   }
@@ -80,7 +102,7 @@ export async function getAuth() {
   return authPromise;
 }
 
-async function createAuth() {
+async function createAuth(): Promise<Auth> {
   const runtimeConfig = getAuthRuntimeConfig();
   const hasMongo = isMongoConfigured();
 
@@ -99,10 +121,11 @@ async function createAuth() {
     baseURL: runtimeConfig.baseURL,
     secret: runtimeConfig.secret,
     database,
+    plugins: runtimeConfig.plugins,
     socialProviders: runtimeConfig.socialProviders,
     trustedOrigins: runtimeConfig.trustedOrigins,
     verification: runtimeConfig.verification,
-  });
+  }) as Auth;
 }
 
 async function getAuthMongoAdapter() {
@@ -146,6 +169,13 @@ function getTrustedOrigins(
         env.CAREER_CODE_AUTH_URL,
         env.NEXT_PUBLIC_APP_URL,
         env.VERCEL_URL ? `https://${env.VERCEL_URL}` : undefined,
+        "careeright://",
+        "careeright://*",
+        !isProduction ? "exp://" : undefined,
+        !isProduction ? "exp://**" : undefined,
+        !isProduction ? "exp://192.168.*.*:*/**" : undefined,
+        !isProduction ? "exp://10.*.*.*:*/**" : undefined,
+        !isProduction ? "exp://172.*.*.*:*/**" : undefined,
         !isProduction ? "http://localhost:3000" : undefined,
       ]
         .map((value) => value?.trim())
