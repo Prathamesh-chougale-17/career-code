@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { ObjectId } from "mongodb";
 
 import {
   TASK_BREAKDOWN_SYSTEM_PROMPT,
@@ -6,7 +7,10 @@ import {
   taskBreakdownOutputSchema,
   type TaskBreakdownResult,
 } from "@careeright/domain/ai/task-breakdown";
-import { getAuthRuntimeConfig } from "@careeright/auth/server";
+import {
+  getAuthRuntimeConfig,
+  normalizeMongoAuthValue,
+} from "@careeright/auth/server";
 import { getMongoDatabaseName } from "@careeright/db";
 import { POST as handleMcpPost } from "../app/mcp/route";
 import {
@@ -111,6 +115,36 @@ describe("auth config", () => {
         NODE_ENV: "production",
       }),
     ).toThrow("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required");
+  });
+
+  test("normalizes nested Mongo auth ids before they are reused", () => {
+    const userId = new ObjectId();
+    const accountId = new ObjectId();
+    const sessionId = new ObjectId();
+
+    const normalized = normalizeMongoAuthValue({
+      user: {
+        id: userId,
+      },
+      account: {
+        id: accountId,
+        userId,
+      },
+      sessions: [
+        {
+          id: sessionId,
+          userId,
+        },
+      ],
+      createdAt: new Date("2026-05-13T00:00:00.000Z"),
+    });
+
+    expect(normalized.user.id).toBe(userId.toHexString());
+    expect(normalized.account.id).toBe(accountId.toHexString());
+    expect(normalized.account.userId).toBe(userId.toHexString());
+    expect(normalized.sessions[0].id).toBe(sessionId.toHexString());
+    expect(normalized.sessions[0].userId).toBe(userId.toHexString());
+    expect(normalized.createdAt).toBeInstanceOf(Date);
   });
 });
 

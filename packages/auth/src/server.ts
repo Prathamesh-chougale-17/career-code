@@ -1,8 +1,19 @@
 import { expo } from "@better-auth/expo";
 import { memoryAdapter, type MemoryDB } from "@better-auth/memory-adapter";
-import { mongodbAdapter } from "@better-auth/mongo-adapter";
-import { betterAuth, type Auth, type BetterAuthPlugin } from "better-auth";
-import { MongoClient } from "mongodb";
+import {
+  mongodbAdapter,
+  type MongoDBAdapterConfig,
+} from "@better-auth/mongo-adapter";
+import {
+  betterAuth,
+  type Auth,
+  type BetterAuthOptions,
+  type BetterAuthPlugin,
+  type DBAdapter,
+  type DBAdapterInstance,
+  type DBTransactionAdapter,
+} from "better-auth";
+import { MongoClient, ObjectId, UUID, type Db } from "mongodb";
 
 import { getMongoDatabaseName, isMongoConfigured } from "@careeright/db";
 
@@ -132,7 +143,74 @@ async function getAuthMongoAdapter() {
   const client = await getAuthMongoClient();
   const db = client.db(getMongoDatabaseName());
 
-  return mongodbAdapter(db, { client });
+  return createMongoAuthAdapter(db, { client });
+}
+
+function createMongoAuthAdapter(
+  db: Db,
+  config: MongoDBAdapterConfig,
+): DBAdapterInstance {
+  const createAdapter = mongodbAdapter(db, config);
+
+  return ((options: BetterAuthOptions) => {
+    const adapter = createAdapter(options);
+
+    return wrapMongoAuthAdapter(adapter);
+  }) satisfies DBAdapterInstance;
+}
+
+function wrapMongoAuthAdapter(adapter: DBAdapter): DBAdapter {
+  const wrapped = wrapMongoAuthAdapterMethods(adapter);
+
+  return {
+    ...wrapped,
+    transaction: async <R>(
+      callback: (trx: DBTransactionAdapter) => Promise<R>,
+    ) => {
+      const result = await adapter.transaction(async (trx) => {
+        return callback(wrapMongoAuthAdapterMethods(trx));
+      });
+
+      return normalizeMongoAuthValue(result) as R;
+    },
+  };
+}
+
+const mongoAuthAdapterMethods = [
+  "create",
+  "findOne",
+  "findMany",
+  "count",
+  "update",
+  "updateMany",
+  "delete",
+  "deleteMany",
+] as const;
+
+function wrapMongoAuthAdapterMethods<T extends object>(
+  adapter: T,
+): T {
+  const wrapped: Record<string, unknown> = {
+    ...(adapter as Record<string, unknown>),
+  };
+  const adapterRecord = adapter as Record<string, unknown>;
+
+  for (const method of mongoAuthAdapterMethods) {
+    const original = adapterRecord[method];
+
+    if (typeof original !== "function") {
+      continue;
+    }
+
+    wrapped[method] = async (...args: unknown[]) => {
+      const normalizedArgs = args.map((arg) => normalizeMongoAuthValue(arg));
+      const result = await original.apply(adapter, normalizedArgs);
+
+      return normalizeMongoAuthValue(result);
+    };
+  }
+
+  return wrapped as T;
 }
 
 async function getAuthMongoClient() {
@@ -288,4 +366,128 @@ function normalizeId(value: unknown) {
         : "";
 
   return /^[a-f0-9]{24}$/i.test(stringValue) ? stringValue : undefined;
+}
+
+export function normalizeMongoAuthValue<T>(value: T): T {
+  return normalizeMongoAuthValueInner(value, new WeakMap()) as T;
+}
+
+function normalizeMongoAuthValueInner(
+  value: unknown,
+  seen: WeakMap<object, unknown>,
+): unknown {
+  const idValue = getBsonIdString(value);
+
+  if (idValue) {
+    return idValue;
+  }
+
+  if (
+    !value ||
+    typeof value !== "object" ||
+    value instanceof Date ||
+    value instanceof RegExp ||
+    value instanceof ArrayBuffer ||
+    ArrayBuffer.isView(value)
+  ) {
+    return value;
+  }
+
+  const existing = seen.get(value);
+
+  if (existing) {
+    return existing;
+  }
+
+  if (Array.isArray(value)) {
+    const normalizedArray: unknown[] = [];
+    let changed = false;
+
+    seen.set(value, normalizedArray);
+
+    for (const item of value) {
+      const normalizedItem = normalizeMongoAuthValueInner(item, seen);
+      changed ||= normalizedItem !== item;
+      normalizedArray.push(normalizedItem);
+    }
+
+    return changed ? normalizedArray : value;
+  }
+
+  const prototype = Object.getPrototypeOf(value);
+
+  if (prototype !== Object.prototype && prototype !== null) {
+    return value;
+  }
+
+  const normalizedObject: Record<string, unknown> = {};
+  let changed = false;
+
+  seen.set(value, normalizedObject);
+
+  for (const [key, item] of Object.entries(
+    value as Record<string, unknown>,
+  )) {
+    const normalizedItem = normalizeMongoAuthValueInner(item, seen);
+    changed ||= normalizedItem !== item;
+    normalizedObject[key] = normalizedItem;
+  }
+
+  return changed ? normalizedObject : value;
+}
+
+const objectIdPattern = /^[a-f0-9]{24}$/i;
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function getBsonIdString(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  if (value instanceof ObjectId) {
+    return value.toHexString();
+  }
+
+  if (value instanceof UUID) {
+    return value.toString();
+  }
+
+  const bsonValue = value as {
+    _bsontype?: string;
+    toHexString?: () => string;
+    toString?: () => string;
+  };
+
+  if (typeof bsonValue.toHexString === "function") {
+    const stringValue = bsonValue.toHexString();
+
+    if (objectIdPattern.test(stringValue)) {
+      return stringValue;
+    }
+  }
+
+  if (
+    bsonValue._bsontype === "ObjectId" &&
+    typeof bsonValue.toString === "function"
+  ) {
+    const stringValue = bsonValue.toString();
+
+    if (objectIdPattern.test(stringValue)) {
+      return stringValue;
+    }
+  }
+
+  if (
+    bsonValue._bsontype === "UUID" &&
+    typeof bsonValue.toString === "function"
+  ) {
+    const stringValue = bsonValue.toString();
+
+    if (uuidPattern.test(stringValue)) {
+      return stringValue;
+    }
+  }
+
+  return undefined;
 }
