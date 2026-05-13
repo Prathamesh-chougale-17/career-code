@@ -171,8 +171,9 @@ function getTrustedOrigins(
         env.VERCEL_URL ? `https://${env.VERCEL_URL}` : undefined,
         "careeright://",
         "careeright://*",
-        !isProduction ? "exp://" : undefined,
-        !isProduction ? "exp://**" : undefined,
+        // Temporary Expo Go callback support while the native app is tested.
+        "exp://",
+        "exp://*",
         !isProduction ? "exp://192.168.*.*:*/**" : undefined,
         !isProduction ? "exp://10.*.*.*:*/**" : undefined,
         !isProduction ? "exp://172.*.*.*:*/**" : undefined,

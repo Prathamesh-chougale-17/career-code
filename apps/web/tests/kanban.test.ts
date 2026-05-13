@@ -86,6 +86,8 @@ describe("auth config", () => {
 
     expect(config.baseURL).toBe("https://careeright.vercel.app");
     expect(config.trustedOrigins).toContain("https://careeright.vercel.app");
+    expect(config.trustedOrigins).toContain("careeright://");
+    expect(config.trustedOrigins).toContain("exp://");
     expect(config.trustedOrigins).not.toContain("http://localhost:3000");
   });
 
