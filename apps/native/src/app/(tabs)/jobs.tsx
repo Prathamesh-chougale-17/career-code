@@ -20,9 +20,10 @@ import {
   ScreenScroll,
   SectionTitle,
   SegmentedControl,
-      StatCard,
+  StatCard,
   TextField,
   spacing,
+  useScreenContentStyle,
 } from "@/components/ui";
 import { rpcClient } from "@/lib/api";
 import { successImpact, warningImpact } from "@/lib/haptics";
@@ -90,6 +91,7 @@ function JobsListView({
   setView: (view: JobsView) => void;
   view: JobsView;
 }) {
+  const listContentStyle = useScreenContentStyle({ tabBar: true });
   const queryClient = useQueryClient();
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<JobStatus | "all">("all");
@@ -249,7 +251,8 @@ function JobsListView({
         />
       }
       ListHeaderComponent={header}
-      contentContainerStyle={styles.listContent}
+      contentContainerStyle={[styles.listContent, listContentStyle]}
+      contentInsetAdjustmentBehavior="automatic"
       data={filteredJobs}
       keyExtractor={(item) => item.id}
       renderItem={({ item }) => (
@@ -378,7 +381,7 @@ function JobProfileView({
   }
 
   return (
-    <ScreenScroll>
+    <ScreenScroll tabBar>
       <ScreenHeader
         title="Search profile"
         subtitle="Tune the job matching criteria used by Careeright."
@@ -447,7 +450,7 @@ function JobRunsView({
   });
 
   return (
-    <ScreenScroll>
+    <ScreenScroll tabBar>
       <ScreenHeader
         action={
           <Button

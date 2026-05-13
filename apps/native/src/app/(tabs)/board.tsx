@@ -22,6 +22,7 @@ import {
   SelectSheet,
   TextField,
   spacing,
+  useScreenContentStyle,
 } from "@/components/ui";
 import { rpcClient } from "@/lib/api";
 import { lightImpact, successImpact, warningImpact } from "@/lib/haptics";
@@ -49,6 +50,7 @@ type TaskFormValues = {
 
 export default function BoardScreen() {
   const { colors } = useAppTheme();
+  const listContentStyle = useScreenContentStyle({ tabBar: true });
   const queryClient = useQueryClient();
   const [selectedColumn, setSelectedColumn] = useState<ColumnId>("todo");
   const snapshotQuery = useQuery({
@@ -283,7 +285,8 @@ export default function BoardScreen() {
           />
         }
         ListHeaderComponent={header}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, listContentStyle]}
+        contentInsetAdjustmentBehavior="automatic"
         data={visibleTasks}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (

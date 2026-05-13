@@ -27,6 +27,7 @@ import {
   StatCard,
   TextField,
   spacing,
+  useScreenContentStyle,
 } from "@/components/ui";
 import { rpcClient } from "@/lib/api";
 import { successImpact, warningImpact } from "@/lib/haptics";
@@ -200,7 +201,7 @@ function DiaryView({
   }
 
   return (
-    <ScreenScroll>
+    <ScreenScroll tabBar>
       <ScreenHeader
         title="Learn"
         subtitle="Diary, DSA practice, and activity history in one place."
@@ -340,6 +341,7 @@ function DsaView({
   view: LearnView;
 }) {
   const { colors } = useAppTheme();
+  const listContentStyle = useScreenContentStyle({ tabBar: true });
   const queryClient = useQueryClient();
   const snapshotQuery = useQuery({
     queryKey: dsaSnapshotQueryKey,
@@ -440,7 +442,8 @@ function DsaView({
           <EmptyState title="No questions" message="Pick another track to continue." />
         }
         ListHeaderComponent={header}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, listContentStyle]}
+        contentInsetAdjustmentBehavior="automatic"
         data={questions}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
@@ -486,7 +489,7 @@ function HistoryView({
   const recentDays = history?.days.slice(-14) ?? [];
 
   return (
-    <ScreenScroll>
+    <ScreenScroll tabBar>
       <ScreenHeader
         title="History"
         subtitle="A 30-day rollup of practice and job application activity."

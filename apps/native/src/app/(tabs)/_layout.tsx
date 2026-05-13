@@ -8,7 +8,7 @@ import { useAppTheme } from "@/lib/theme";
 
 export default function TabsLayout() {
   const session = authClient.useSession();
-  const { colors } = useAppTheme();
+  const { colors, isDark } = useAppTheme();
 
   if (session.isPending) {
     return <LoadingState message="Opening Careeright" />;
@@ -21,27 +21,38 @@ export default function TabsLayout() {
   return (
     <NativeTabs
       backgroundColor={colors.surface}
+      blurEffect={isDark ? "systemThinMaterialDark" : "systemThinMaterialLight"}
+      disableTransparentOnScrollEdge
+      iconColor={{ default: colors.textMuted, selected: colors.primary }}
       indicatorColor={colors.primarySoft}
-      labelStyle={{ selected: { color: colors.primary } }}
+      labelStyle={{
+        default: { color: colors.textMuted, fontSize: 11, fontWeight: "700" },
+        selected: { color: colors.primary, fontSize: 11, fontWeight: "800" },
+      }}
+      labelVisibilityMode="labeled"
+      minimizeBehavior="onScrollDown"
+      rippleColor={colors.primarySoft}
+      shadowColor={colors.border}
+      tintColor={colors.primary}
     >
       <NativeTabs.Trigger name="dashboard">
-        <NativeTabs.Trigger.Icon sf="chart.bar.doc.horizontal" />
+        <NativeTabs.Trigger.Icon md="space_dashboard" sf="chart.bar.doc.horizontal" />
         <NativeTabs.Trigger.Label>Today</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="board">
-        <NativeTabs.Trigger.Icon sf="list.bullet.rectangle" />
+        <NativeTabs.Trigger.Icon md="view_kanban" sf="list.bullet.rectangle" />
         <NativeTabs.Trigger.Label>Board</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="jobs">
-        <NativeTabs.Trigger.Icon sf="briefcase" />
+        <NativeTabs.Trigger.Icon md="work" sf="briefcase" />
         <NativeTabs.Trigger.Label>Jobs</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="learn">
-        <NativeTabs.Trigger.Icon sf="book.closed" />
+        <NativeTabs.Trigger.Icon md="menu_book" sf="book.closed" />
         <NativeTabs.Trigger.Label>Learn</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="more">
-        <NativeTabs.Trigger.Icon sf="ellipsis.circle" />
+        <NativeTabs.Trigger.Icon md="more_horiz" sf="ellipsis.circle" />
         <NativeTabs.Trigger.Label>More</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>

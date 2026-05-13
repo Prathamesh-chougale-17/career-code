@@ -55,7 +55,7 @@ export default function DashboardScreen() {
   const data = analyticsQuery.data;
 
   return (
-    <ScreenScroll>
+    <ScreenScroll tabBar>
       <ScreenHeader
         title="Today"
         subtitle="A focused pulse across your board, jobs, diary, profile, and AI tooling."

@@ -28,6 +28,7 @@ import {
   SelectSheet,
   TextField,
   spacing,
+  useScreenContentStyle,
 } from "@/components/ui";
 import { rpcClient } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
@@ -282,7 +283,7 @@ function ProfileView({
   }
 
   return (
-    <ScreenScroll>
+    <ScreenScroll tabBar>
       <ScreenHeader
         title="More"
         subtitle="Profile, proposals, MCP tools, and account controls."
@@ -413,6 +414,7 @@ function ProposalsView({
   view: MoreView;
 }) {
   const { colors } = useAppTheme();
+  const listContentStyle = useScreenContentStyle({ tabBar: true });
   const queryClient = useQueryClient();
   const proposalsQuery = useQuery({
     queryKey: proposalHistoryQueryKey,
@@ -520,7 +522,8 @@ function ProposalsView({
           <EmptyState title="No proposals yet" message="AI and MCP proposal drafts appear here." />
         }
         ListHeaderComponent={header}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, listContentStyle]}
+        contentInsetAdjustmentBehavior="automatic"
         data={proposals}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
@@ -604,7 +607,7 @@ function McpView({
   });
 
   return (
-    <ScreenScroll>
+    <ScreenScroll tabBar>
       <ScreenHeader
         title="MCP tools"
         subtitle="Manage tokens for external AI clients that work with Careeright."
@@ -682,7 +685,7 @@ function SettingsView({
   const { mode, setMode } = useAppTheme();
 
   return (
-    <ScreenScroll>
+    <ScreenScroll tabBar>
       <ScreenHeader
         title="Settings"
         subtitle="Keep the app comfortable and connected to the right backend."

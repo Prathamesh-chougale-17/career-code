@@ -12,6 +12,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { lightImpact } from "@/lib/haptics";
 import { useAppTheme } from "@/lib/theme";
@@ -31,21 +32,43 @@ type Tone = "default" | "primary" | "accent" | "success" | "danger" | "violet";
 export function ScreenScroll({
   children,
   contentStyle,
+  tabBar = false,
 }: {
   children: React.ReactNode;
   contentStyle?: ViewStyle;
+  tabBar?: boolean;
 }) {
   const { colors } = useAppTheme();
+  const safeContentStyle = useScreenContentStyle({ tabBar });
 
   return (
     <ScrollView
       style={{ backgroundColor: colors.background, flex: 1 }}
       contentInsetAdjustmentBehavior="automatic"
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={[styles.screenContent, contentStyle]}
+      contentContainerStyle={[styles.screenContent, contentStyle, safeContentStyle]}
     >
       {children}
     </ScrollView>
+  );
+}
+
+export function useScreenContentStyle({
+  tabBar = false,
+}: { tabBar?: boolean } = {}) {
+  const insets = useSafeAreaInsets();
+  const bottomNavigationReserve = tabBar ? 72 : 0;
+
+  return React.useMemo(
+    () =>
+      ({
+        paddingBottom: Math.max(
+          spacing.seven,
+          insets.bottom + spacing.six + bottomNavigationReserve,
+        ),
+        paddingTop: Math.max(spacing.four, insets.top + spacing.three),
+      }) satisfies ViewStyle,
+    [bottomNavigationReserve, insets.bottom, insets.top],
   );
 }
 
@@ -63,9 +86,12 @@ export function ScreenHeader({
   return (
     <View style={styles.header}>
       <View style={styles.headerText}>
-        <Text selectable style={[styles.eyebrow, { color: colors.primary }]}>
-          Careeright
-        </Text>
+        <View style={styles.brandRow}>
+          <View style={[styles.brandMark, { backgroundColor: colors.primary }]} />
+          <Text selectable style={[styles.eyebrow, { color: colors.primary }]}>
+            Careeright
+          </Text>
+        </View>
         <Text selectable style={[styles.title, { color: colors.text }]}>
           {title}
         </Text>
@@ -489,6 +515,17 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 15,
     fontWeight: "800",
+  },
+  brandMark: {
+    borderCurve: "continuous",
+    borderRadius: 7,
+    height: 14,
+    width: 14,
+  },
+  brandRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: spacing.two,
   },
   card: {
     borderCurve: "continuous",

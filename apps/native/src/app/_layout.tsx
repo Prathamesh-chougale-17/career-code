@@ -3,6 +3,7 @@ import { Stack } from "expo-router/stack";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { queryClient } from "@/lib/api";
 import { AppThemeProvider, useAppTheme } from "@/lib/theme";
@@ -10,11 +11,13 @@ import { AppThemeProvider, useAppTheme } from "@/lib/theme";
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <AppThemeProvider>
-          <RootStack />
-        </AppThemeProvider>
-      </QueryClientProvider>
+      <SafeAreaProvider>
+        <QueryClientProvider client={queryClient}>
+          <AppThemeProvider>
+            <RootStack />
+          </AppThemeProvider>
+        </QueryClientProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
