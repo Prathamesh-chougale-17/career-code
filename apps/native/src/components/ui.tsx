@@ -57,18 +57,20 @@ export function useScreenContentStyle({
   tabBar = false,
 }: { tabBar?: boolean } = {}) {
   const insets = useSafeAreaInsets();
+  const bottomInset = tabBar ? 0 : insets.bottom;
   const bottomNavigationReserve = tabBar ? 72 : 0;
+  const topInset = tabBar ? 0 : insets.top;
 
   return React.useMemo(
     () =>
       ({
         paddingBottom: Math.max(
           spacing.seven,
-          insets.bottom + spacing.six + bottomNavigationReserve,
+          bottomInset + spacing.six + bottomNavigationReserve,
         ),
-        paddingTop: Math.max(spacing.four, insets.top + spacing.three),
+        paddingTop: Math.max(spacing.four, topInset + spacing.three),
       }) satisfies ViewStyle,
-    [bottomNavigationReserve, insets.bottom, insets.top],
+    [bottomInset, bottomNavigationReserve, topInset],
   );
 }
 
