@@ -56,7 +56,14 @@ export default function DataDeletionPage() {
               Careeright users can request deletion of their account-associated
               data without reinstalling the app. Send a request from the Google
               account email you use with Careeright, and we will process it as
-              soon as reasonably possible.
+              soon as reasonably possible. You can also review the{" "}
+              <Link
+                href="/privacy"
+                className="font-semibold text-lime-300 underline-offset-4 hover:underline"
+              >
+                Careeright Privacy Policy
+              </Link>
+              .
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a

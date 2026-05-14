@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CheckCircle2,
   Copy,
+  ExternalLink,
   FileUp,
   KeyRound,
   LogOut,
@@ -35,6 +36,7 @@ import { authClient } from "@/lib/auth-client";
 import { getCareerightOrigin } from "@/lib/config";
 import { successImpact, warningImpact } from "@/lib/haptics";
 import { formatLongDate, titleCase } from "@/lib/labels";
+import { openExternalUrl } from "@/lib/open-url";
 import { uploadResumePdf } from "@/lib/upload-resume";
 import { useAppTheme } from "@/lib/theme";
 import {
@@ -694,6 +696,7 @@ function SettingsView({
   view: MoreView;
 }) {
   const { colors, mode, setMode } = useAppTheme();
+  const origin = getCareerightOrigin();
 
   return (
     <ScreenScroll tabBar>
@@ -717,8 +720,28 @@ function SettingsView({
       <Card>
         <SectionTitle title="Backend" />
         <Text style={[styles.mutedText, { color: colors.textMuted }]}>
-          {getCareerightOrigin()}
+          {origin}
         </Text>
+      </Card>
+      <Card>
+        <SectionTitle
+          title="Privacy and data"
+          subtitle="Review policy details or request account data deletion."
+        />
+        <View style={styles.taskActions}>
+          <Button
+            onPress={() => openExternalUrl(`${origin}/privacy`)}
+            variant="secondary"
+          >
+            <ExternalLink size={16} /> Privacy policy
+          </Button>
+          <Button
+            onPress={() => openExternalUrl(`${origin}/data-deletion`)}
+            variant="ghost"
+          >
+            <ExternalLink size={16} /> Data deletion
+          </Button>
+        </View>
       </Card>
       <Card>
         <SectionTitle title="Account" />
