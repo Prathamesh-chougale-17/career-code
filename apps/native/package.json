@@ -10,7 +10,8 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "check-types": "tsc --noEmit"
+    "check-types": "tsc --noEmit",
+    "eas-build-post-install": "cd ../.. && pnpm --filter @careeright/db build && pnpm --filter @careeright/domain build && pnpm --filter @careeright/api build"
   },
   "dependencies": {
     "@better-auth/expo": "1.6.10",
@@ -22,6 +23,7 @@
     "@react-navigation/native": "^7.1.33",
     "@shopify/flash-list": "2.0.2",
     "@tanstack/react-query": "^5.100.6",
+    "better-auth": "1.6.10",
     "expo": "~55.0.24",
     "expo-clipboard": "~55.0.13",
     "expo-constants": "~55.0.16",
