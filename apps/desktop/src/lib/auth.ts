@@ -71,6 +71,8 @@ export async function beginDesktopSignIn() {
   await store.save();
   await ensureDeepLinkRegistration();
   await openUrl(authUrl.toString());
+
+  return state;
 }
 
 export async function exchangeDesktopCode(code: string, state: string) {
@@ -98,6 +100,46 @@ export async function exchangeDesktopCode(code: string, state: string) {
   }
 
   const session = (await response.json()) as DesktopSession;
+  await saveDesktopSession(session);
+
+  return session;
+}
+
+export async function pollDesktopAuthState(state: string) {
+  const store = await getStore();
+  const pendingState = await store.get<string>(pendingStateKey);
+
+  if (!pendingState || pendingState !== state) {
+    throw new Error("Desktop sign-in state did not match.");
+  }
+
+  const response = await fetch(`${getCareerightOrigin()}/api/desktop-auth/poll`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ state }),
+  });
+
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new Error(message || "Desktop sign-in status check failed.");
+  }
+
+  const result = (await response.json()) as
+    | ({ pending: true } & Partial<DesktopSession>)
+    | ({ pending: false } & DesktopSession);
+
+  if (result.pending) {
+    return null;
+  }
+
+  const session: DesktopSession = {
+    token: result.token,
+    expiresAt: result.expiresAt,
+    user: result.user,
+  };
+
   await saveDesktopSession(session);
 
   return session;

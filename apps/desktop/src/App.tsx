@@ -8,6 +8,7 @@ import {
   exchangeDesktopCode,
   listenForDesktopCallbacks,
   loadDesktopSession,
+  pollDesktopAuthState,
   revokeDesktopSession,
 } from "./lib/auth";
 import { getCareerightOrigin } from "./lib/config";
@@ -93,12 +94,37 @@ function App() {
     setAuthError("");
 
     try {
-      await beginDesktopSignIn();
+      const state = await beginDesktopSignIn();
+      await pollForBrowserCompletion(state);
     } catch (error) {
       setAuthError(getErrorMessage(error));
-    } finally {
       setIsSigningIn(false);
     }
+  }
+
+  async function pollForBrowserCompletion(state: string) {
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < 5 * 60 * 1000) {
+      const nextSession = await pollDesktopAuthState(state);
+
+      if (nextSession) {
+        setSession(nextSession);
+        setStatus("signed-in");
+        setIsSigningIn(false);
+        await queryClient.invalidateQueries();
+        return;
+      }
+
+      await sleep(1500);
+    }
+
+    setAuthError("Desktop sign-in timed out. Please try again.");
+    setIsSigningIn(false);
+  }
+
+  function sleep(ms: number) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
   }
 
   async function handleSignOut() {

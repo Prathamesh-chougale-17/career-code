@@ -344,6 +344,7 @@ export async function getSessionFromHeaders(requestHeaders: Headers) {
 export {
   createDesktopAuthCode,
   exchangeDesktopAuthCode,
+  exchangeDesktopAuthState,
   readBearerToken,
   revokeDesktopBearerToken,
 } from "./desktop.js";

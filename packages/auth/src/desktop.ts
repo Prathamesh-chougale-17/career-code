@@ -143,6 +143,51 @@ export async function exchangeDesktopAuthCode({
   };
 }
 
+export async function exchangeDesktopAuthState({ state }: { state: string }) {
+  const db = await getMongoDb();
+  const stateHash = hashSecret(state);
+  const codeDoc = await db.collection<DesktopAuthCode>("mcpTokens").findOne({
+    kind: "desktopAuthCode",
+    stateHash,
+    consumedAt: { $exists: false },
+  });
+
+  if (!codeDoc || codeDoc.expiresAt <= now()) {
+    return null;
+  }
+
+  const consumedAt = now();
+  const consumeResult = await db
+    .collection<DesktopAuthCode>("mcpTokens")
+    .updateOne(
+      { id: codeDoc.id, kind: "desktopAuthCode", consumedAt: { $exists: false } },
+      { $set: { consumedAt } },
+    );
+
+  if (consumeResult.modifiedCount !== 1) {
+    return null;
+  }
+
+  const token = `cdt_${secretValue()}`;
+  const session: DesktopSession = {
+    id: id("desktop-session"),
+    kind: "desktopSession",
+    tokenHash: hashSecret(token),
+    userId: codeDoc.userId,
+    expiresAt: expiresIn(desktopSessionTtlMs),
+    createdAt: consumedAt,
+    lastUsedAt: consumedAt,
+  };
+
+  await db.collection<DesktopSession>("mcpTokens").insertOne(session);
+
+  return {
+    token,
+    userId: session.userId,
+    expiresAt: session.expiresAt,
+  };
+}
+
 export async function getDesktopSessionFromBearerToken(token: string) {
   const db = await getMongoDb();
   const session = await db.collection<DesktopSession>("mcpTokens").findOne({
