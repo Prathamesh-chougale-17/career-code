@@ -768,6 +768,25 @@ function toMcpTokenView(token: McpToken): McpTokenView {
   return mcpTokenViewSchema.parse(token);
 }
 
+function mcpTokenFilter(userId: string): Filter<McpToken> {
+  return {
+    userId,
+    $or: [{ kind: { $exists: false } }, { kind: "mcpToken" }],
+  } as Filter<McpToken>;
+}
+
+function activeMcpTokenFilter(tokenHash: string): Filter<McpToken> {
+  return {
+    tokenHash,
+    revokedAt: { $exists: false },
+    $or: [{ kind: { $exists: false } }, { kind: "mcpToken" }],
+  } as Filter<McpToken>;
+}
+
+function isMcpTokenRecord(token: McpToken & { kind?: string }) {
+  return !token.kind || token.kind === "mcpToken";
+}
+
 export async function createMcpToken(
   input: CreateMcpTokenInput,
   userId = SOLO_USER_ID,
@@ -801,7 +820,7 @@ export async function listMcpTokens(userId = SOLO_USER_ID) {
   if (isMongoConfigured()) {
     const collections = await getCollections();
     const tokens = await collections.mcpTokens
-      .find({ userId })
+      .find(mcpTokenFilter(userId))
       .sort({ createdAt: -1 })
       .toArray();
 
@@ -809,7 +828,7 @@ export async function listMcpTokens(userId = SOLO_USER_ID) {
   }
 
   return getMemoryState().mcpTokens
-    .filter((token) => token.userId === userId)
+    .filter((token) => token.userId === userId && isMcpTokenRecord(token))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .map(toMcpTokenView);
 }
@@ -824,7 +843,7 @@ export async function revokeMcpToken(
   if (isMongoConfigured()) {
     const collections = await getCollections();
     const token = await collections.mcpTokens.findOneAndUpdate(
-      { id: tokenId, userId },
+      { id: tokenId, ...mcpTokenFilter(userId) },
       { $set: { revokedAt } },
       { returnDocument: "after" },
     );
@@ -838,7 +857,8 @@ export async function revokeMcpToken(
 
   const memory = getMemoryState();
   const index = memory.mcpTokens.findIndex(
-    (token) => token.id === tokenId && token.userId === userId,
+    (token) =>
+      token.id === tokenId && token.userId === userId && isMcpTokenRecord(token),
   );
 
   if (index === -1) {
@@ -860,10 +880,7 @@ export async function resolveMcpToken(rawToken: string) {
   if (isMongoConfigured()) {
     const collections = await getCollections();
     const token = await collections.mcpTokens.findOneAndUpdate(
-      {
-        tokenHash,
-        revokedAt: { $exists: false },
-      },
+      activeMcpTokenFilter(tokenHash),
       { $set: { lastUsedAt } },
       { returnDocument: "after" },
     );
@@ -873,7 +890,10 @@ export async function resolveMcpToken(rawToken: string) {
 
   const memory = getMemoryState();
   const index = memory.mcpTokens.findIndex(
-    (token) => token.tokenHash === tokenHash && !token.revokedAt,
+    (token) =>
+      token.tokenHash === tokenHash &&
+      !token.revokedAt &&
+      isMcpTokenRecord(token),
   );
 
   if (index === -1) {
