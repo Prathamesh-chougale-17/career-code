@@ -1,5 +1,5 @@
 import { createCareerightRpcClient } from "@careeright/api/client";
-import { QueryClient } from "@tanstack/react-query";
+import { QueryClient } from "@repo/ui/providers/query-provider";
 
 import { loadDesktopSession } from "./auth";
 import { getCareerightOrigin } from "./config";

@@ -5,7 +5,7 @@ import {
   CareerightUiProvider,
   type CareerightDashboardRoute,
 } from "@repo/ui/providers/careeright-ui-provider";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider } from "@repo/ui/providers/query-provider";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
@@ -13,6 +13,7 @@ import { useState, type ReactNode } from "react";
 import { UserAccountMenu } from "@/components/auth/user-account-menu";
 import { CareerightLogo } from "@/components/brand/careeright-logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { DashboardShell } from "@repo/ui/components/dashboard-shell";
 import { TooltipProvider } from "@repo/ui/components/ui/tooltip";
 
 export function DashboardProviders({ children }: { children: ReactNode }) {
@@ -49,7 +50,9 @@ export function DashboardProviders({ children }: { children: ReactNode }) {
           copyText: (text) => navigator.clipboard.writeText(text),
         }}
       >
-        <TooltipProvider>{children}</TooltipProvider>
+        <TooltipProvider>
+          <DashboardShell>{children}</DashboardShell>
+        </TooltipProvider>
       </CareerightUiProvider>
     </QueryClientProvider>
   );

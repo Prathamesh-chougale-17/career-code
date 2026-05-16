@@ -2,10 +2,15 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { CareerightUiProvider } from "@repo/ui/providers/careeright-ui-provider";
 import { DashboardShell } from "@repo/ui/components/dashboard-shell";
 import {
+  ArrowRight,
+  Briefcase,
+  CheckCircle2,
   Loader2,
+  ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@repo/ui/providers/query-provider";
 
 import Link from "./adapters/next/link";
 import {
@@ -186,10 +191,11 @@ function App() {
   if (status === "booting") {
     return (
       <main className="auth-page">
-        <section className="auth-copy">
-          <LogoMark />
+        <section className="auth-copy auth-copy-centered">
+          <CareerightLogo className="size-12" sizes="48px" />
           <p className="eyebrow">Careeright Desktop</p>
           <h1>Opening your workspace.</h1>
+          <p className="lede">Preparing your local shell and protected workspace.</p>
         </section>
       </main>
     );
@@ -199,19 +205,57 @@ function App() {
     return (
       <main className="auth-page">
         <section className="auth-copy">
-          <LogoMark />
-          <p className="eyebrow">Careeright Desktop</p>
-          <h1>Your web dashboard, rebuilt for desktop.</h1>
+          <div className="brand-row">
+            <CareerightLogo className="size-12" sizes="48px" />
+            <div>
+              <p className="eyebrow">Careeright Desktop</p>
+              <p className="brand-subtitle">Private career execution workspace</p>
+            </div>
+          </div>
+          <h1>Your Careeright workspace, tuned for desktop.</h1>
           <p className="lede">
-            Sign in through Google to connect this desktop client to your Careeright workspace.
+            Connect with Google to load your jobs, board, proposals, diary, DSA
+            progress, profile, and MCP tools through the production backend.
           </p>
+          <div className="auth-pills">
+            <span><Sparkles aria-hidden="true" /> Review-first AI</span>
+            <span><Briefcase aria-hidden="true" /> Job pipeline</span>
+            <span><ShieldCheck aria-hidden="true" /> Bearer session</span>
+          </div>
+          <section className="desktop-preview" aria-label="Workspace preview">
+            <div className="preview-header">
+              <div>
+                <p>Live workspace</p>
+                <span>Dashboard parity with the web app</span>
+              </div>
+              <strong>4/5 ready</strong>
+            </div>
+            <div className="preview-grid">
+              <PreviewMetric label="Jobs" value="123" tone="amber" />
+              <PreviewMetric label="Profile" value="100%" tone="lime" />
+              <PreviewMetric label="Proposals" value="3" tone="violet" />
+            </div>
+            <div className="preview-row">
+              <span>Backend Engineer - Node.js</span>
+              <strong>not applied</strong>
+            </div>
+          </section>
         </section>
         <section className="auth-card" aria-label="Sign in">
-          <p className="card-kicker">Production backend</p>
+          <div className="auth-card-header">
+            <p className="card-kicker">Production backend</p>
+            <CheckCircle2 aria-hidden="true" />
+          </div>
+          <h2>Continue to Careeright</h2>
+          <p className="muted">
+            We will open Google in your system browser and return here after the
+            desktop session is created.
+          </p>
           <p className="mono-text">{getCareerightOrigin()}</p>
           <Button size="lg" disabled={isSigningIn} onClick={handleSignIn}>
             {isSigningIn ? <Loader2 className="spin" /> : null}
             {isSigningIn ? "Waiting for browser..." : "Continue with Google"}
+            {!isSigningIn ? <ArrowRight data-icon="inline-end" aria-hidden="true" /> : null}
           </Button>
           {authError ? <p className="text-sm text-destructive">{authError}</p> : null}
         </section>
@@ -262,11 +306,20 @@ function DashboardRoute({ route }: { route: Route }) {
   return <DashboardAnalyticsApp />;
 }
 
-function LogoMark() {
+function PreviewMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone: "amber" | "lime" | "violet";
+}) {
   return (
-    <span className="logo-mark" aria-hidden="true">
-      CR
-    </span>
+    <div className={`preview-metric ${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
   );
 }
 
