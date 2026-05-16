@@ -1,4 +1,4 @@
-import { HistoryApp } from "@/components/history/history-app";
+import { HistoryApp } from "@repo/ui/components/history/history-app";
 import { requirePageSession } from "@/lib/auth/session";
 import { getHistorySnapshot } from "@careeright/domain/history/store";
 import { loadInitialData } from "@/lib/server/initial-data";
@@ -11,3 +11,4 @@ export default async function DashboardHistoryPage() {
 
   return <HistoryApp initialHistory={initialHistory} />;
 }
+

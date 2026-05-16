@@ -3,9 +3,9 @@
 import { Loader2, LogOut, UserCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "@/lib/auth-client";
-import { cn } from "@/lib/utils";
+import { cn } from "@repo/ui/lib/utils";
 
 type ClientSession = {
   user?: {
@@ -109,3 +109,4 @@ export function UserAccountMenu({ className }: { className?: string }) {
     </div>
   );
 }
+

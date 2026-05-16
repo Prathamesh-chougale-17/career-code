@@ -1,5 +1,6 @@
-import { ProposalIndexLoadingPage } from "@/components/loading/dashboard-route-loading";
+import { ProposalIndexLoadingPage } from "@repo/ui/components/loading/dashboard-route-loading";
 
 export default function ProposalLoading() {
   return <ProposalIndexLoadingPage />;
 }
+

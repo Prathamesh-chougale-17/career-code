@@ -8,7 +8,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@repo/ui/components/ui/card";
 import {
   getSessionFromServerHeaders,
   normalizeAuthCallbackPath,
@@ -89,3 +89,5 @@ function AuthSetupCard({ message }: { message: string }) {
     </Card>
   );
 }
+
+

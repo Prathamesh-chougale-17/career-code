@@ -4,14 +4,14 @@ import { Loader2, LogIn } from "lucide-react";
 import { useState } from "react";
 
 import { CareerightLogo } from "@/components/brand/careeright-logo";
-import { Button } from "@/components/ui/button";
+import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@repo/ui/components/ui/card";
 import { authClient } from "@/lib/auth-client";
 
 export function SignInCard({ callbackURL }: { callbackURL: string }) {
@@ -82,3 +82,5 @@ export function SignInCard({ callbackURL }: { callbackURL: string }) {
     </Card>
   );
 }
+
+

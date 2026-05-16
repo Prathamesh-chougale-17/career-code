@@ -1,4 +1,4 @@
-import { DashboardAnalyticsApp } from "@/components/dashboard/dashboard-analytics-app";
+import { DashboardAnalyticsApp } from "@repo/ui/components/dashboard/dashboard-analytics-app";
 import { requirePageSession } from "@/lib/auth/session";
 import { getDashboardAnalytics } from "@careeright/domain/dashboard/analytics";
 import { loadInitialData } from "@/lib/server/initial-data";
@@ -11,3 +11,4 @@ export default async function DashboardPage() {
 
   return <DashboardAnalyticsApp initialAnalytics={initialAnalytics} />;
 }
+

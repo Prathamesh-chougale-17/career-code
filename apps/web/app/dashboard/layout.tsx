@@ -1,4 +1,4 @@
-import { DashboardShell } from "@/components/dashboard-shell";
+import { DashboardShell } from "@repo/ui/components/dashboard-shell";
 import { DashboardProviders } from "@/components/providers/dashboard-providers";
 
 export const dynamic = "force-dynamic";
@@ -14,3 +14,5 @@ export default async function DashboardLayout({
     </DashboardProviders>
   );
 }
+
+

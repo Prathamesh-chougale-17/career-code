@@ -355,7 +355,7 @@ describe("dashboard analytics", () => {
       readFile("app/dashboard/page.tsx", "utf8"),
       readFile("app/dashboard/kanban/page.tsx", "utf8"),
       readFile("app/dashboard/ai/page.tsx", "utf8"),
-      readFile("components/dashboard-sidebar.tsx", "utf8"),
+      readFile("../../packages/ui/src/components/dashboard-sidebar.tsx", "utf8"),
     ]);
 
     expect(dashboardPage).toContain("DashboardAnalyticsApp");
@@ -364,8 +364,8 @@ describe("dashboard analytics", () => {
     expect(sidebar).toContain('render={<Link href="/dashboard" />}');
     expect(sidebar).toContain('render={<Link href="/dashboard/kanban" />}');
     expect(sidebar).toContain('render={<Link href="/dashboard/diary" />}');
-    expect(sidebar).toContain("pathname.startsWith(\"/dashboard/kanban\")");
-    expect(sidebar).toContain('pathname.startsWith("/dashboard/diary")');
+    expect(sidebar).toContain('route="board"');
+    expect(sidebar).toContain('route="diary"');
   });
 
   test("clamps out-of-range job fit scores before averaging", async () => {

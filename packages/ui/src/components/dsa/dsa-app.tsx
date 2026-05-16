@@ -1,0 +1,1052 @@
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  CheckCircle2,
+  Circle,
+  CirclePlay,
+  ExternalLink,
+  ListChecks,
+  Loader2,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../ui/accordion";
+import { Badge } from "../ui/badge";
+import { Button, buttonVariants } from "../ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../ui/card";
+import { Checkbox } from "../ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "../ui/empty";
+import { Separator } from "../ui/separator";
+import { SidebarTrigger } from "../ui/sidebar";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
+import type {
+  DsaCatalog,
+  DsaQuestion,
+  DsaQuestionProgress,
+  DsaSnapshot,
+  DsaSubtopic,
+  DsaTrack,
+  UpdateDsaQuestionProgressInput,
+} from "@careeright/domain/dsa/schema";
+import {
+  buildDsaPlaylistEmbedUrl,
+  buildDsaVideoEmbedUrl,
+} from "@careeright/domain/dsa/youtube";
+import { useCareerightUi } from "../../providers/careeright-ui-provider";
+import {
+  dsaSnapshotQueryKey,
+  historySnapshotQueryKey,
+} from "@careeright/api/query-keys";
+import { cn } from "../../lib/utils";
+
+const DSA_SURFACE_TONES = [
+  "border-primary/25 bg-primary/5",
+  "border-chart-1/25 bg-chart-1/10",
+  "border-chart-2/25 bg-chart-2/10",
+  "border-chart-3/25 bg-chart-3/10",
+  "border-chart-4/25 bg-chart-4/10",
+  "border-chart-5/25 bg-chart-5/10",
+];
+
+const DSA_BADGE_TONES = [
+  "border-primary/30 bg-primary/10 text-foreground",
+  "border-chart-1/35 bg-chart-1/15 text-foreground",
+  "border-chart-2/35 bg-chart-2/15 text-foreground",
+  "border-chart-3/35 bg-chart-3/15 text-foreground",
+  "border-chart-4/35 bg-chart-4/15 text-foreground",
+  "border-chart-5/35 bg-chart-5/15 text-foreground",
+];
+
+const DSA_VIDEO_PLAYBACK_RATE = 1.5;
+
+type YouTubePlayer = {
+  destroy?: () => void;
+  setPlaybackRate: (suggestedRate: number) => void;
+};
+
+type YouTubePlayerEvent = {
+  data?: number;
+  target: YouTubePlayer;
+};
+
+type YouTubeIframeApi = {
+  Player: new (
+    element: HTMLIFrameElement,
+    options: {
+      events?: {
+        onReady?: (event: YouTubePlayerEvent) => void;
+        onStateChange?: (event: YouTubePlayerEvent) => void;
+      };
+    },
+  ) => YouTubePlayer;
+  PlayerState: {
+    CUED: number;
+    PLAYING: number;
+  };
+};
+
+declare global {
+  interface Window {
+    YT?: YouTubeIframeApi;
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
+
+type DsaVideoDialogState = {
+  title: string;
+  description: string;
+  embedUrl: string;
+};
+
+let youTubeIframeApiPromise: Promise<YouTubeIframeApi> | undefined;
+
+export function DsaApp({ initialSnapshot }: { initialSnapshot?: DsaSnapshot }) {
+  const { rpcClient } = useCareerightUi();
+  const [openTrackIds, setOpenTrackIds] = useState<string[]>([]);
+  const [activeVideo, setActiveVideo] = useState<DsaVideoDialogState | null>(
+    null,
+  );
+  const [pendingQuestionIds, setPendingQuestionIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const queryClient = useQueryClient();
+  const dsaQuery = useQuery({
+    queryKey: dsaSnapshotQueryKey,
+    queryFn: () => rpcClient.dsa.snapshot(),
+    initialData: initialSnapshot,
+    staleTime: 60_000,
+  });
+  const snapshot = dsaQuery.data ?? initialSnapshot;
+  const updateProgressMutation = useMutation({
+    mutationFn: (input: UpdateDsaQuestionProgressInput) =>
+      rpcClient.dsa.updateQuestionProgress(input),
+    onMutate: async (input) => {
+      setPendingQuestionIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.add(input.questionId);
+        return nextIds;
+      });
+      await queryClient.cancelQueries({ queryKey: dsaSnapshotQueryKey });
+      const previousSnapshot =
+        queryClient.getQueryData<DsaSnapshot>(dsaSnapshotQueryKey);
+
+      queryClient.setQueryData<DsaSnapshot>(
+        dsaSnapshotQueryKey,
+        (currentSnapshot) =>
+          currentSnapshot
+            ? optimisticSnapshot(currentSnapshot, input)
+            : currentSnapshot,
+      );
+
+      return { previousSnapshot };
+    },
+    onError: (_error, _input, context) => {
+      if (context?.previousSnapshot) {
+        queryClient.setQueryData(
+          dsaSnapshotQueryKey,
+          context.previousSnapshot,
+        );
+      }
+    },
+    onSuccess: (result) => {
+      queryClient.setQueryData(dsaSnapshotQueryKey, result.snapshot);
+      void queryClient.invalidateQueries({ queryKey: historySnapshotQueryKey });
+    },
+    onSettled: (_result, _error, input) => {
+      setPendingQuestionIds((currentIds) => {
+        const nextIds = new Set(currentIds);
+        nextIds.delete(input.questionId);
+        return nextIds;
+      });
+    },
+  });
+  const recordVideoWatchMutation = useMutation({
+    mutationFn: (questionId: string) =>
+      rpcClient.dsa.recordVideoWatch({ questionId }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: historySnapshotQueryKey });
+    },
+  });
+  const progressByQuestionId = useMemo(
+    () => new Map(snapshot?.progress.map((item) => [item.questionId, item])),
+    [snapshot?.progress],
+  );
+  const completedQuestionIds = useMemo(
+    () =>
+      new Set(
+        snapshot?.progress
+          .filter((item) => item.completed)
+          .map((item) => item.questionId) ?? [],
+      ),
+    [snapshot?.progress],
+  );
+
+  function onToggleQuestion(questionId: string, completed: boolean) {
+    updateProgressMutation.mutate({ questionId, completed });
+  }
+
+  function onOpenPlaylist(track: DsaTrack) {
+    const embedUrl = buildDsaPlaylistEmbedUrl(track.playlistUrl);
+
+    if (!embedUrl) {
+      return;
+    }
+
+    setActiveVideo({
+      title: track.playlistTitle,
+      description: `${track.sourceName} playlist for ${track.title}`,
+      embedUrl,
+    });
+  }
+
+  function onOpenQuestionVideo(question: DsaQuestion) {
+    const embedUrl = buildDsaVideoEmbedUrl({
+      videoId: question.videoId,
+      videoUrl: question.videoUrl,
+    });
+
+    if (!embedUrl) {
+      return;
+    }
+
+    setActiveVideo({
+      title: question.title,
+      description: question.lessonLabel,
+      embedUrl,
+    });
+    recordVideoWatchMutation.mutate(question.id);
+  }
+
+  return (
+    <>
+      <header className="flex h-14 shrink-0 items-center gap-3 border-b border-primary/20 bg-[linear-gradient(90deg,color-mix(in_oklch,var(--primary)_14%,transparent),color-mix(in_oklch,var(--chart-2)_10%,transparent),color-mix(in_oklch,var(--chart-3)_8%,transparent))] px-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="h-5" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">DSA</p>
+          <p className="truncate text-xs text-muted-foreground">
+            Topic-wise practice progress with videos and LeetCode
+          </p>
+        </div>
+      </header>
+
+      <main className="w-full min-w-0 max-w-full overflow-x-hidden bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_8%,transparent),transparent_34%),linear-gradient(315deg,color-mix(in_oklch,var(--chart-2)_9%,transparent),transparent_42%)] px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mx-auto flex w-full max-w-[1280px] min-w-0 flex-col gap-5">
+          {dsaQuery.isPending && !snapshot ? (
+            <DsaInlineSkeleton />
+          ) : dsaQuery.isError || !snapshot ? (
+            <Empty className="min-h-[360px] border border-border bg-background">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ListChecks aria-hidden="true" />
+                </EmptyMedia>
+                <EmptyTitle>Could not load DSA progress</EmptyTitle>
+                <EmptyDescription>
+                  Refresh the page and try again. Your completion state stays
+                  scoped to your account.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <>
+              <DsaSummaryCard snapshot={snapshot} />
+              <Card
+                size="sm"
+                className="min-w-0 border-chart-2/20 bg-[linear-gradient(135deg,color-mix(in_oklch,var(--chart-2)_11%,transparent),transparent_38%),linear-gradient(315deg,color-mix(in_oklch,var(--chart-3)_9%,transparent),transparent_44%),var(--card)]"
+              >
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ListChecks aria-hidden="true" />
+                    Practice tracks
+                  </CardTitle>
+                  <CardDescription>
+                    Lessons and LeetCode problems are grouped by subtopic.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Accordion
+                    value={openTrackIds}
+                    onValueChange={(value) => setOpenTrackIds(value)}
+                  >
+                    {snapshot.catalog.tracks.map((track) => (
+                      <AccordionItem key={track.id} value={track.id}>
+                        <AccordionTrigger>
+                          <div className="flex min-w-0 flex-col gap-2">
+                            <span className="truncate text-base">
+                              {track.title}
+                            </span>
+                            <span className="text-sm font-normal text-muted-foreground">
+                              {track.playlistTitle}
+                            </span>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="flex flex-col gap-4">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div className="flex flex-wrap gap-2">
+                                <Badge variant="secondary">
+                                  {track.sourceName}
+                                </Badge>
+                                <Badge variant="outline">
+                                  {track.subtopics.length} subtopics
+                                </Badge>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => onOpenPlaylist(track)}
+                              >
+                                <CirclePlay
+                                  data-icon="inline-start"
+                                  aria-hidden="true"
+                                />
+                                Playlist
+                              </Button>
+                            </div>
+                            <DsaSubtopicAccordion
+                              subtopics={track.subtopics}
+                              completedQuestionIds={completedQuestionIds}
+                              progressByQuestionId={progressByQuestionId}
+                              pendingQuestionIds={pendingQuestionIds}
+                              onOpenVideo={onOpenQuestionVideo}
+                              onToggleQuestion={onToggleQuestion}
+                            />
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
+      </main>
+
+      {activeVideo ? (
+        <DsaVideoDialog
+          video={activeVideo}
+          onClose={() => setActiveVideo(null)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
+  const questions = snapshot.catalog.tracks.flatMap((track) =>
+    track.subtopics.flatMap((subtopic) => subtopic.questions),
+  );
+  const lessonQuestions = questions.filter(
+    (question) => question.sourceType === "lesson",
+  ).length;
+  const leetcodeQuestions = questions.filter(
+    (question) => question.sourceType === "leetcode",
+  ).length;
+
+  return (
+    <Card
+      size="sm"
+      className="border-primary/25 bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary)_18%,transparent),transparent_34%),linear-gradient(225deg,color-mix(in_oklch,var(--chart-3)_14%,transparent),transparent_48%),linear-gradient(315deg,color-mix(in_oklch,var(--chart-1)_14%,transparent),transparent_42%),var(--card)]"
+    >
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CheckCircle2 aria-hidden="true" />
+          DSA Progress
+        </CardTitle>
+        <CardDescription>
+          {snapshot.catalog.tracks.length} tracks with affiliated LeetCode
+          practice.
+        </CardDescription>
+        <CardAction className="flex flex-wrap justify-end gap-2">
+          <Badge variant="secondary">
+            {snapshot.summary.completedQuestions}/
+            {snapshot.summary.totalQuestions} done
+          </Badge>
+          <Badge variant="outline">
+            {snapshot.summary.completionPercentage}%
+          </Badge>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <DsaMetric
+          label="Tracks"
+          value={snapshot.catalog.tracks.length}
+          toneIndex={5}
+        />
+        <DsaMetric label="Lessons" value={lessonQuestions} toneIndex={0} />
+        <DsaMetric label="LeetCode" value={leetcodeQuestions} toneIndex={2} />
+        <DsaMetric
+          label="Subtopics"
+          value={snapshot.catalog.tracks.reduce(
+            (count, trackItem) => count + trackItem.subtopics.length,
+            0,
+          )}
+          toneIndex={3}
+        />
+        <DsaMetric
+          label="Remaining"
+          value={
+            snapshot.summary.totalQuestions -
+            snapshot.summary.completedQuestions
+          }
+          toneIndex={4}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function DsaMetric({
+  label,
+  value,
+  toneIndex,
+}: {
+  label: string;
+  value: number;
+  toneIndex: number;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border px-3 py-2 shadow-sm",
+        DSA_SURFACE_TONES[toneIndex % DSA_SURFACE_TONES.length],
+      )}
+    >
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="font-heading text-xl font-medium">{value}</p>
+    </div>
+  );
+}
+
+function DsaSubtopicAccordion({
+  subtopics,
+  completedQuestionIds,
+  progressByQuestionId,
+  pendingQuestionIds,
+  onOpenVideo,
+  onToggleQuestion,
+}: {
+  subtopics: DsaSubtopic[];
+  completedQuestionIds: Set<string>;
+  progressByQuestionId: Map<string, DsaQuestionProgress>;
+  pendingQuestionIds: Set<string>;
+  onOpenVideo: (question: DsaQuestion) => void;
+  onToggleQuestion: (questionId: string, completed: boolean) => void;
+}) {
+  const [openSubtopicIds, setOpenSubtopicIds] = useState<string[]>([]);
+
+  return (
+    <Accordion
+      multiple
+      value={openSubtopicIds}
+      onValueChange={(value) => setOpenSubtopicIds(value)}
+      className="rounded-xl"
+    >
+      {subtopics.map((subtopic, index) => {
+        const completedCount = subtopic.questions.filter((question) =>
+          completedQuestionIds.has(question.id),
+        ).length;
+        const toneIndex = index % DSA_SURFACE_TONES.length;
+
+        return (
+          <AccordionItem
+            key={subtopic.id}
+            value={subtopic.id}
+            className={cn(
+              "border-b border-border/70 data-open:bg-transparent",
+              DSA_SURFACE_TONES[toneIndex],
+            )}
+          >
+            <AccordionTrigger>
+              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <span className="block truncate">{subtopic.title}</span>
+                  <span className="block text-sm font-normal text-muted-foreground">
+                    {subtopic.description}
+                  </span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={DSA_BADGE_TONES[toneIndex]}
+                >
+                  {completedCount}/{subtopic.questions.length}
+                </Badge>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <DsaLessonAccordion
+                subtopic={subtopic}
+                toneIndex={toneIndex}
+                progressByQuestionId={progressByQuestionId}
+                completedQuestionIds={completedQuestionIds}
+                pendingQuestionIds={pendingQuestionIds}
+                onOpenVideo={onOpenVideo}
+                onToggleQuestion={onToggleQuestion}
+              />
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
+  );
+}
+
+type DsaLessonGroup = {
+  lesson: DsaQuestion;
+  practiceQuestions: DsaQuestion[];
+  questions: DsaQuestion[];
+};
+
+function DsaLessonAccordion({
+  subtopic,
+  toneIndex,
+  completedQuestionIds,
+  progressByQuestionId,
+  pendingQuestionIds,
+  onOpenVideo,
+  onToggleQuestion,
+}: {
+  subtopic: DsaSubtopic;
+  toneIndex: number;
+  completedQuestionIds: Set<string>;
+  progressByQuestionId: Map<string, DsaQuestionProgress>;
+  pendingQuestionIds: Set<string>;
+  onOpenVideo: (question: DsaQuestion) => void;
+  onToggleQuestion: (questionId: string, completed: boolean) => void;
+}) {
+  const [openLessonIds, setOpenLessonIds] = useState<string[]>([]);
+  const lessonGroups = groupLessonQuestions(subtopic.questions);
+
+  return (
+    <Accordion
+      multiple
+      value={openLessonIds}
+      onValueChange={(value) => setOpenLessonIds(value)}
+      className={cn(
+        "rounded-lg border px-3 shadow-sm",
+        DSA_SURFACE_TONES[toneIndex],
+      )}
+    >
+      {lessonGroups.map((group, index) => {
+        const completedCount = group.questions.filter((question) =>
+          completedQuestionIds.has(question.id),
+        ).length;
+        const lessonToneIndex = (toneIndex + index) % DSA_SURFACE_TONES.length;
+
+        return (
+          <AccordionItem
+            key={group.lesson.id}
+            value={group.lesson.id}
+            className="data-open:bg-background/45"
+          >
+            <AccordionTrigger>
+              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <span className="flex min-w-0 flex-wrap items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className={DSA_BADGE_TONES[lessonToneIndex]}
+                    >
+                      {group.lesson.lessonLabel}
+                    </Badge>
+                    <span className="truncate">{group.lesson.title}</span>
+                  </span>
+                  <span className="block text-sm font-normal text-muted-foreground">
+                    {group.practiceQuestions.length} LeetCode{" "}
+                    {group.practiceQuestions.length === 1
+                      ? "question"
+                      : "questions"}
+                  </span>
+                </div>
+                <Badge
+                  variant="outline"
+                  className={DSA_BADGE_TONES[lessonToneIndex]}
+                >
+                  {completedCount}/{group.questions.length}
+                </Badge>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <DsaQuestionTable
+                questions={group.questions}
+                progressByQuestionId={progressByQuestionId}
+                pendingQuestionIds={pendingQuestionIds}
+                onOpenVideo={onOpenVideo}
+                onToggleQuestion={onToggleQuestion}
+              />
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
+  );
+}
+
+function groupLessonQuestions(questions: DsaQuestion[]): DsaLessonGroup[] {
+  const lessons = questions.filter(
+    (question) => question.sourceType === "lesson",
+  );
+  const practiceByLessonId = new Map<string, DsaQuestion[]>();
+
+  for (const question of questions) {
+    if (question.sourceType !== "leetcode" || !question.affiliatedLessonId) {
+      continue;
+    }
+
+    const currentQuestions =
+      practiceByLessonId.get(question.affiliatedLessonId) ?? [];
+    practiceByLessonId.set(question.affiliatedLessonId, [
+      ...currentQuestions,
+      question,
+    ]);
+  }
+
+  return lessons.map((lesson) => {
+    const practiceQuestions = practiceByLessonId.get(lesson.id) ?? [];
+
+    return {
+      lesson,
+      practiceQuestions,
+      questions: [lesson, ...practiceQuestions],
+    };
+  });
+}
+
+function DsaQuestionTable({
+  questions,
+  progressByQuestionId,
+  pendingQuestionIds,
+  onOpenVideo,
+  onToggleQuestion,
+}: {
+  questions: DsaQuestion[];
+  progressByQuestionId: Map<string, DsaQuestionProgress>;
+  pendingQuestionIds: Set<string>;
+  onOpenVideo: (question: DsaQuestion) => void;
+  onToggleQuestion: (questionId: string, completed: boolean) => void;
+}) {
+  return (
+    <Table containerClassName="rounded-lg border border-border/80 bg-background/75 shadow-sm">
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-12">
+            <span className="sr-only">Completed</span>
+          </TableHead>
+          <TableHead className="w-24">Type</TableHead>
+          <TableHead>Question</TableHead>
+          <TableHead className="w-28">Resource</TableHead>
+          <TableHead className="w-28">Status</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {questions.map((question) => {
+          const progress = progressByQuestionId.get(question.id);
+          const completed = progress?.completed ?? false;
+          const pending = pendingQuestionIds.has(question.id);
+
+          return (
+            <TableRow
+              key={question.id}
+              className={questionRowClassName(question, completed, pending)}
+            >
+              <TableCell>
+                <div className="flex items-center">
+                  <Checkbox
+                    checked={completed}
+                    disabled={pending}
+                    aria-label={`Mark ${question.title} as completed`}
+                    onCheckedChange={(checked) =>
+                      onToggleQuestion(question.id, checked === true)
+                    }
+                  />
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-col items-start gap-1">
+                  <Badge
+                    variant={
+                      question.sourceType === "lesson"
+                        ? "secondary"
+                        : "outline"
+                    }
+                    className={cn(
+                      question.sourceType === "leetcode"
+                        ? "border-chart-2/35 bg-chart-2/10 text-foreground"
+                        : "border-primary/25 bg-primary/10 text-foreground",
+                    )}
+                  >
+                    {question.lessonLabel}
+                  </Badge>
+                  {question.affiliatedLessonLabel ? (
+                    <span className="text-xs text-muted-foreground">
+                      {question.affiliatedLessonLabel}
+                    </span>
+                  ) : null}
+                </div>
+              </TableCell>
+              <TableCell className="min-w-64 whitespace-normal">
+                <div className="flex min-w-0 flex-col gap-2">
+                  <span>{question.title}</span>
+                  {question.difficulty ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Badge
+                        variant={difficultyBadgeVariant(question.difficulty)}
+                        className={difficultyBadgeClassName(
+                          question.difficulty,
+                        )}
+                      >
+                        {formatDifficulty(question.difficulty)}
+                      </Badge>
+                    </div>
+                  ) : null}
+                </div>
+              </TableCell>
+              <TableCell>
+                {question.sourceType === "lesson" && question.videoUrl ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onOpenVideo(question)}
+                  >
+                    <CirclePlay data-icon="inline-start" aria-hidden="true" />
+                    Watch
+                  </Button>
+                ) : question.leetcodeUrl ? (
+                  <a
+                    href={question.leetcodeUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className={buttonVariants({
+                      variant: "outline",
+                      size: "sm",
+                    })}
+                  >
+                    <ExternalLink data-icon="inline-start" aria-hidden="true" />
+                    Solve
+                  </a>
+                ) : null}
+              </TableCell>
+              <TableCell>
+                {pending ? (
+                  <Badge variant="secondary">
+                    <Loader2
+                      data-icon="inline-start"
+                      className="animate-spin"
+                      aria-hidden="true"
+                    />
+                    Saving
+                  </Badge>
+                ) : completed ? (
+                  <Badge>
+                    <CheckCircle2 data-icon="inline-start" aria-hidden="true" />
+                    Done
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">
+                    <Circle data-icon="inline-start" aria-hidden="true" />
+                    Todo
+                  </Badge>
+                )}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
+
+function DsaVideoDialog({
+  video,
+  onClose,
+}: {
+  video: DsaVideoDialogState;
+  onClose: () => void;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playerRef = useRef<YouTubePlayer | null>(null);
+  const playerApiEmbedUrl = useMemo(
+    () => buildPlayerApiEmbedUrl(video.embedUrl),
+    [video.embedUrl],
+  );
+
+  useEffect(() => {
+    let disposed = false;
+
+    loadYouTubeIframeApi().then((youTubeApi) => {
+      if (disposed || !iframeRef.current) {
+        return;
+      }
+
+      playerRef.current = new youTubeApi.Player(iframeRef.current, {
+        events: {
+          onReady: (event) => setDsaVideoPlaybackRate(event.target),
+          onStateChange: (event) => {
+            if (
+              event.data === youTubeApi.PlayerState.PLAYING ||
+              event.data === youTubeApi.PlayerState.CUED
+            ) {
+              setDsaVideoPlaybackRate(event.target);
+            }
+          },
+        },
+      });
+    });
+
+    return () => {
+      disposed = true;
+      playerRef.current?.destroy?.();
+      playerRef.current = null;
+    };
+  }, [playerApiEmbedUrl]);
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="gap-4 p-4 sm:max-w-4xl sm:p-5">
+        <DialogHeader className="pr-10">
+          <DialogTitle className="leading-tight">{video.title}</DialogTitle>
+          <DialogDescription>{video.description}</DialogDescription>
+        </DialogHeader>
+        <div className="aspect-video overflow-hidden rounded-xl border border-border bg-black">
+          <iframe
+            ref={iframeRef}
+            key={playerApiEmbedUrl}
+            title={video.title}
+            src={playerApiEmbedUrl}
+            className="h-full w-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share; fullscreen"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function buildPlayerApiEmbedUrl(embedUrl: string) {
+  const url = new URL(embedUrl);
+
+  url.searchParams.set("enablejsapi", "1");
+
+  if (typeof window !== "undefined") {
+    url.searchParams.set("origin", window.location.origin);
+  }
+
+  return url.toString();
+}
+
+function loadYouTubeIframeApi() {
+  if (typeof window === "undefined") {
+    return Promise.reject(new Error("YouTube iframe API needs a browser."));
+  }
+
+  if (window.YT?.Player) {
+    return Promise.resolve(window.YT);
+  }
+
+  youTubeIframeApiPromise ??= new Promise((resolve) => {
+    const previousCallback = window.onYouTubeIframeAPIReady;
+
+    window.onYouTubeIframeAPIReady = () => {
+      previousCallback?.();
+
+      if (window.YT?.Player) {
+        resolve(window.YT);
+      }
+    };
+
+    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+      const script = document.createElement("script");
+
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      document.head.append(script);
+    }
+  });
+
+  return youTubeIframeApiPromise;
+}
+
+function setDsaVideoPlaybackRate(player: YouTubePlayer) {
+  try {
+    player.setPlaybackRate(DSA_VIDEO_PLAYBACK_RATE);
+  } catch {
+    // YouTube may ignore the suggested rate until the video is fully cued.
+  }
+}
+
+function difficultyBadgeVariant(
+  difficulty: NonNullable<DsaQuestion["difficulty"]>,
+) {
+  switch (difficulty) {
+    case "EASY":
+      return "outline";
+    case "MEDIUM":
+      return "outline";
+    case "HARD":
+      return "destructive";
+  }
+}
+
+function difficultyBadgeClassName(
+  difficulty: NonNullable<DsaQuestion["difficulty"]>,
+) {
+  switch (difficulty) {
+    case "EASY":
+      return "border-primary/35 bg-primary/10 text-foreground";
+    case "MEDIUM":
+      return "border-chart-1/35 bg-chart-1/15 text-foreground";
+    case "HARD":
+      return "";
+  }
+}
+
+function formatDifficulty(difficulty: NonNullable<DsaQuestion["difficulty"]>) {
+  return difficulty[0] + difficulty.slice(1).toLowerCase();
+}
+
+function questionRowClassName(
+  question: DsaQuestion,
+  completed: boolean,
+  pending: boolean,
+) {
+  return cn(
+    "transition-colors",
+    question.sourceType === "leetcode" ? "bg-chart-2/5" : "bg-primary/5",
+    pending ? "bg-chart-1/15" : "",
+    completed ? "bg-primary/15" : "",
+  );
+}
+
+function optimisticSnapshot(
+  snapshot: DsaSnapshot,
+  input: UpdateDsaQuestionProgressInput,
+): DsaSnapshot {
+  const updatedAt = new Date().toISOString();
+  const existingProgress = snapshot.progress.find(
+    (item) => item.questionId === input.questionId,
+  );
+  const nextProgressRow: DsaQuestionProgress = {
+    id: existingProgress?.id ?? `optimistic-${input.questionId}`,
+    userId: existingProgress?.userId ?? "optimistic",
+    questionId: input.questionId,
+    completed: input.completed,
+    completedAt: input.completed ? updatedAt : undefined,
+    createdAt: existingProgress?.createdAt ?? updatedAt,
+    updatedAt,
+  };
+  const nextProgress = existingProgress
+    ? snapshot.progress.map((item) =>
+        item.questionId === input.questionId ? nextProgressRow : item,
+      )
+    : [...snapshot.progress, nextProgressRow];
+
+  return {
+    ...snapshot,
+    progress: sortProgress(snapshot.catalog, nextProgress),
+    summary: summarize(snapshot.catalog, nextProgress),
+  };
+}
+
+function sortProgress(catalog: DsaCatalog, progress: DsaQuestionProgress[]) {
+  const questionOrder = questionOrderMap(catalog);
+
+  return [...progress].sort((a, b) => {
+    const aOrder = questionOrder.get(a.questionId) ?? Number.MAX_SAFE_INTEGER;
+    const bOrder = questionOrder.get(b.questionId) ?? Number.MAX_SAFE_INTEGER;
+
+    if (aOrder !== bOrder) {
+      return aOrder - bOrder;
+    }
+
+    return a.questionId.localeCompare(b.questionId);
+  });
+}
+
+function summarize(catalog: DsaCatalog, progress: DsaQuestionProgress[]) {
+  const questionIds = catalogQuestionIds(catalog);
+  const completedQuestions = new Set(
+    progress
+      .filter((item) => item.completed && questionIds.has(item.questionId))
+      .map((item) => item.questionId),
+  ).size;
+  const totalQuestions = questionIds.size;
+
+  return {
+    totalQuestions,
+    completedQuestions,
+    completionPercentage:
+      totalQuestions === 0
+        ? 0
+        : Math.round((completedQuestions / totalQuestions) * 100),
+  };
+}
+
+function catalogQuestionIds(catalog: DsaCatalog) {
+  return new Set(
+    catalog.tracks.flatMap((track) =>
+      track.subtopics.flatMap((subtopic) =>
+        subtopic.questions.map((question) => question.id),
+      ),
+    ),
+  );
+}
+
+function questionOrderMap(catalog: DsaCatalog) {
+  return new Map(
+    catalog.tracks.flatMap((track) =>
+      track.subtopics.flatMap((subtopic) =>
+        subtopic.questions.map((question) => question.id),
+      ),
+    ).map((questionId, index) => [questionId, index]),
+  );
+}
+
+function DsaInlineSkeleton() {
+  return (
+    <div className="flex flex-col gap-5">
+      <Card size="sm" className="h-32" />
+      <Card size="sm" className="h-[520px]" />
+    </div>
+  );
+}
+
+
+

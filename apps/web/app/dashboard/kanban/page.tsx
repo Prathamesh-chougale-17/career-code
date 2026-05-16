@@ -1,4 +1,4 @@
-import { KanbanApp } from "@/components/kanban/kanban-app";
+import { KanbanApp } from "@repo/ui/components/kanban/kanban-app";
 import { requirePageSession } from "@/lib/auth/session";
 import { getBoardSnapshot } from "@careeright/domain/kanban/store";
 import { loadInitialData } from "@/lib/server/initial-data";
@@ -11,3 +11,4 @@ export default async function DashboardKanbanPage() {
 
   return <KanbanApp initialSnapshot={initialSnapshot} />;
 }
+

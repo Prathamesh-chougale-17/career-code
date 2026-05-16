@@ -1,0 +1,1 @@
+Build a feature that allows users to save their favorite items in a shopping app. The feature should include the ability to add items to a favorites list, view the list, and remove items from it Additionally, users should be able to share their favorites list with friends via social media or email.

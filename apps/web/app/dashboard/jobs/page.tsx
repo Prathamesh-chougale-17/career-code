@@ -1,4 +1,4 @@
-import { JobsApp } from "@/components/jobs/jobs-app";
+import { JobsApp } from "@repo/ui/components/jobs/jobs-app";
 import { requirePageSession } from "@/lib/auth/session";
 import {
   getJobSearchProfile,
@@ -25,3 +25,4 @@ export default async function DashboardJobsPage() {
     />
   );
 }
+

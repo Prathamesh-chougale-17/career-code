@@ -227,11 +227,14 @@ describe("diary store", () => {
 describe("diary routes and navigation", () => {
   test("dashboard route and sidebar expose diary", () => {
     const page = readFileSync("app/dashboard/diary/page.tsx", "utf8");
-    const sidebar = readFileSync("components/dashboard-sidebar.tsx", "utf8");
+    const sidebar = readFileSync(
+      "../../packages/ui/src/components/dashboard-sidebar.tsx",
+      "utf8",
+    );
 
     expect(page).toContain("DiaryApp");
     expect(page).toContain('requirePageSession("/dashboard/diary")');
     expect(sidebar).toContain('render={<Link href="/dashboard/diary" />}');
-    expect(sidebar).toContain('pathname.startsWith("/dashboard/diary")');
+    expect(sidebar).toContain('route="diary"');
   });
 });

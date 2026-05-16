@@ -27,6 +27,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@orpc/server": "^1.14.0",
+    "@repo/ui": "workspace:^",
     "@tanstack/react-query": "^5.100.6",
     "@tanstack/react-table": "^8.21.3",
     "better-auth": "^1.6.9",

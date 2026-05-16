@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   /* config options here */
   reactCompiler: true,
+  transpilePackages: ["@repo/ui"],
   outputFileTracingIncludes: {
     "/api/profile/resume": ["./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"],
   },

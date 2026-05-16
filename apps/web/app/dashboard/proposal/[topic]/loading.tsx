@@ -1,5 +1,6 @@
-import { ProposalTopicDetailLoadingPage } from "@/components/loading/dashboard-route-loading";
+import { ProposalTopicDetailLoadingPage } from "@repo/ui/components/loading/dashboard-route-loading";
 
 export default function ProposalTopicLoading() {
   return <ProposalTopicDetailLoadingPage />;
 }
+

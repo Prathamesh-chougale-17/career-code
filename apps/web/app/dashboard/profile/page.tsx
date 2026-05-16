@@ -1,4 +1,4 @@
-import { ProfileApp } from "@/components/profile/profile-app";
+import { ProfileApp } from "@repo/ui/components/profile/profile-app";
 import { requirePageSession } from "@/lib/auth/session";
 import { getProfileSnapshot, listProfileImports } from "@careeright/domain/profile/store";
 import { loadInitialData } from "@/lib/server/initial-data";
@@ -21,3 +21,4 @@ export default async function DashboardProfilePage() {
     />
   );
 }
+
