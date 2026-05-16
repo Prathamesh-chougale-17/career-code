@@ -17,6 +17,11 @@ import { MongoClient, ObjectId, UUID, type Db } from "mongodb";
 
 import { getMongoDatabaseName, isMongoConfigured } from "@careeright/db";
 
+import {
+  getDesktopSessionFromBearerToken,
+  readBearerToken,
+} from "./desktop.js";
+
 let authPromise: Promise<Auth> | undefined;
 
 type AuthRuntimeEnv = Record<string, string | undefined>;
@@ -249,6 +254,8 @@ function getTrustedOrigins(
         env.VERCEL_URL ? `https://${env.VERCEL_URL}` : undefined,
         "careeright://",
         "careeright://*",
+        "careeright-desktop://",
+        "careeright-desktop://*",
         // Temporary Expo Go callback support while the native app is tested.
         "exp://",
         "exp://*",
@@ -297,12 +304,49 @@ export function normalizeAuthCallbackPath(
 
 export async function getSessionFromHeaders(requestHeaders: Headers) {
   const auth = await getAuth();
-  const session = await auth.api.getSession({
-    headers: requestHeaders,
-  });
+  const bearerToken = readBearerToken(requestHeaders);
 
-  return normalizeSessionUserId(session);
+  try {
+    const session = normalizeSessionUserId(
+      await auth.api.getSession({
+        headers: requestHeaders,
+      }),
+    );
+
+    if (session?.user?.id) {
+      return session;
+    }
+  } catch (error) {
+    if (!bearerToken) {
+      throw error;
+    }
+  }
+
+  if (bearerToken) {
+    const desktopSession = await getDesktopSessionFromBearerToken(bearerToken);
+
+    if (desktopSession) {
+      return {
+        session: {
+          userId: desktopSession.userId,
+          expiresAt: desktopSession.expiresAt,
+        },
+        user: {
+          id: desktopSession.userId,
+        },
+      };
+    }
+  }
+
+  return null;
 }
+
+export {
+  createDesktopAuthCode,
+  exchangeDesktopAuthCode,
+  readBearerToken,
+  revokeDesktopBearerToken,
+} from "./desktop.js";
 
 type SessionLike = {
   session?: {

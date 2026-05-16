@@ -4,52 +4,82 @@ import { getSessionFromHeaders } from "@careeright/auth/server";
 import { parseResumeText } from "@careeright/domain/profile/resume-parser";
 import { createProfileImport } from "@careeright/domain/profile/store";
 
+import {
+  desktopCorsPreflight,
+  withDesktopCors,
+} from "@/lib/desktop-cors";
+
 export const runtime = "nodejs";
 
 const maxResumePdfBytes = 8 * 1024 * 1024;
+
+export async function OPTIONS(request: Request) {
+  return desktopCorsPreflight(request);
+}
 
 export async function POST(request: Request) {
   const sessionResult = await getResumeImportSession(request);
 
   if (sessionResult instanceof Response) {
-    return sessionResult;
+    return withDesktopCors(sessionResult, request);
   }
 
   const formData = await request.formData();
   const resumeFile = formData.get("file");
 
   if (!isFormDataFile(resumeFile)) {
-    return Response.json({ error: "Upload a PDF resume." }, { status: 400 });
+    return withDesktopCors(
+      Response.json({ error: "Upload a PDF resume." }, { status: 400 }),
+      request,
+    );
   }
 
   if (!isPdfFile(resumeFile)) {
-    return Response.json({ error: "Only PDF files are supported." }, { status: 400 });
+    return withDesktopCors(
+      Response.json(
+        { error: "Only PDF files are supported." },
+        { status: 400 },
+      ),
+      request,
+    );
   }
 
   if (resumeFile.size > maxResumePdfBytes) {
-    return Response.json(
-      { error: "PDF must be 8 MB or smaller." },
-      { status: 413 },
+    return withDesktopCors(
+      Response.json(
+        { error: "PDF must be 8 MB or smaller." },
+        { status: 413 },
+      ),
+      request,
     );
   }
 
   const buffer = Buffer.from(await resumeFile.arrayBuffer());
 
   if (!buffer.subarray(0, 4).equals(Buffer.from("%PDF"))) {
-    return Response.json({ error: "The uploaded file is not a valid PDF." }, { status: 400 });
+    return withDesktopCors(
+      Response.json(
+        { error: "The uploaded file is not a valid PDF." },
+        { status: 400 },
+      ),
+      request,
+    );
   }
 
   const text = await extractPdfText(buffer);
   const parsedResume = parseResumeText(text);
 
   if (parsedResume.items.length === 0) {
-    return Response.json(
-      {
-        error: "No resume sections were detected in this PDF.",
-        warnings: parsedResume.warnings,
-        textLength: parsedResume.textLength,
-      },
-      { status: 422 },
+    return withDesktopCors(
+      Response.json(
+        {
+          error: "No resume sections were detected in this PDF.",
+          warnings: parsedResume.warnings,
+          textLength: parsedResume.textLength,
+        },
+        { status: 422 },
+      ),
+      request,
     );
   }
 
@@ -63,11 +93,14 @@ export async function POST(request: Request) {
     "pdf",
   );
 
-  return Response.json({
-    profileImport,
-    warnings: parsedResume.warnings,
-    textLength: parsedResume.textLength,
-  });
+  return withDesktopCors(
+    Response.json({
+      profileImport,
+      warnings: parsedResume.warnings,
+      textLength: parsedResume.textLength,
+    }),
+    request,
+  );
 }
 
 async function getResumeImportSession(request: Request) {
