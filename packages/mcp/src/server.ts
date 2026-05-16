@@ -24,6 +24,7 @@ import {
   seedRankedJobs,
   updateJobApplicationAttempt,
 } from "@careeright/domain/jobs/store";
+import { getDsaSnapshot } from "@careeright/domain/dsa/store";
 import {
   buildApplicationFormDefaults,
   buildJobApplicationAdvice,
@@ -425,6 +426,65 @@ async function latestJobApplicationPayload(userId: string) {
   };
 }
 
+async function dsaQuestionsPayload(userId: string) {
+  const snapshot = await getDsaSnapshot(userId);
+  const completedQuestionIds = new Set(
+    snapshot.progress
+      .filter((item) => item.completed)
+      .map((item) => item.questionId),
+  );
+
+  const tracks = snapshot.catalog.tracks.map((track) => {
+    const subtopics = track.subtopics.map((subtopic) => {
+      const questions = subtopic.questions.map((question) => ({
+        ...question,
+        completed: completedQuestionIds.has(question.id),
+      }));
+      const completedQuestions = questions.filter((question) => question.completed).length;
+      const totalQuestions = questions.length;
+
+      return {
+        id: subtopic.id,
+        title: subtopic.title,
+        description: subtopic.description,
+        totalQuestions,
+        completedQuestions,
+        pendingQuestions: totalQuestions - completedQuestions,
+        questions,
+      };
+    });
+    const totalQuestions = subtopics.reduce(
+      (count, subtopic) => count + subtopic.totalQuestions,
+      0,
+    );
+    const completedQuestions = subtopics.reduce(
+      (count, subtopic) => count + subtopic.completedQuestions,
+      0,
+    );
+
+    return {
+      id: track.id,
+      title: track.title,
+      sourceName: track.sourceName,
+      playlistTitle: track.playlistTitle,
+      playlistUrl: track.playlistUrl,
+      totalQuestions,
+      completedQuestions,
+      pendingQuestions: totalQuestions - completedQuestions,
+      subtopics,
+    };
+  });
+
+  return {
+    summary: {
+      ...snapshot.summary,
+      pendingQuestions:
+        snapshot.summary.totalQuestions - snapshot.summary.completedQuestions,
+    },
+    tracks,
+  };
+}
+
 export function createKanbanMcpServer(userId = SOLO_USER_ID) {
   const server = new McpServer({
     name: "careeright-kanban",
@@ -582,6 +642,21 @@ export function createKanbanMcpServer(userId = SOLO_USER_ID) {
       jsonText({
         runs: await listJobApplicationRuns({ limit: limit ?? 10 }, userId),
       }),
+  );
+
+  server.registerTool(
+    "list_dsa_questions",
+    {
+      title: "List DSA Questions",
+      description:
+        "List DSA questions grouped by topic/subtopic with completed and pending counts for the connected user.",
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async () => jsonText(await dsaQuestionsPayload(userId)),
   );
 
   server.registerTool(
