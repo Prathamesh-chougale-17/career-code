@@ -108,17 +108,6 @@ async function ensureMongoIndexes(db: Db) {
     db
       .collection("diaryDays")
       .createIndexes([{ key: { userId: 1, dateKey: -1 } }]),
-    db.collection("desktopAuthCodes").createIndexes([
-      { key: { codeHash: 1 }, unique: true },
-      { key: { expiresAt: 1 } },
-      { key: { consumedAt: 1 } },
-    ]),
-    db.collection("desktopSessions").createIndexes([
-      { key: { tokenHash: 1 }, unique: true },
-      { key: { userId: 1, createdAt: -1 } },
-      { key: { expiresAt: 1 } },
-      { key: { revokedAt: 1 } },
-    ]),
     db
       .collection("counters")
       .createIndexes([{ key: { key: 1 }, unique: true }]),

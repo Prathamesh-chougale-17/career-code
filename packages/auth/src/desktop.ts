@@ -12,7 +12,8 @@ const desktopSessionTtlMs = 90 * 24 * 60 * 60 * 1000;
 
 type DesktopAuthCode = {
   id: string;
-  codeHash: string;
+  kind: "desktopAuthCode";
+  tokenHash: string;
   stateHash: string;
   userId: string;
   expiresAt: string;
@@ -22,6 +23,7 @@ type DesktopAuthCode = {
 
 type DesktopSession = {
   id: string;
+  kind: "desktopSession";
   tokenHash: string;
   userId: string;
   expiresAt: string;
@@ -72,14 +74,15 @@ export async function createDesktopAuthCode({
   const db = await getMongoDb();
   const codeDoc: DesktopAuthCode = {
     id: id("desktop-auth-code"),
-    codeHash: hashSecret(code),
+    kind: "desktopAuthCode",
+    tokenHash: hashSecret(code),
     stateHash: hashSecret(state),
     userId,
     expiresAt: expiresIn(desktopExchangeCodeTtlMs),
     createdAt,
   };
 
-  await db.collection<DesktopAuthCode>("desktopAuthCodes").insertOne(codeDoc);
+  await db.collection<DesktopAuthCode>("mcpTokens").insertOne(codeDoc);
 
   return code;
 }
@@ -94,8 +97,9 @@ export async function exchangeDesktopAuthCode({
   const db = await getMongoDb();
   const codeHash = hashSecret(code);
   const stateHash = hashSecret(state);
-  const codeDoc = await db.collection<DesktopAuthCode>("desktopAuthCodes").findOne({
-    codeHash,
+  const codeDoc = await db.collection<DesktopAuthCode>("mcpTokens").findOne({
+    kind: "desktopAuthCode",
+    tokenHash: codeHash,
   });
 
   if (
@@ -108,10 +112,12 @@ export async function exchangeDesktopAuthCode({
   }
 
   const consumedAt = now();
-  const consumeResult = await db.collection<DesktopAuthCode>("desktopAuthCodes").updateOne(
-    { id: codeDoc.id, consumedAt: { $exists: false } },
-    { $set: { consumedAt } },
-  );
+  const consumeResult = await db
+    .collection<DesktopAuthCode>("mcpTokens")
+    .updateOne(
+      { id: codeDoc.id, kind: "desktopAuthCode", consumedAt: { $exists: false } },
+      { $set: { consumedAt } },
+    );
 
   if (consumeResult.modifiedCount !== 1) {
     throw new Error("Desktop sign-in code was already used.");
@@ -120,6 +126,7 @@ export async function exchangeDesktopAuthCode({
   const token = `cdt_${secretValue()}`;
   const session: DesktopSession = {
     id: id("desktop-session"),
+    kind: "desktopSession",
     tokenHash: hashSecret(token),
     userId: codeDoc.userId,
     expiresAt: expiresIn(desktopSessionTtlMs),
@@ -127,7 +134,7 @@ export async function exchangeDesktopAuthCode({
     lastUsedAt: consumedAt,
   };
 
-  await db.collection<DesktopSession>("desktopSessions").insertOne(session);
+  await db.collection<DesktopSession>("mcpTokens").insertOne(session);
 
   return {
     token,
@@ -138,7 +145,8 @@ export async function exchangeDesktopAuthCode({
 
 export async function getDesktopSessionFromBearerToken(token: string) {
   const db = await getMongoDb();
-  const session = await db.collection<DesktopSession>("desktopSessions").findOne({
+  const session = await db.collection<DesktopSession>("mcpTokens").findOne({
+    kind: "desktopSession",
     tokenHash: hashSecret(token),
   });
 
@@ -147,8 +155,11 @@ export async function getDesktopSessionFromBearerToken(token: string) {
   }
 
   await db
-    .collection<DesktopSession>("desktopSessions")
-    .updateOne({ id: session.id }, { $set: { lastUsedAt: now() } });
+    .collection<DesktopSession>("mcpTokens")
+    .updateOne(
+      { id: session.id, kind: "desktopSession" },
+      { $set: { lastUsedAt: now() } },
+    );
 
   return {
     userId: session.userId,
@@ -158,13 +169,16 @@ export async function getDesktopSessionFromBearerToken(token: string) {
 
 export async function revokeDesktopBearerToken(token: string) {
   const db = await getMongoDb();
-  const result = await db.collection<DesktopSession>("desktopSessions").updateOne(
-    {
-      tokenHash: hashSecret(token),
-      revokedAt: { $exists: false },
-    },
-    { $set: { revokedAt: now() } },
-  );
+  const result = await db
+    .collection<DesktopSession>("mcpTokens")
+    .updateOne(
+      {
+        kind: "desktopSession",
+        tokenHash: hashSecret(token),
+        revokedAt: { $exists: false },
+      },
+      { $set: { revokedAt: now() } },
+    );
 
   return result.modifiedCount > 0;
 }
