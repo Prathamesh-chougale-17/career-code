@@ -28,7 +28,7 @@ export const rpcClient = createCareerightRpcClient({
   },
 });
 
-export async function createAuthenticatedHeaders() {
+export async function createAuthenticatedHeaders(): Promise<Record<string, string>> {
   const session = await loadDesktopSession();
 
   return session?.token
