@@ -9,7 +9,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
   return (
     <SidebarProvider>
       <DashboardSidebar />
-      <SidebarInset className="desktop-scroll-hidden min-w-0 overflow-x-hidden">
+      <SidebarInset className="desktop-scroll-hidden h-svh min-w-0 overflow-x-hidden overflow-y-auto">
         {children}
       </SidebarInset>
     </SidebarProvider>

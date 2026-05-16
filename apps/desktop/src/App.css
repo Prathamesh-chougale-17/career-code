@@ -37,22 +37,6 @@ button {
   cursor: pointer;
 }
 
-select {
-  min-height: 2.25rem;
-  width: 100%;
-  border: 1px solid var(--input);
-  border-radius: var(--radius-md);
-  background: color-mix(in oklch, var(--input) 30%, transparent);
-  color: var(--foreground);
-  padding: 0 2rem 0 0.75rem;
-  outline: none;
-}
-
-select:focus-visible {
-  border-color: var(--ring);
-  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 50%, transparent);
-}
-
 .auth-page {
   display: grid;
   min-height: 100vh;
@@ -119,88 +103,6 @@ code {
   overflow-wrap: anywhere;
 }
 
-.dashboard-main {
-  height: 100vh;
-}
-
-.chart-box {
-  min-height: 260px;
-}
-
-.metric-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.dialog-form,
-.cards-list,
-.cards-list.compact,
-.key-values {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.row-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.list-panel,
-.mini-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--card);
-  color: var(--card-foreground);
-  padding: 1rem;
-}
-
-.mini-row span,
-.list-panel p {
-  display: block;
-  margin-top: 0.25rem;
-  color: var(--muted-foreground);
-  font-size: 0.875rem;
-}
-
-.secret-box {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--muted);
-  padding: 0.75rem;
-}
-
-.secret-box code {
-  min-width: 0;
-  flex: 1;
-}
-
-.key-values div {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: 0.75rem;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 0.625rem;
-}
-
-.key-values dt {
-  color: var(--muted-foreground);
-}
-
-.key-values dd {
-  margin: 0;
-}
-
 .spin {
   animation: spin 1s linear infinite;
 }
@@ -212,22 +114,33 @@ code {
 }
 
 .desktop-scroll-hidden,
-.dashboard-main,
 [data-slot="sidebar-content"],
 [data-slot="scroll-area-viewport"],
 .overflow-auto,
+.overflow-y-auto,
 .overflow-x-auto {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
 
+.desktop-scroll-hidden {
+  overscroll-behavior: contain;
+}
+
 .desktop-scroll-hidden::-webkit-scrollbar,
-.dashboard-main::-webkit-scrollbar,
 [data-slot="sidebar-content"]::-webkit-scrollbar,
 [data-slot="scroll-area-viewport"]::-webkit-scrollbar,
 .overflow-auto::-webkit-scrollbar,
+.overflow-y-auto::-webkit-scrollbar,
 .overflow-x-auto::-webkit-scrollbar {
+  width: 0;
+  height: 0;
   display: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 @media (max-width: 900px) {
