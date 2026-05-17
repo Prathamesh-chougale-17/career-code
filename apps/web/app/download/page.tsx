@@ -86,7 +86,7 @@ export default async function DownloadPage() {
     <main className="min-h-svh bg-[#070806] text-white">
       <section className="relative overflow-hidden border-b border-white/10">
         <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(163,230,53,0.8),rgba(56,189,248,0.7),transparent)]" />
-        <div className="relative mx-auto flex w-full max-w-6xl flex-col px-5 py-6 sm:px-6 lg:px-8">
+        <div className="relative mx-auto flex w-full max-w-7xl flex-col px-5 py-5 sm:px-6 lg:px-8">
           <header className="flex items-center justify-between gap-4">
             <Link
               href="/"
@@ -143,7 +143,7 @@ export default async function DownloadPage() {
       </section>
 
       <section className="px-5 py-14 sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-6xl">
+        <div className="mx-auto w-full max-w-7xl">
           <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
               <p className="text-sm font-medium uppercase tracking-[0.18em] text-lime-200/70">
@@ -191,7 +191,7 @@ export default async function DownloadPage() {
       </section>
 
       <section className="px-5 pb-14 sm:px-6 lg:px-8">
-        <div className="mx-auto grid w-full max-w-6xl gap-4 md:grid-cols-3">
+        <div className="mx-auto grid w-full max-w-7xl gap-4 md:grid-cols-3">
           <InfoCard title="Official builds">
             Releases are built from tagged GitHub Actions runs for each
             operating system.
