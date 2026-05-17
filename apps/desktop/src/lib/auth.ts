@@ -80,6 +80,12 @@ export async function exchangeDesktopCode(code: string, state: string) {
   const pendingState = await store.get<string>(pendingStateKey);
 
   if (!pendingState || pendingState !== state) {
+    const existingSession = await loadDesktopSession();
+
+    if (existingSession) {
+      return existingSession;
+    }
+
     throw new Error("Desktop sign-in state did not match.");
   }
 
