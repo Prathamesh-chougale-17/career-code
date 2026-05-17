@@ -26,6 +26,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -38,6 +39,15 @@
     "deep-link": {
       "desktop": {
         "schemes": ["careeright-desktop"]
+      }
+    },
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERDNDRENUJDNjBFMTRCMgpSV1N5RkE3R1cwM0VEU25KQ2IvNFBGNi9WUW8rZFRuRjJsMVF2eXBWSjZPV0NrU0RTc3RpQVlFaAo=",
+      "endpoints": [
+        "https://github.com/Prathamesh-chougale-17/career-code/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }
