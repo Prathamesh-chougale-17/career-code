@@ -24,16 +24,12 @@ export async function GET(request: Request) {
     return NextResponse.redirect(signInUrl);
   }
 
-  const code = await createDesktopAuthCode({
+  await createDesktopAuthCode({
     state,
     userId: session.user.id,
   });
-  const callbackUrl = new URL("careeright-desktop://auth/callback");
 
-  callbackUrl.searchParams.set("code", code);
-  callbackUrl.searchParams.set("state", state);
-
-  return new Response(desktopAuthCompletePage(callbackUrl.toString()), {
+  return new Response(desktopAuthCompletePage(), {
     headers: {
       "Cache-Control": "no-store",
       "Content-Type": "text/html; charset=utf-8",
@@ -41,10 +37,7 @@ export async function GET(request: Request) {
   });
 }
 
-function desktopAuthCompletePage(callbackUrl: string) {
-  const safeCallbackUrl = JSON.stringify(callbackUrl);
-  const escapedCallbackUrl = escapeHtml(callbackUrl);
-
+function desktopAuthCompletePage() {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -109,24 +102,22 @@ function desktopAuthCompletePage(callbackUrl: string) {
         line-height: 1.7;
       }
 
-      a {
-        margin-top: 24px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 999px;
-        background: #a3e635;
-        color: #182206;
-        padding: 12px 18px;
-        text-decoration: none;
-        font-weight: 800;
-      }
-
       small {
         margin-top: 18px;
         display: block;
         color: #94a3b8;
         line-height: 1.6;
+      }
+
+      .status {
+        margin-top: 24px;
+        display: inline-flex;
+        align-items: center;
+        border-radius: 999px;
+        background: #a3e635;
+        color: #182206;
+        padding: 12px 18px;
+        font-weight: 800;
       }
     </style>
   </head>
@@ -134,23 +125,10 @@ function desktopAuthCompletePage(callbackUrl: string) {
     <main>
       <div class="mark" aria-hidden="true">CR</div>
       <h1>Sign-in complete.</h1>
-      <p>Careeright Desktop should open automatically. You can close this browser tab and return to the desktop app.</p>
-      <a href="${escapedCallbackUrl}">Open Careeright Desktop</a>
-      <small>If nothing happens, click the button above. The one-time sign-in code expires soon and is only for the desktop app.</small>
+      <p>Return to Careeright Desktop. The app will finish sign-in automatically.</p>
+      <div class="status">You can close this tab</div>
+      <small>The browser prompt has been removed. Careeright Desktop checks this sign-in request securely in the background.</small>
     </main>
-    <script>
-      window.setTimeout(function () {
-        window.location.href = ${safeCallbackUrl};
-      }, 250);
-    </script>
   </body>
 </html>`;
-}
-
-function escapeHtml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }
