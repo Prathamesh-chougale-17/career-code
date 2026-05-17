@@ -58,6 +58,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build shared workspace packages
+        run: |
+          pnpm --filter @careeright/db build
+          pnpm --filter @careeright/domain build
+          pnpm --filter @careeright/api build
+
       - name: Typecheck shared UI
         run: pnpm --filter @repo/ui check-types
 
