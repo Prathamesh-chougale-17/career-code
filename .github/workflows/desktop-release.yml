@@ -126,4 +126,4 @@ jobs:
             Linux users should download the `.AppImage` or `.deb`.
           releaseDraft: true
           prerelease: false
-          includeReleaseNotes: true
+          generateReleaseNotes: true
