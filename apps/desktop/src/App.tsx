@@ -24,6 +24,7 @@ import {
   listenForDesktopCallbacks,
   loadDesktopSession,
   pollDesktopAuthState,
+  refreshDesktopSession,
   revokeDesktopSession,
   type DesktopSession,
 } from "./lib/auth";
@@ -101,10 +102,27 @@ function App() {
     let mounted = true;
 
     loadDesktopSession()
-      .then((storedSession) => {
+      .then(async (storedSession) => {
         if (!mounted) return;
+
+        if (!storedSession) {
+          setSession(null);
+          setStatus("signed-out");
+          return;
+        }
+
         setSession(storedSession);
-        setStatus(storedSession ? "signed-in" : "signed-out");
+        setStatus("signed-in");
+
+        try {
+          const refreshedSession = await refreshDesktopSession(storedSession);
+
+          if (mounted) {
+            setSession(refreshedSession);
+          }
+        } catch {
+          // Keep a valid local session even if the identity refresh is offline.
+        }
       })
       .catch((error: unknown) => {
         if (!mounted) return;

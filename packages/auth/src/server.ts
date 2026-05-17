@@ -345,6 +345,7 @@ export {
   createDesktopAuthCode,
   exchangeDesktopAuthCode,
   exchangeDesktopAuthState,
+  getDesktopSessionFromBearerToken,
   readBearerToken,
   revokeDesktopBearerToken,
 } from "./desktop.js";

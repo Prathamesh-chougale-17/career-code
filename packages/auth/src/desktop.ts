@@ -6,6 +6,7 @@ import {
 } from "node:crypto";
 
 import { getMongoDb } from "@careeright/db";
+import { ObjectId, type Filter } from "mongodb";
 
 const desktopExchangeCodeTtlMs = 5 * 60 * 1000;
 const desktopSessionTtlMs = 90 * 24 * 60 * 60 * 1000;
@@ -38,6 +39,11 @@ type DesktopAuthUser = {
   name: string | null;
   image: string | null;
 };
+
+type DesktopAuthUserDoc = {
+  _id?: ObjectId | string;
+  id?: string;
+} & Record<string, unknown>;
 
 function now() {
   return new Date().toISOString();
@@ -217,6 +223,7 @@ export async function getDesktopSessionFromBearerToken(token: string) {
 
   return {
     userId: session.userId,
+    user: await readDesktopAuthUser(session.userId),
     expiresAt: session.expiresAt,
   };
 }
@@ -251,13 +258,10 @@ export function readBearerToken(headers: Headers) {
 
 async function readDesktopAuthUser(userId: string): Promise<DesktopAuthUser> {
   const db = await getMongoDb();
+  const filter = createUserLookupFilter(userId);
   const user =
-    (await db.collection<Record<string, unknown>>("user").findOne({
-      id: userId,
-    })) ??
-    (await db.collection<Record<string, unknown>>("users").findOne({
-      id: userId,
-    }));
+    (await db.collection<DesktopAuthUserDoc>("user").findOne(filter)) ??
+    (await db.collection<DesktopAuthUserDoc>("users").findOne(filter));
 
   return {
     id: userId,
@@ -267,8 +271,21 @@ async function readDesktopAuthUser(userId: string): Promise<DesktopAuthUser> {
   };
 }
 
+function createUserLookupFilter(userId: string): Filter<DesktopAuthUserDoc> {
+  const candidates: Filter<DesktopAuthUserDoc>[] = [
+    { id: userId },
+    { _id: userId },
+  ];
+
+  if (ObjectId.isValid(userId)) {
+    candidates.push({ _id: new ObjectId(userId) });
+  }
+
+  return { $or: candidates };
+}
+
 function readStringField(
-  value: Record<string, unknown> | null,
+  value: DesktopAuthUserDoc | null,
   field: string,
 ) {
   const fieldValue = value?.[field];

@@ -50,6 +50,33 @@ export async function loadDesktopSession() {
   return session;
 }
 
+export async function refreshDesktopSession(session: DesktopSession) {
+  const response = await fetch(`${getCareerightOrigin()}/api/desktop-auth/session`, {
+    headers: {
+      authorization: `Bearer ${session.token}`,
+    },
+  });
+
+  if (!response.ok) {
+    const message = await readErrorMessage(response);
+    throw new Error(message || "Desktop session refresh failed.");
+  }
+
+  const payload = (await response.json()) as Pick<
+    DesktopSession,
+    "expiresAt" | "user"
+  >;
+  const refreshedSession: DesktopSession = {
+    token: session.token,
+    expiresAt: payload.expiresAt,
+    user: payload.user,
+  };
+
+  await saveDesktopSession(refreshedSession);
+
+  return refreshedSession;
+}
+
 export async function saveDesktopSession(session: DesktopSession) {
   const store = await getStore();
   await store.set(sessionKey, session);
