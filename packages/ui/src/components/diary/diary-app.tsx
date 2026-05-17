@@ -161,7 +161,7 @@ function toDraft(day: DiaryDay | null, dateKey: string): DiaryDayDraft {
 }
 
 function newIntervalDraft(existing: DiaryIntervalDraft[]): DiaryIntervalDraft {
-  const last = existing.at(-1);
+  const last = existing[existing.length - 1];
   const startTime = last?.endTime ?? "09:00";
   const endTime =
     startTime === "23:59" ? "23:59" : addMinutesToTime(startTime, 60);
