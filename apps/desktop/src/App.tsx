@@ -126,6 +126,15 @@ function App() {
         setStatus("signed-in");
         await queryClient.invalidateQueries();
       } catch (error) {
+        const storedSession = await loadDesktopSession().catch(() => null);
+
+        if (storedSession) {
+          setSession(storedSession);
+          setStatus("signed-in");
+          setAuthError("");
+          return;
+        }
+
         setAuthError(getErrorMessage(error));
         setStatus("signed-out");
       } finally {
