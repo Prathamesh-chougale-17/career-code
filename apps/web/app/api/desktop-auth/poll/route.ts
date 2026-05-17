@@ -46,9 +46,7 @@ export async function POST(request: Request) {
       pending: false,
       token: result.token,
       expiresAt: result.expiresAt,
-      user: {
-        id: result.userId,
-      },
+      user: result.user,
     }),
     request,
   );

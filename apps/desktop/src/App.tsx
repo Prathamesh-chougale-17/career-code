@@ -300,7 +300,11 @@ function App() {
           />
         ),
         UserAccountMenuComponent: ({ className }) => (
-          <UserAccountMenu className={className} onSignOut={handleSignOut} />
+          <UserAccountMenu
+            className={className}
+            onSignOut={handleSignOut}
+            user={session?.user ?? null}
+          />
         ),
         openExternal: openExternalUrl,
         uploadResume: uploadResumePdf,

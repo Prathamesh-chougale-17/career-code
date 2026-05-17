@@ -39,9 +39,7 @@ export async function POST(request: Request) {
       Response.json({
         token: result.token,
         expiresAt: result.expiresAt,
-        user: {
-          id: result.userId,
-        },
+        user: result.user,
       }),
       request,
     );

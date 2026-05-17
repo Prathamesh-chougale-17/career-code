@@ -32,6 +32,13 @@ type DesktopSession = {
   lastUsedAt?: string;
 };
 
+type DesktopAuthUser = {
+  id: string;
+  email: string | null;
+  name: string | null;
+  image: string | null;
+};
+
 function now() {
   return new Date().toISOString();
 }
@@ -139,6 +146,7 @@ export async function exchangeDesktopAuthCode({
   return {
     token,
     userId: session.userId,
+    user: await readDesktopAuthUser(session.userId),
     expiresAt: session.expiresAt,
   };
 }
@@ -184,6 +192,7 @@ export async function exchangeDesktopAuthState({ state }: { state: string }) {
   return {
     token,
     userId: session.userId,
+    user: await readDesktopAuthUser(session.userId),
     expiresAt: session.expiresAt,
   };
 }
@@ -238,4 +247,33 @@ export function readBearerToken(headers: Headers) {
   const token = header.slice("bearer ".length).trim();
 
   return token || null;
+}
+
+async function readDesktopAuthUser(userId: string): Promise<DesktopAuthUser> {
+  const db = await getMongoDb();
+  const user =
+    (await db.collection<Record<string, unknown>>("user").findOne({
+      id: userId,
+    })) ??
+    (await db.collection<Record<string, unknown>>("users").findOne({
+      id: userId,
+    }));
+
+  return {
+    id: userId,
+    email: readStringField(user, "email"),
+    name: readStringField(user, "name"),
+    image: readStringField(user, "image"),
+  };
+}
+
+function readStringField(
+  value: Record<string, unknown> | null,
+  field: string,
+) {
+  const fieldValue = value?.[field];
+
+  return typeof fieldValue === "string" && fieldValue.trim()
+    ? fieldValue
+    : null;
 }
