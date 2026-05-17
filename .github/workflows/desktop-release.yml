@@ -13,6 +13,8 @@ jobs:
   build-desktop:
     name: Build desktop (${{ matrix.platform }})
     runs-on: ${{ matrix.platform }}
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -58,6 +60,42 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Validate desktop version matches tag
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const tagVersion = process.env.GITHUB_REF_NAME.replace(/^desktop-v/, "");
+          const packageVersion = require("./apps/desktop/package.json").version;
+          const tauriConfig = JSON.parse(
+            fs.readFileSync("./apps/desktop/src-tauri/tauri.conf.json", "utf8"),
+          );
+          const cargoToml = fs.readFileSync(
+            "./apps/desktop/src-tauri/Cargo.toml",
+            "utf8",
+          );
+          const cargoVersion = cargoToml.match(/^version\s*=\s*"([^"]+)"/m)?.[1];
+
+          const versions = {
+            "apps/desktop/package.json": packageVersion,
+            "apps/desktop/src-tauri/tauri.conf.json": tauriConfig.version,
+            "apps/desktop/src-tauri/Cargo.toml": cargoVersion,
+          };
+          const mismatches = Object.entries(versions).filter(
+            ([, version]) => version !== tagVersion,
+          );
+
+          if (mismatches.length > 0) {
+            console.error(`Desktop tag ${process.env.GITHUB_REF_NAME} expects version ${tagVersion}.`);
+            for (const [file, version] of mismatches) {
+              console.error(`- ${file} is ${version}`);
+            }
+            process.exit(1);
+          }
+          NODE
+
       - name: Build shared workspace packages
         run: |
           pnpm --filter @careeright/db build
@@ -73,7 +111,7 @@ jobs:
       - name: Build and upload Tauri artifacts
         uses: tauri-apps/tauri-action@v0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_RELEASE_TOKEN || github.token }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:

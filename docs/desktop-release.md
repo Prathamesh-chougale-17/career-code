@@ -28,6 +28,16 @@ The workflow creates a draft GitHub Release. Review the artifacts, then publish
 the draft release when the installers look correct. Published releases are what
 the desktop updater sees through the GitHub `latest.json` asset.
 
+The tag version must match the app version in all desktop version files. For
+example, `desktop-v1.0.3` requires these files to already say `1.0.3`:
+
+- `apps/desktop/package.json`
+- `apps/desktop/src-tauri/tauri.conf.json`
+- `apps/desktop/src-tauri/Cargo.toml`
+
+If they still say `1.0.0`, Tauri correctly builds installers named
+`Careeright_1.0.0_*` even when the Git tag is `desktop-v1.0.3`.
+
 ## Website Distribution
 
 The web download page points to:
@@ -94,6 +104,24 @@ If you regenerate the updater key with a password, also set:
 ```bash
 gh secret set TAURI_SIGNING_PRIVATE_KEY_PASSWORD
 ```
+
+If GitHub Actions cannot create the draft release with the built-in
+`GITHUB_TOKEN`, enable write access in:
+
+```text
+Repository Settings > Actions > General > Workflow permissions > Read and write permissions
+```
+
+If that setting is unavailable or still blocked, create a fine-grained GitHub
+token with `Contents: Read and write` permission for this repository and save it
+as:
+
+```bash
+gh secret set GH_RELEASE_TOKEN
+```
+
+The release workflow automatically prefers `GH_RELEASE_TOKEN` when it exists and
+falls back to the built-in `GITHUB_TOKEN`.
 
 For local production builds, point Tauri at the same private key:
 
