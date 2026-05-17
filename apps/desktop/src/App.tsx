@@ -161,6 +161,17 @@ function App() {
       const state = await beginDesktopSignIn();
       await pollForBrowserCompletion(state);
     } catch (error) {
+      const storedSession = await loadDesktopSession().catch(() => null);
+
+      if (storedSession) {
+        setSession(storedSession);
+        setStatus("signed-in");
+        setAuthError("");
+        setIsSigningIn(false);
+        await queryClient.invalidateQueries();
+        return;
+      }
+
       setAuthError(getErrorMessage(error));
       setIsSigningIn(false);
     }
