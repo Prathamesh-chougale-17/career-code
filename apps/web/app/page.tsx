@@ -212,10 +212,10 @@ function SiteHeader() {
       </Link>
       <nav className="flex items-center gap-2">
         <Link
-          href="/privacy"
+          href="/download"
           className="hidden rounded-full border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-white transition hover:border-white/30 hover:bg-white/10 sm:inline-flex"
         >
-          Privacy
+          Download
         </Link>
         <Link
           href="/dashboard"
