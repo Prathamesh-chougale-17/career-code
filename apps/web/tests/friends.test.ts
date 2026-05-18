@@ -312,12 +312,23 @@ describe("friend job sharing", () => {
     await copySharedJobs({ shareId: share.id, itemIds: [firstItemId!] }, friendId);
 
     const copiedOnce = await listJobs(friendId);
+    const detailAfterFirstCopy = await getJobShare({ shareId: share.id }, friendId);
     expect(copiedOnce).toHaveLength(1);
     expect(copiedOnce[0]?.userId).toBe(friendId);
     expect(copiedOnce[0]?.status).toBe("not_applied");
+    expect(
+      detailAfterFirstCopy.items.filter((item) => item.copiedJobId),
+    ).toHaveLength(1);
 
     await copySharedJobs({ shareId: share.id }, friendId);
 
+    expect(await listJobs(friendId)).toHaveLength(2);
+    expect(
+      (await getJobShare({ shareId: share.id }, friendId)).items.every(
+        (item) => Boolean(item.copiedJobId),
+      ),
+    ).toBe(true);
+    expect(await copySharedJobs({ shareId: share.id }, friendId)).toHaveLength(0);
     expect(await listJobs(friendId)).toHaveLength(2);
     expect((await listJobs(ownerId)).filter((job) => job.status === "applied"))
       .toHaveLength(1);

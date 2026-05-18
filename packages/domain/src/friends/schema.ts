@@ -105,6 +105,8 @@ export const jobShareItemSchema = z.object({
   ownerJobId: z.string(),
   snapshot: sharedJobSnapshotSchema,
   createdAt: z.string(),
+  copiedJobId: z.string().optional(),
+  copiedAt: optionalTimestampSchema,
 });
 
 export const jobShareSummarySchema = jobShareSchema.extend({

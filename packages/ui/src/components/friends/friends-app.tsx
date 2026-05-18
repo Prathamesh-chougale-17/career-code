@@ -1011,7 +1011,21 @@ function ShareDetailDialog({
   const queryClient = useQueryClient();
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const itemIds = useMemo(() => share?.items.map((item) => item.id) ?? [], [share]);
+  const copiedItemIds = useMemo(
+    () =>
+      new Set(
+        share?.items
+          .filter((item) => item.copiedJobId)
+          .map((item) => item.id) ?? [],
+      ),
+    [share],
+  );
+  const copyableItemIds = useMemo(
+    () => itemIds.filter((itemId) => !copiedItemIds.has(itemId)),
+    [copiedItemIds, itemIds],
+  );
   const selectedCount = selectedItemIds.size;
+  const copiedCount = copiedItemIds.size;
 
   useEffect(() => {
     setSelectedItemIds(new Set());
@@ -1026,11 +1040,20 @@ function ShareDetailDialog({
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: jobsQueryKey });
       void queryClient.invalidateQueries({ queryKey: dashboardAnalyticsQueryKey });
+      if (share?.id) {
+        void queryClient.invalidateQueries({
+          queryKey: friendShareDetailQueryKey(share.id),
+        });
+      }
       setSelectedItemIds(new Set());
     },
   });
 
   function toggleItem(itemId: string, checked: boolean) {
+    if (copiedItemIds.has(itemId)) {
+      return;
+    }
+
     setSelectedItemIds((current) => {
       const next = new Set(current);
 
@@ -1068,19 +1091,27 @@ function ShareDetailDialog({
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">{shareSubtitle(share)}</Badge>
               <Badge variant="outline">{selectedCount} selected</Badge>
+              <Badge variant="outline">
+                {copiedCount}/{itemIds.length} copied
+              </Badge>
             </div>
             <div className="max-h-[46svh] overflow-auto rounded-lg border border-border">
               <div className="grid min-w-[760px]">
                 {share.items.map((item) => {
                   const job = item.snapshot;
+                  const copied = Boolean(item.copiedJobId);
 
                   return (
                     <div
                       key={item.id}
-                      className="grid grid-cols-[2.5rem_minmax(16rem,1.3fr)_minmax(8rem,0.8fr)_8rem_8rem] items-center gap-3 border-b border-border px-3 py-3 last:border-b-0"
+                      className={cn(
+                        "grid grid-cols-[2.5rem_minmax(16rem,1.3fr)_minmax(8rem,0.8fr)_8rem_8rem] items-center gap-3 border-b border-border px-3 py-3 last:border-b-0",
+                        copied ? "bg-muted/30" : null,
+                      )}
                     >
                       <Checkbox
-                        checked={selectedItemIds.has(item.id)}
+                        checked={copied || selectedItemIds.has(item.id)}
+                        disabled={copied}
                         aria-label={`Select ${job.title}`}
                         onCheckedChange={(checked) =>
                           toggleItem(item.id, checked === true)
@@ -1094,6 +1125,12 @@ function ShareDetailDialog({
                         </p>
                       </div>
                       <div className="flex flex-wrap gap-1">
+                        {copied ? (
+                          <Badge variant="default">
+                            <Check data-icon="inline-start" aria-hidden="true" />
+                            Copied
+                          </Badge>
+                        ) : null}
                         {job.fitScore === null ? null : (
                           <Badge variant="outline">Fit {job.fitScore}</Badge>
                         )}
@@ -1144,15 +1181,17 @@ function ShareDetailDialog({
           </Button>
           <Button
             type="button"
-            disabled={!share || copyMutation.isPending || itemIds.length === 0}
-            onClick={() => copyMutation.mutate(undefined)}
+            disabled={!share || copyMutation.isPending || copyableItemIds.length === 0}
+            onClick={() => copyMutation.mutate(copyableItemIds)}
           >
             {copyMutation.isPending ? (
               <Loader2 data-icon="inline-start" className="animate-spin" />
+            ) : copyableItemIds.length === 0 ? (
+              <Check data-icon="inline-start" aria-hidden="true" />
             ) : (
               <CopyPlus data-icon="inline-start" aria-hidden="true" />
             )}
-            Copy all
+            {copyableItemIds.length === 0 ? "All copied" : "Copy all"}
           </Button>
         </DialogFooter>
       </DialogContent>

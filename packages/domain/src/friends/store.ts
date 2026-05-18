@@ -488,6 +488,26 @@ async function shareSummaries(shares: JobShare[], userId: string) {
   );
 }
 
+function copiedJobsBySharedJobId(jobs: JobRecord[]) {
+  const copiedJobs = new Map<string, JobRecord>();
+
+  for (const job of jobs) {
+    if (job.source !== "friend-share") {
+      continue;
+    }
+
+    const rawSharedJobId =
+      typeof job.raw.sharedJobId === "string" ? job.raw.sharedJobId : "";
+    const sharedJobId = rawSharedJobId || job.sourceJobId;
+
+    if (sharedJobId && !copiedJobs.has(sharedJobId)) {
+      copiedJobs.set(sharedJobId, job);
+    }
+  }
+
+  return copiedJobs;
+}
+
 export async function upsertFriendUserForTest(user: FriendUser) {
   const parsed = friendUserSchema.parse(user);
 
@@ -806,16 +826,32 @@ export async function getJobShare(input: unknown, userId: string): Promise<JobSh
     throw new Error("This job share has been revoked.");
   }
 
-  const [items, users] = await Promise.all([
+  const [items, users, recipientJobs] = await Promise.all([
     readShareItems(share.id),
     readPublicUsers([share.ownerId, share.recipientId]),
+    share.recipientId === userId ? listJobs(userId) : Promise.resolve([]),
   ]);
+  const copiedJobs = copiedJobsBySharedJobId(recipientJobs);
+  const detailItems =
+    share.recipientId === userId
+      ? items.map((item) => {
+          const copiedJob = copiedJobs.get(item.ownerJobId);
+
+          return copiedJob
+            ? {
+                ...item,
+                copiedJobId: copiedJob.id,
+                copiedAt: copiedJob.createdAt,
+              }
+            : item;
+        })
+      : items;
 
   return jobShareDetailSchema.parse({
     ...share,
     owner: users.get(share.ownerId) ?? fallbackUser(share.ownerId),
     recipient: users.get(share.recipientId) ?? fallbackUser(share.recipientId),
-    items,
+    items: detailItems,
   });
 }
 
@@ -854,8 +890,14 @@ export async function copySharedJobs(input: unknown, userId: string) {
   if (items.length === 0) {
     throw new Error("No shared jobs were selected.");
   }
+  const copiedJobs = copiedJobsBySharedJobId(await listJobs(userId));
+  const itemsToCopy = items.filter((item) => !copiedJobs.has(item.ownerJobId));
 
-  const jobs: ParsedSeedJob[] = items.map(({ snapshot }) => ({
+  if (itemsToCopy.length === 0) {
+    return [];
+  }
+
+  const jobs: ParsedSeedJob[] = itemsToCopy.map(({ snapshot }) => ({
     title: snapshot.title,
     company: snapshot.company,
     location: snapshot.location,
