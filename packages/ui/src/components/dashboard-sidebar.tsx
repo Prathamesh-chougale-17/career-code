@@ -10,6 +10,7 @@ import {
   Server,
   Sparkles,
   UserRound,
+  UsersRound,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
@@ -33,7 +34,10 @@ import {
   SidebarSeparator,
 } from "./ui/sidebar";
 import { Skeleton } from "./ui/skeleton";
-import { dashboardMetricsQueryKey } from "@careeright/api/query-keys";
+import {
+  dashboardMetricsQueryKey,
+  friendsSummaryQueryKey,
+} from "@careeright/api/query-keys";
 
 export function DashboardSidebar() {
   const {
@@ -47,7 +51,12 @@ export function DashboardSidebar() {
     queryKey: dashboardMetricsQueryKey,
     queryFn: () => rpcClient.dashboard.metrics(),
   });
+  const friendsQuery = useQuery({
+    queryKey: friendsSummaryQueryKey,
+    queryFn: () => rpcClient.friends.summary(),
+  });
   const metrics = metricsQuery.data;
+  const friendsSummary = friendsQuery.data;
   const metricsLoading = metricsQuery.isPending && !metrics;
 
   return (
@@ -82,6 +91,21 @@ export function DashboardSidebar() {
               <SidebarItem route="jobs" href="/dashboard/jobs" label="Jobs" icon={Briefcase} currentRoute={currentRoute} />
               <SidebarItem route="diary" href="/dashboard/diary" label="Diary" icon={BookOpen} currentRoute={currentRoute} />
               <SidebarItem route="dsa" href="/dashboard/dsa" label="DSA" icon={Code2} currentRoute={currentRoute} />
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={currentRoute === "friends"}
+                  tooltip="Friends"
+                  render={<Link href="/dashboard/friends" />}
+                >
+                  <UsersRound />
+                  <span>Friends</span>
+                </SidebarMenuButton>
+                {friendsSummary?.incomingRequests.length ? (
+                  <SidebarMenuBadge>
+                    {friendsSummary.incomingRequests.length}
+                  </SidebarMenuBadge>
+                ) : null}
+              </SidebarMenuItem>
               <SidebarItem route="history" href="/dashboard/history" label="History" icon={HistoryIcon} currentRoute={currentRoute} />
               <SidebarMenuItem>
                 <SidebarMenuButton

@@ -15,6 +15,7 @@ export type CareerightDashboardRoute =
   | "jobs"
   | "diary"
   | "dsa"
+  | "friends"
   | "history"
   | "proposals"
   | "mcp-tools"

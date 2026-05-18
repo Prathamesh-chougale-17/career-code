@@ -53,6 +53,8 @@ export function getAuthRuntimeConfig(
   env: AuthRuntimeEnv = process.env,
 ): AuthRuntimeConfig {
   const isProduction = env.NODE_ENV === "production";
+  const isHostedProduction =
+    isProduction && (env.VERCEL === "1" || env.VERCEL_ENV === "production");
   const baseURL =
     env.BETTER_AUTH_URL?.trim() ||
     env.CAREERIGHT_AUTH_URL?.trim() ||
@@ -82,7 +84,7 @@ export function getAuthRuntimeConfig(
     );
   }
 
-  if (isProduction && isLoopbackOrigin(baseURL)) {
+  if (isHostedProduction && isLoopbackOrigin(baseURL)) {
     throw new Error(
       "BETTER_AUTH_URL or CAREERIGHT_AUTH_URL must be set to the public HTTPS app URL in production.",
     );
@@ -101,7 +103,7 @@ export function getAuthRuntimeConfig(
     baseURL,
     requiresPersistentAuth: isProduction || hasGoogleOAuth,
     secret,
-    trustedOrigins: getTrustedOrigins(env, baseURL, isProduction),
+    trustedOrigins: getTrustedOrigins(env, baseURL, isHostedProduction),
     verification: {
       storeInDatabase: true,
     },

@@ -24,6 +24,31 @@ import {
 } from "@careeright/domain/dsa/schema";
 import { getHistorySnapshot } from "@careeright/domain/history/store";
 import {
+  cancelFriendRequest,
+  copySharedJobs,
+  createJobShare,
+  getFriendsSummary,
+  getJobShare,
+  listJobShares,
+  removeFriend,
+  respondFriendRequest,
+  revokeJobShare,
+  searchFriendUsers,
+  sendFriendRequest,
+} from "@careeright/domain/friends/store";
+import {
+  cancelFriendRequestInputSchema,
+  copySharedJobsInputSchema,
+  createJobShareInputSchema,
+  getJobShareInputSchema,
+  listJobSharesInputSchema,
+  removeFriendInputSchema,
+  respondFriendRequestInputSchema,
+  revokeJobShareInputSchema,
+  searchFriendUsersInputSchema,
+  sendFriendRequestInputSchema,
+} from "@careeright/domain/friends/schema";
+import {
   acceptProposal,
   createMcpToken,
   createTask,
@@ -158,6 +183,61 @@ export const appRouter = {
     snapshot: protectedProcedure.handler(async ({ context }) =>
       getHistorySnapshot(context.userId),
     ),
+  },
+  friends: {
+    summary: protectedProcedure.handler(async ({ context }) =>
+      getFriendsSummary(context.userId),
+    ),
+    searchUsers: protectedProcedure
+      .input(searchFriendUsersInputSchema)
+      .handler(async ({ context, input }) => {
+        return searchFriendUsers(input, context.userId);
+      }),
+    sendRequest: protectedProcedure
+      .input(sendFriendRequestInputSchema)
+      .handler(async ({ context, input }) => {
+        return sendFriendRequest(input, context.userId);
+      }),
+    respondRequest: protectedProcedure
+      .input(respondFriendRequestInputSchema)
+      .handler(async ({ context, input }) => {
+        return respondFriendRequest(input, context.userId);
+      }),
+    cancelRequest: protectedProcedure
+      .input(cancelFriendRequestInputSchema)
+      .handler(async ({ context, input }) => {
+        return cancelFriendRequest(input, context.userId);
+      }),
+    removeFriend: protectedProcedure
+      .input(removeFriendInputSchema)
+      .handler(async ({ context, input }) => {
+        return removeFriend(input, context.userId);
+      }),
+    createJobShare: protectedProcedure
+      .input(createJobShareInputSchema)
+      .handler(async ({ context, input }) => {
+        return createJobShare(input, context.userId);
+      }),
+    listShares: protectedProcedure
+      .input(listJobSharesInputSchema)
+      .handler(async ({ context, input }) => {
+        return listJobShares(input, context.userId);
+      }),
+    getShare: protectedProcedure
+      .input(getJobShareInputSchema)
+      .handler(async ({ context, input }) => {
+        return getJobShare(input, context.userId);
+      }),
+    revokeShare: protectedProcedure
+      .input(revokeJobShareInputSchema)
+      .handler(async ({ context, input }) => {
+        return revokeJobShare(input, context.userId);
+      }),
+    copySharedJobs: protectedProcedure
+      .input(copySharedJobsInputSchema)
+      .handler(async ({ context, input }) => {
+        return copySharedJobs(input, context.userId);
+      }),
   },
   jobs: {
     list: protectedProcedure.handler(async ({ context }) =>

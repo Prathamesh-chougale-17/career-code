@@ -89,6 +89,21 @@ async function ensureMongoIndexes(db: Db) {
       { key: { userId: 1, source: 1, sourceJobId: 1 } },
       { key: { userId: 1, applyUrl: 1 } },
     ]),
+    db.collection("friendConnections").createIndexes([
+      { key: { pairKey: 1 }, unique: true },
+      { key: { requesterId: 1, status: 1, updatedAt: -1 } },
+      { key: { recipientId: 1, status: 1, updatedAt: -1 } },
+    ]),
+    db.collection("jobShares").createIndexes([
+      { key: { ownerId: 1, createdAt: -1 } },
+      { key: { recipientId: 1, revokedAt: 1, createdAt: -1 } },
+      { key: { ownerId: 1, recipientId: 1, createdAt: -1 } },
+    ]),
+    db.collection("jobShareItems").createIndexes([
+      { key: { shareId: 1, createdAt: 1 } },
+      { key: { recipientId: 1, createdAt: -1 } },
+      { key: { ownerId: 1, createdAt: -1 } },
+    ]),
     db.collection("dsaQuestionProgress").createIndexes([
       { key: { userId: 1, questionId: 1 }, unique: true },
     ]),

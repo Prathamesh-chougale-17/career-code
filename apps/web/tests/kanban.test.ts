@@ -86,6 +86,7 @@ describe("auth config", () => {
       GOOGLE_CLIENT_ID: "google-client-id",
       GOOGLE_CLIENT_SECRET: "google-client-secret",
       NODE_ENV: "production",
+      VERCEL_ENV: "production",
     });
 
     expect(config.baseURL).toBe("https://careeright.vercel.app");
@@ -103,8 +104,22 @@ describe("auth config", () => {
         GOOGLE_CLIENT_ID: "google-client-id",
         GOOGLE_CLIENT_SECRET: "google-client-secret",
         NODE_ENV: "production",
+        VERCEL_ENV: "production",
       }),
     ).toThrow("public HTTPS app URL");
+  });
+
+  test("allows local next start previews to use localhost auth URLs", () => {
+    const config = getAuthRuntimeConfig({
+      BETTER_AUTH_SECRET: "test-secret-with-at-least-32-characters",
+      BETTER_AUTH_URL: "http://localhost:3000",
+      GOOGLE_CLIENT_ID: "google-client-id",
+      GOOGLE_CLIENT_SECRET: "google-client-secret",
+      NODE_ENV: "production",
+    });
+
+    expect(config.baseURL).toBe("http://localhost:3000");
+    expect(config.trustedOrigins).toContain("http://localhost:3000");
   });
 
   test("fails clearly in production without Google OAuth credentials", () => {

@@ -234,7 +234,7 @@ describe("diary routes and navigation", () => {
 
     expect(page).toContain("DiaryApp");
     expect(page).toContain('requirePageSession("/dashboard/diary")');
-    expect(sidebar).toContain('render={<Link href="/dashboard/diary" />}');
+    expect(sidebar).toContain('href="/dashboard/diary"');
     expect(sidebar).toContain('route="diary"');
   });
 });

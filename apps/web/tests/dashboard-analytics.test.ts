@@ -362,8 +362,8 @@ describe("dashboard analytics", () => {
     expect(kanbanPage).toContain("KanbanApp");
     expect(aiPage).toContain('redirect("/dashboard/kanban")');
     expect(sidebar).toContain('render={<Link href="/dashboard" />}');
-    expect(sidebar).toContain('render={<Link href="/dashboard/kanban" />}');
-    expect(sidebar).toContain('render={<Link href="/dashboard/diary" />}');
+    expect(sidebar).toContain('href="/dashboard/kanban"');
+    expect(sidebar).toContain('href="/dashboard/diary"');
     expect(sidebar).toContain('route="board"');
     expect(sidebar).toContain('route="diary"');
   });

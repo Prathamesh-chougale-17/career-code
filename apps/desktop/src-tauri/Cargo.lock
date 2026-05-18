@@ -399,7 +399,7 @@ dependencies = [
 
 [[package]]
 name = "careeright-desktop"
-version = "1.0.6"
+version = "1.0.7"
 dependencies = [
  "serde",
  "serde_json",
