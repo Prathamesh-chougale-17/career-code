@@ -27,7 +27,9 @@ const dsaYoutubeUrlSchema = dsaHttpUrlSchema.refine((value) => {
 const dsaLeetcodeUrlSchema = dsaHttpUrlSchema.refine((value) => {
   try {
     const url = new URL(value);
-    return url.hostname === "leetcode.com" || url.hostname === "www.leetcode.com";
+    return (
+      url.hostname === "leetcode.com" || url.hostname === "www.leetcode.com"
+    );
   } catch {
     return false;
   }
@@ -118,6 +120,7 @@ export const dsaSummarySchema = z.object({
 export const dsaSnapshotSchema = z.object({
   catalog: dsaCatalogSchema,
   progress: z.array(dsaQuestionProgressSchema),
+  videoWatches: z.array(dsaVideoWatchEventSchema).default([]),
   summary: dsaSummarySchema,
 });
 

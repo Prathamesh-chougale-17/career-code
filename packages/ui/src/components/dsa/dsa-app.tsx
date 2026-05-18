@@ -2,14 +2,19 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  BookOpenCheck,
   CheckCircle2,
   Circle,
   CirclePlay,
   ExternalLink,
   ListChecks,
   Loader2,
+  PlayCircle,
+  Sparkles,
+  Target,
+  Trophy,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import {
   Accordion,
@@ -59,6 +64,7 @@ import type {
   DsaSnapshot,
   DsaSubtopic,
   DsaTrack,
+  DsaVideoWatchEvent,
   UpdateDsaQuestionProgressInput,
 } from "@careeright/domain/dsa/schema";
 import {
@@ -175,10 +181,7 @@ export function DsaApp({ initialSnapshot }: { initialSnapshot?: DsaSnapshot }) {
     },
     onError: (_error, _input, context) => {
       if (context?.previousSnapshot) {
-        queryClient.setQueryData(
-          dsaSnapshotQueryKey,
-          context.previousSnapshot,
-        );
+        queryClient.setQueryData(dsaSnapshotQueryKey, context.previousSnapshot);
       }
     },
     onSuccess: (result) => {
@@ -196,7 +199,14 @@ export function DsaApp({ initialSnapshot }: { initialSnapshot?: DsaSnapshot }) {
   const recordVideoWatchMutation = useMutation({
     mutationFn: (questionId: string) =>
       rpcClient.dsa.recordVideoWatch({ questionId }),
-    onSuccess: () => {
+    onSuccess: (event) => {
+      queryClient.setQueryData<DsaSnapshot>(
+        dsaSnapshotQueryKey,
+        (currentSnapshot) =>
+          currentSnapshot
+            ? appendVideoWatchEvent(currentSnapshot, event)
+            : currentSnapshot,
+      );
       void queryClient.invalidateQueries({ queryKey: historySnapshotQueryKey });
     },
   });
@@ -212,6 +222,11 @@ export function DsaApp({ initialSnapshot }: { initialSnapshot?: DsaSnapshot }) {
           .map((item) => item.questionId) ?? [],
       ),
     [snapshot?.progress],
+  );
+  const watchedVideoQuestionIds = useMemo(
+    () =>
+      new Set(snapshot?.videoWatches.map((event) => event.questionId) ?? []),
+    [snapshot?.videoWatches],
   );
 
   function onToggleQuestion(questionId: string, completed: boolean) {
@@ -301,54 +316,70 @@ export function DsaApp({ initialSnapshot }: { initialSnapshot?: DsaSnapshot }) {
                     value={openTrackIds}
                     onValueChange={(value) => setOpenTrackIds(value)}
                   >
-                    {snapshot.catalog.tracks.map((track) => (
-                      <AccordionItem key={track.id} value={track.id}>
-                        <AccordionTrigger>
-                          <div className="flex min-w-0 flex-col gap-2">
-                            <span className="truncate text-base">
-                              {track.title}
-                            </span>
-                            <span className="text-sm font-normal text-muted-foreground">
-                              {track.playlistTitle}
-                            </span>
-                          </div>
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <div className="flex flex-col gap-4">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div className="flex flex-wrap gap-2">
-                                <Badge variant="secondary">
-                                  {track.sourceName}
-                                </Badge>
-                                <Badge variant="outline">
-                                  {track.subtopics.length} subtopics
-                                </Badge>
+                    {snapshot.catalog.tracks.map((track) => {
+                      const trackStats = getDsaProgressStats(
+                        track.subtopics.flatMap(
+                          (subtopic) => subtopic.questions,
+                        ),
+                        completedQuestionIds,
+                        watchedVideoQuestionIds,
+                      );
+
+                      return (
+                        <AccordionItem key={track.id} value={track.id}>
+                          <AccordionTrigger>
+                            <div className="flex min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                              <div className="min-w-0">
+                                <span className="block truncate text-base">
+                                  {track.title}
+                                </span>
+                                <span className="block text-sm font-normal text-muted-foreground">
+                                  {track.playlistTitle}
+                                </span>
                               </div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => onOpenPlaylist(track)}
-                              >
-                                <CirclePlay
-                                  data-icon="inline-start"
-                                  aria-hidden="true"
-                                />
-                                Playlist
-                              </Button>
+                              <DsaProgressCluster stats={trackStats} compact />
                             </div>
-                            <DsaSubtopicAccordion
-                              subtopics={track.subtopics}
-                              completedQuestionIds={completedQuestionIds}
-                              progressByQuestionId={progressByQuestionId}
-                              pendingQuestionIds={pendingQuestionIds}
-                              onOpenVideo={onOpenQuestionVideo}
-                              onToggleQuestion={onToggleQuestion}
-                            />
-                          </div>
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
+                          </AccordionTrigger>
+                          <AccordionContent>
+                            <div className="flex flex-col gap-4">
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div className="flex flex-wrap gap-2">
+                                  <Badge variant="secondary">
+                                    {track.sourceName}
+                                  </Badge>
+                                  <Badge variant="outline">
+                                    {track.subtopics.length} subtopics
+                                  </Badge>
+                                </div>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => onOpenPlaylist(track)}
+                                >
+                                  <CirclePlay
+                                    data-icon="inline-start"
+                                    aria-hidden="true"
+                                  />
+                                  Playlist
+                                </Button>
+                              </div>
+                              <DsaSubtopicAccordion
+                                subtopics={track.subtopics}
+                                completedQuestionIds={completedQuestionIds}
+                                watchedVideoQuestionIds={
+                                  watchedVideoQuestionIds
+                                }
+                                progressByQuestionId={progressByQuestionId}
+                                pendingQuestionIds={pendingQuestionIds}
+                                onOpenVideo={onOpenQuestionVideo}
+                                onToggleQuestion={onToggleQuestion}
+                              />
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
                   </Accordion>
                 </CardContent>
               </Card>
@@ -377,6 +408,9 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
   const leetcodeQuestions = questions.filter(
     (question) => question.sourceType === "leetcode",
   ).length;
+  const watchedVideos = new Set(
+    snapshot.videoWatches.map((event) => event.questionId),
+  ).size;
 
   return (
     <Card
@@ -402,13 +436,14 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
           </Badge>
         </CardAction>
       </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
         <DsaMetric
           label="Tracks"
           value={snapshot.catalog.tracks.length}
           toneIndex={5}
         />
         <DsaMetric label="Lessons" value={lessonQuestions} toneIndex={0} />
+        <DsaMetric label="Watched" value={watchedVideos} toneIndex={1} />
         <DsaMetric label="LeetCode" value={leetcodeQuestions} toneIndex={2} />
         <DsaMetric
           label="Subtopics"
@@ -456,6 +491,7 @@ function DsaMetric({
 function DsaSubtopicAccordion({
   subtopics,
   completedQuestionIds,
+  watchedVideoQuestionIds,
   progressByQuestionId,
   pendingQuestionIds,
   onOpenVideo,
@@ -463,6 +499,7 @@ function DsaSubtopicAccordion({
 }: {
   subtopics: DsaSubtopic[];
   completedQuestionIds: Set<string>;
+  watchedVideoQuestionIds: Set<string>;
   progressByQuestionId: Map<string, DsaQuestionProgress>;
   pendingQuestionIds: Set<string>;
   onOpenVideo: (question: DsaQuestion) => void;
@@ -471,58 +508,333 @@ function DsaSubtopicAccordion({
   const [openSubtopicIds, setOpenSubtopicIds] = useState<string[]>([]);
 
   return (
-    <Accordion
-      multiple
-      value={openSubtopicIds}
-      onValueChange={(value) => setOpenSubtopicIds(value)}
-      className="rounded-xl"
-    >
-      {subtopics.map((subtopic, index) => {
-        const completedCount = subtopic.questions.filter((question) =>
-          completedQuestionIds.has(question.id),
-        ).length;
-        const toneIndex = index % DSA_SURFACE_TONES.length;
+    <div className="grid gap-4">
+      <DsaJourneyMap
+        subtopics={subtopics}
+        completedQuestionIds={completedQuestionIds}
+        watchedVideoQuestionIds={watchedVideoQuestionIds}
+        openSubtopicIds={openSubtopicIds}
+        onSelectSubtopic={(subtopicId) =>
+          setOpenSubtopicIds((currentIds) =>
+            currentIds.includes(subtopicId)
+              ? currentIds
+              : [...currentIds, subtopicId],
+          )
+        }
+      />
+      <Accordion
+        multiple
+        value={openSubtopicIds}
+        onValueChange={(value) => setOpenSubtopicIds(value)}
+        className="rounded-xl"
+      >
+        {subtopics.map((subtopic, index) => {
+          const stats = getDsaProgressStats(
+            subtopic.questions,
+            completedQuestionIds,
+            watchedVideoQuestionIds,
+          );
+          const toneIndex = index % DSA_SURFACE_TONES.length;
 
-        return (
-          <AccordionItem
-            key={subtopic.id}
-            value={subtopic.id}
-            className={cn(
-              "border-b border-border/70 data-open:bg-transparent",
-              DSA_SURFACE_TONES[toneIndex],
-            )}
-          >
-            <AccordionTrigger>
-              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <span className="block truncate">{subtopic.title}</span>
-                  <span className="block text-sm font-normal text-muted-foreground">
-                    {subtopic.description}
-                  </span>
+          return (
+            <AccordionItem
+              key={subtopic.id}
+              value={subtopic.id}
+              className={cn(
+                "border-b border-border/70 data-open:bg-transparent",
+                DSA_SURFACE_TONES[toneIndex],
+              )}
+            >
+              <AccordionTrigger>
+                <div className="flex min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <DsaMilestoneOrb
+                      index={index + 1}
+                      stats={stats}
+                      toneIndex={toneIndex}
+                    />
+                    <div className="min-w-0">
+                      <span className="block truncate">{subtopic.title}</span>
+                      <span className="block text-sm font-normal text-muted-foreground">
+                        {subtopic.description}
+                      </span>
+                    </div>
+                  </div>
+                  <DsaProgressCluster stats={stats} toneIndex={toneIndex} />
                 </div>
-                <Badge
-                  variant="outline"
-                  className={DSA_BADGE_TONES[toneIndex]}
-                >
-                  {completedCount}/{subtopic.questions.length}
-                </Badge>
+              </AccordionTrigger>
+              <AccordionContent>
+                <DsaLessonAccordion
+                  subtopic={subtopic}
+                  toneIndex={toneIndex}
+                  progressByQuestionId={progressByQuestionId}
+                  completedQuestionIds={completedQuestionIds}
+                  watchedVideoQuestionIds={watchedVideoQuestionIds}
+                  pendingQuestionIds={pendingQuestionIds}
+                  onOpenVideo={onOpenVideo}
+                  onToggleQuestion={onToggleQuestion}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
+    </div>
+  );
+}
+
+type DsaProgressStats = {
+  totalQuestions: number;
+  completedQuestions: number;
+  totalVideos: number;
+  watchedVideos: number;
+  totalPracticeQuestions: number;
+  completedPracticeQuestions: number;
+  completionPercentage: number;
+  videoPercentage: number;
+  isQuestionsComplete: boolean;
+  isVideosComplete: boolean;
+  isComplete: boolean;
+};
+
+function DsaJourneyMap({
+  subtopics,
+  completedQuestionIds,
+  watchedVideoQuestionIds,
+  openSubtopicIds,
+  onSelectSubtopic,
+}: {
+  subtopics: DsaSubtopic[];
+  completedQuestionIds: Set<string>;
+  watchedVideoQuestionIds: Set<string>;
+  openSubtopicIds: string[];
+  onSelectSubtopic: (subtopicId: string) => void;
+}) {
+  const completedSubtopics = subtopics.filter(
+    (subtopic) =>
+      getDsaProgressStats(
+        subtopic.questions,
+        completedQuestionIds,
+        watchedVideoQuestionIds,
+      ).isComplete,
+  ).length;
+
+  return (
+    <section className="rounded-xl border border-primary/20 bg-background/70 p-3 shadow-sm">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Sparkles className="size-4" aria-hidden="true" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-foreground">
+              Subtopic journey
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Videos watched and questions solved across this track.
+            </p>
+          </div>
+        </div>
+        <Badge variant="secondary">
+          <Trophy data-icon="inline-start" aria-hidden="true" />
+          {completedSubtopics}/{subtopics.length} complete
+        </Badge>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {subtopics.map((subtopic, index) => {
+          const toneIndex = index % DSA_SURFACE_TONES.length;
+          const stats = getDsaProgressStats(
+            subtopic.questions,
+            completedQuestionIds,
+            watchedVideoQuestionIds,
+          );
+          const isOpen = openSubtopicIds.includes(subtopic.id);
+
+          return (
+            <button
+              key={subtopic.id}
+              type="button"
+              onClick={() => onSelectSubtopic(subtopic.id)}
+              className={cn(
+                "group min-w-0 rounded-xl border bg-card/80 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none",
+                isOpen ? "border-primary/50 bg-primary/5" : "border-border",
+              )}
+            >
+              <div className="flex min-w-0 items-start gap-3">
+                <DsaMilestoneOrb
+                  index={index + 1}
+                  stats={stats}
+                  toneIndex={toneIndex}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-start justify-between gap-2">
+                    <p className="truncate text-sm font-semibold text-foreground">
+                      {subtopic.title}
+                    </p>
+                    <span className="shrink-0 text-xs font-semibold text-primary">
+                      {stats.completionPercentage}%
+                    </span>
+                  </div>
+                  <DsaProgressBar
+                    value={stats.completionPercentage}
+                    className="mt-2"
+                  />
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <DsaMiniBadge
+                      icon={<BookOpenCheck aria-hidden="true" />}
+                      label={`${stats.completedQuestions}/${stats.totalQuestions} questions`}
+                      complete={stats.isQuestionsComplete}
+                    />
+                    <DsaMiniBadge
+                      icon={<PlayCircle aria-hidden="true" />}
+                      label={`${stats.watchedVideos}/${stats.totalVideos} videos`}
+                      complete={stats.isVideosComplete}
+                    />
+                  </div>
+                </div>
               </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <DsaLessonAccordion
-                subtopic={subtopic}
-                toneIndex={toneIndex}
-                progressByQuestionId={progressByQuestionId}
-                completedQuestionIds={completedQuestionIds}
-                pendingQuestionIds={pendingQuestionIds}
-                onOpenVideo={onOpenVideo}
-                onToggleQuestion={onToggleQuestion}
-              />
-            </AccordionContent>
-          </AccordionItem>
-        );
-      })}
-    </Accordion>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function DsaProgressCluster({
+  stats,
+  toneIndex = 0,
+  compact = false,
+}: {
+  stats: DsaProgressStats;
+  toneIndex?: number;
+  compact?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex shrink-0 flex-wrap items-center gap-2 text-xs",
+        compact ? "lg:justify-end" : "lg:max-w-[420px] lg:justify-end",
+      )}
+    >
+      <Badge
+        variant={stats.isComplete ? "default" : "outline"}
+        className={cn(!stats.isComplete && DSA_BADGE_TONES[toneIndex])}
+      >
+        {stats.isComplete ? (
+          <Trophy data-icon="inline-start" aria-hidden="true" />
+        ) : (
+          <Target data-icon="inline-start" aria-hidden="true" />
+        )}
+        {stats.completedQuestions}/{stats.totalQuestions} done
+      </Badge>
+      <Badge
+        variant="outline"
+        className={DSA_BADGE_TONES[(toneIndex + 1) % DSA_BADGE_TONES.length]}
+      >
+        <PlayCircle data-icon="inline-start" aria-hidden="true" />
+        {stats.watchedVideos}/{stats.totalVideos} videos
+      </Badge>
+      {!compact ? (
+        <Badge
+          variant="outline"
+          className={DSA_BADGE_TONES[(toneIndex + 2) % DSA_BADGE_TONES.length]}
+        >
+          <BookOpenCheck data-icon="inline-start" aria-hidden="true" />
+          {stats.completedPracticeQuestions}/{stats.totalPracticeQuestions}{" "}
+          practice
+        </Badge>
+      ) : null}
+      <span className="min-w-12 rounded-full border border-border bg-background/75 px-2 py-1 text-center font-semibold text-foreground">
+        {stats.completionPercentage}%
+      </span>
+    </div>
+  );
+}
+
+function DsaMilestoneOrb({
+  index,
+  stats,
+  toneIndex,
+  size = "default",
+}: {
+  index: number;
+  stats: DsaProgressStats;
+  toneIndex: number;
+  size?: "default" | "sm";
+}) {
+  return (
+    <div
+      className={cn(
+        "relative flex shrink-0 items-center justify-center rounded-full border text-sm font-semibold shadow-sm",
+        size === "sm" ? "size-9" : "size-11",
+        stats.isComplete
+          ? "border-primary bg-primary text-primary-foreground"
+          : DSA_SURFACE_TONES[toneIndex],
+      )}
+    >
+      {stats.isComplete ? (
+        <Trophy className="size-4" aria-hidden="true" />
+      ) : (
+        <span>{index}</span>
+      )}
+      <span
+        className={cn(
+          "absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full border border-background text-[10px] font-bold",
+          stats.isVideosComplete
+            ? "bg-chart-2 text-background"
+            : "bg-muted text-muted-foreground",
+        )}
+        aria-label={`${stats.watchedVideos} of ${stats.totalVideos} videos watched`}
+      >
+        {stats.watchedVideos}
+      </span>
+    </div>
+  );
+}
+
+function DsaMiniBadge({
+  icon,
+  label,
+  complete,
+}: {
+  icon: ReactNode;
+  label: string;
+  complete: boolean;
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium",
+        complete
+          ? "border-primary/25 bg-primary/10 text-foreground"
+          : "border-border bg-muted/50 text-muted-foreground",
+        "[&_svg]:size-3",
+      )}
+    >
+      {icon}
+      {label}
+    </span>
+  );
+}
+
+function DsaProgressBar({
+  value,
+  className,
+}: {
+  value: number;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn("h-2 overflow-hidden rounded-full bg-muted", className)}
+      aria-hidden="true"
+    >
+      <div
+        className="h-full rounded-full bg-[linear-gradient(90deg,var(--primary),var(--chart-2))] transition-all"
+        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+      />
+    </div>
   );
 }
 
@@ -536,6 +848,7 @@ function DsaLessonAccordion({
   subtopic,
   toneIndex,
   completedQuestionIds,
+  watchedVideoQuestionIds,
   progressByQuestionId,
   pendingQuestionIds,
   onOpenVideo,
@@ -544,6 +857,7 @@ function DsaLessonAccordion({
   subtopic: DsaSubtopic;
   toneIndex: number;
   completedQuestionIds: Set<string>;
+  watchedVideoQuestionIds: Set<string>;
   progressByQuestionId: Map<string, DsaQuestionProgress>;
   pendingQuestionIds: Set<string>;
   onOpenVideo: (question: DsaQuestion) => void;
@@ -563,9 +877,11 @@ function DsaLessonAccordion({
       )}
     >
       {lessonGroups.map((group, index) => {
-        const completedCount = group.questions.filter((question) =>
-          completedQuestionIds.has(question.id),
-        ).length;
+        const stats = getDsaProgressStats(
+          group.questions,
+          completedQuestionIds,
+          watchedVideoQuestionIds,
+        );
         const lessonToneIndex = (toneIndex + index) % DSA_SURFACE_TONES.length;
 
         return (
@@ -575,36 +891,44 @@ function DsaLessonAccordion({
             className="data-open:bg-background/45"
           >
             <AccordionTrigger>
-              <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <span className="flex min-w-0 flex-wrap items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      className={DSA_BADGE_TONES[lessonToneIndex]}
-                    >
-                      {group.lesson.lessonLabel}
-                    </Badge>
-                    <span className="truncate">{group.lesson.title}</span>
-                  </span>
-                  <span className="block text-sm font-normal text-muted-foreground">
-                    {group.practiceQuestions.length} LeetCode{" "}
-                    {group.practiceQuestions.length === 1
-                      ? "question"
-                      : "questions"}
-                  </span>
+              <div className="flex min-w-0 flex-1 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <DsaMilestoneOrb
+                    index={index + 1}
+                    stats={stats}
+                    toneIndex={lessonToneIndex}
+                    size="sm"
+                  />
+                  <div className="min-w-0">
+                    <span className="flex min-w-0 flex-wrap items-center gap-2">
+                      <Badge
+                        variant="outline"
+                        className={DSA_BADGE_TONES[lessonToneIndex]}
+                      >
+                        {group.lesson.lessonLabel}
+                      </Badge>
+                      <span className="truncate">{group.lesson.title}</span>
+                    </span>
+                    <span className="block text-sm font-normal text-muted-foreground">
+                      {group.practiceQuestions.length} LeetCode{" "}
+                      {group.practiceQuestions.length === 1
+                        ? "question"
+                        : "questions"}
+                    </span>
+                  </div>
                 </div>
-                <Badge
-                  variant="outline"
-                  className={DSA_BADGE_TONES[lessonToneIndex]}
-                >
-                  {completedCount}/{group.questions.length}
-                </Badge>
+                <DsaProgressCluster
+                  stats={stats}
+                  toneIndex={lessonToneIndex}
+                  compact
+                />
               </div>
             </AccordionTrigger>
             <AccordionContent>
               <DsaQuestionTable
                 questions={group.questions}
                 progressByQuestionId={progressByQuestionId}
+                watchedVideoQuestionIds={watchedVideoQuestionIds}
                 pendingQuestionIds={pendingQuestionIds}
                 onOpenVideo={onOpenVideo}
                 onToggleQuestion={onToggleQuestion}
@@ -647,15 +971,63 @@ function groupLessonQuestions(questions: DsaQuestion[]): DsaLessonGroup[] {
   });
 }
 
+function getDsaProgressStats(
+  questions: DsaQuestion[],
+  completedQuestionIds: Set<string>,
+  watchedVideoQuestionIds: Set<string>,
+): DsaProgressStats {
+  const videoQuestions = questions.filter(
+    (question) => question.sourceType === "lesson" && question.videoUrl,
+  );
+  const practiceQuestions = questions.filter(
+    (question) => question.sourceType === "leetcode",
+  );
+  const completedQuestions = questions.filter((question) =>
+    completedQuestionIds.has(question.id),
+  ).length;
+  const watchedVideos = videoQuestions.filter((question) =>
+    watchedVideoQuestionIds.has(question.id),
+  ).length;
+  const completedPracticeQuestions = practiceQuestions.filter((question) =>
+    completedQuestionIds.has(question.id),
+  ).length;
+  const totalQuestions = questions.length;
+  const totalVideos = videoQuestions.length;
+  const totalPracticeQuestions = practiceQuestions.length;
+  const isQuestionsComplete =
+    totalQuestions > 0 && completedQuestions === totalQuestions;
+  const isVideosComplete = totalVideos === 0 || watchedVideos === totalVideos;
+
+  return {
+    totalQuestions,
+    completedQuestions,
+    totalVideos,
+    watchedVideos,
+    totalPracticeQuestions,
+    completedPracticeQuestions,
+    completionPercentage: percent(completedQuestions, totalQuestions),
+    videoPercentage: percent(watchedVideos, totalVideos),
+    isQuestionsComplete,
+    isVideosComplete,
+    isComplete: isQuestionsComplete && isVideosComplete,
+  };
+}
+
+function percent(value: number, total: number) {
+  return total === 0 ? 0 : Math.round((value / total) * 100);
+}
+
 function DsaQuestionTable({
   questions,
   progressByQuestionId,
+  watchedVideoQuestionIds,
   pendingQuestionIds,
   onOpenVideo,
   onToggleQuestion,
 }: {
   questions: DsaQuestion[];
   progressByQuestionId: Map<string, DsaQuestionProgress>;
+  watchedVideoQuestionIds: Set<string>;
   pendingQuestionIds: Set<string>;
   onOpenVideo: (question: DsaQuestion) => void;
   onToggleQuestion: (questionId: string, completed: boolean) => void;
@@ -678,6 +1050,7 @@ function DsaQuestionTable({
           const progress = progressByQuestionId.get(question.id);
           const completed = progress?.completed ?? false;
           const pending = pendingQuestionIds.has(question.id);
+          const videoWatched = watchedVideoQuestionIds.has(question.id);
 
           return (
             <TableRow
@@ -700,9 +1073,7 @@ function DsaQuestionTable({
                 <div className="flex flex-col items-start gap-1">
                   <Badge
                     variant={
-                      question.sourceType === "lesson"
-                        ? "secondary"
-                        : "outline"
+                      question.sourceType === "lesson" ? "secondary" : "outline"
                     }
                     className={cn(
                       question.sourceType === "leetcode"
@@ -731,6 +1102,24 @@ function DsaQuestionTable({
                         )}
                       >
                         {formatDifficulty(question.difficulty)}
+                      </Badge>
+                    </div>
+                  ) : null}
+                  {question.sourceType === "lesson" && question.videoUrl ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Badge
+                        variant={videoWatched ? "secondary" : "outline"}
+                        className={cn(
+                          videoWatched
+                            ? "border-primary/25 bg-primary/10 text-foreground"
+                            : "border-chart-1/35 bg-chart-1/10 text-foreground",
+                        )}
+                      >
+                        <PlayCircle
+                          data-icon="inline-start"
+                          aria-hidden="true"
+                        />
+                        {videoWatched ? "Video watched" : "Video pending"}
                       </Badge>
                     </div>
                   ) : null}
@@ -763,26 +1152,37 @@ function DsaQuestionTable({
                 ) : null}
               </TableCell>
               <TableCell>
-                {pending ? (
-                  <Badge variant="secondary">
-                    <Loader2
-                      data-icon="inline-start"
-                      className="animate-spin"
-                      aria-hidden="true"
-                    />
-                    Saving
-                  </Badge>
-                ) : completed ? (
-                  <Badge>
-                    <CheckCircle2 data-icon="inline-start" aria-hidden="true" />
-                    Done
-                  </Badge>
-                ) : (
-                  <Badge variant="outline">
-                    <Circle data-icon="inline-start" aria-hidden="true" />
-                    Todo
-                  </Badge>
-                )}
+                <div className="flex flex-col items-start gap-1.5">
+                  {pending ? (
+                    <Badge variant="secondary">
+                      <Loader2
+                        data-icon="inline-start"
+                        className="animate-spin"
+                        aria-hidden="true"
+                      />
+                      Saving
+                    </Badge>
+                  ) : completed ? (
+                    <Badge>
+                      <CheckCircle2
+                        data-icon="inline-start"
+                        aria-hidden="true"
+                      />
+                      Done
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">
+                      <Circle data-icon="inline-start" aria-hidden="true" />
+                      Todo
+                    </Badge>
+                  )}
+                  {question.sourceType === "lesson" && question.videoUrl ? (
+                    <Badge variant={videoWatched ? "outline" : "secondary"}>
+                      <CirclePlay data-icon="inline-start" aria-hidden="true" />
+                      {videoWatched ? "Watched" : "Watch next"}
+                    </Badge>
+                  ) : null}
+                </div>
               </TableCell>
             </TableRow>
           );
@@ -892,7 +1292,11 @@ function loadYouTubeIframeApi() {
       }
     };
 
-    if (!document.querySelector('script[src="https://www.youtube.com/iframe_api"]')) {
+    if (
+      !document.querySelector(
+        'script[src="https://www.youtube.com/iframe_api"]',
+      )
+    ) {
       const script = document.createElement("script");
 
       script.src = "https://www.youtube.com/iframe_api";
@@ -953,6 +1357,19 @@ function questionRowClassName(
     pending ? "bg-chart-1/15" : "",
     completed ? "bg-primary/15" : "",
   );
+}
+
+function appendVideoWatchEvent(
+  snapshot: DsaSnapshot,
+  event: DsaVideoWatchEvent,
+): DsaSnapshot {
+  return {
+    ...snapshot,
+    videoWatches: [
+      event,
+      ...(snapshot.videoWatches ?? []).filter((item) => item.id !== event.id),
+    ],
+  };
 }
 
 function optimisticSnapshot(
@@ -1031,11 +1448,13 @@ function catalogQuestionIds(catalog: DsaCatalog) {
 
 function questionOrderMap(catalog: DsaCatalog) {
   return new Map(
-    catalog.tracks.flatMap((track) =>
-      track.subtopics.flatMap((subtopic) =>
-        subtopic.questions.map((question) => question.id),
-      ),
-    ).map((questionId, index) => [questionId, index]),
+    catalog.tracks
+      .flatMap((track) =>
+        track.subtopics.flatMap((subtopic) =>
+          subtopic.questions.map((question) => question.id),
+        ),
+      )
+      .map((questionId, index) => [questionId, index]),
   );
 }
 
@@ -1047,6 +1466,3 @@ function DsaInlineSkeleton() {
     </div>
   );
 }
-
-
-

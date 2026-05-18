@@ -115,7 +115,10 @@ function normalizeProgressRows(
     const current = latestByQuestionId.get(row.questionId);
 
     if (!current || row.updatedAt.localeCompare(current.updatedAt) >= 0) {
-      latestByQuestionId.set(row.questionId, dsaQuestionProgressSchema.parse(row));
+      latestByQuestionId.set(
+        row.questionId,
+        dsaQuestionProgressSchema.parse(row),
+      );
     }
   }
 
@@ -127,6 +130,7 @@ function normalizeProgressRows(
 function buildDsaSnapshot(
   catalog: DsaCatalog,
   progressRows: DsaQuestionProgress[],
+  videoWatchRows: DsaVideoWatchEvent[] = [],
 ): DsaSnapshot {
   const questionIds = dsaCatalogQuestionIds(catalog);
   const progress = normalizeProgressRows(
@@ -142,10 +146,15 @@ function buildDsaSnapshot(
   );
   const totalQuestions = questionIds.size;
   const completedQuestions = completedQuestionIds.size;
+  const videoWatches = videoWatchRows
+    .filter((event) => questionIds.has(event.questionId))
+    .map((event) => dsaVideoWatchEventSchema.parse(event))
+    .sort((a, b) => b.watchedAt.localeCompare(a.watchedAt));
 
   return dsaSnapshotSchema.parse({
     catalog,
     progress,
+    videoWatches,
     summary: {
       totalQuestions,
       completedQuestions,
@@ -283,17 +292,26 @@ export async function getDsaSnapshot(userId = SOLO_USER_ID) {
 
   if (isMongoConfigured()) {
     const collections = await getCollections();
-    const rows = await collections.progress.find({ userId }).toArray();
+    const [progressRows, videoWatchRows] = await Promise.all([
+      collections.progress.find({ userId }).toArray(),
+      collections.videoWatches.find({ userId }).toArray(),
+    ]);
 
     return buildDsaSnapshot(
       catalog,
-      rows.map((row) => dsaQuestionProgressSchema.parse(withoutMongoId(row))),
+      progressRows.map((row) =>
+        dsaQuestionProgressSchema.parse(withoutMongoId(row)),
+      ),
+      videoWatchRows.map((row) =>
+        dsaVideoWatchEventSchema.parse(withoutMongoId(row)),
+      ),
     );
   }
 
   return buildDsaSnapshot(
     catalog,
     getMemoryState().progress.filter((item) => item.userId === userId),
+    getMemoryState().videoWatches.filter((event) => event.userId === userId),
   );
 }
 
@@ -434,8 +452,8 @@ export async function listDsaVideoWatchEvents(userId = SOLO_USER_ID) {
     );
   }
 
-  return getMemoryState().videoWatches
-    .filter((event) => event.userId === userId)
+  return getMemoryState()
+    .videoWatches.filter((event) => event.userId === userId)
     .sort((a, b) => b.watchedAt.localeCompare(a.watchedAt))
     .map((event) => dsaVideoWatchEventSchema.parse(event));
 }

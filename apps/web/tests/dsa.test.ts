@@ -12,6 +12,7 @@ import { LINKED_LIST_LEETCODE_QUESTIONS } from "@careeright/domain/dsa/linked-li
 import { updateDsaQuestionProgressInputSchema } from "@careeright/domain/dsa/schema";
 import {
   getDsaSnapshot,
+  recordDsaVideoWatch,
   updateDsaQuestionProgress,
 } from "@careeright/domain/dsa/store";
 import {
@@ -68,10 +69,11 @@ function readQuestionDocuments() {
 
   return readdirSync(directory)
     .filter((file) => file.endsWith(".json"))
-    .map((file) =>
-      JSON.parse(
-        readFileSync(path.join(directory, file), "utf8"),
-      ) as HeapQuestionDocument & GraphQuestionDocument,
+    .map(
+      (file) =>
+        JSON.parse(
+          readFileSync(path.join(directory, file), "utf8"),
+        ) as HeapQuestionDocument & GraphQuestionDocument,
     );
 }
 
@@ -143,9 +145,7 @@ describe("DSA catalog", () => {
       expect(question.lessonLabel).toBe("LC");
       expect(question.videoUrl).toBeUndefined();
       expect(question.leetcodeUrl).toBeDefined();
-      expect(new URL(question.leetcodeUrl ?? "").hostname).toBe(
-        "leetcode.com",
-      );
+      expect(new URL(question.leetcodeUrl ?? "").hostname).toBe("leetcode.com");
       expect(subtopicIds.has(question.subtopicId)).toBe(true);
       expect(lessonIds.has(question.affiliatedLessonId ?? "")).toBe(true);
       expect(lessonSubtopicById.get(question.affiliatedLessonId ?? "")).toBe(
@@ -194,7 +194,9 @@ describe("DSA catalog", () => {
     }
 
     const questions = track.subtopics.flatMap((subtopic) => subtopic.questions);
-    const lessons = questions.filter((question) => question.sourceType === "lesson");
+    const lessons = questions.filter(
+      (question) => question.sourceType === "lesson",
+    );
     const leetcode = questions.filter(
       (question) => question.sourceType === "leetcode",
     );
@@ -264,9 +266,7 @@ describe("DSA catalog", () => {
       expect(question.lessonLabel).toBe("LC");
       expect(question.videoUrl).toBeUndefined();
       expect(question.leetcodeUrl).toBeDefined();
-      expect(new URL(question.leetcodeUrl ?? "").hostname).toBe(
-        "leetcode.com",
-      );
+      expect(new URL(question.leetcodeUrl ?? "").hostname).toBe("leetcode.com");
       expect(lessonIds.has(question.affiliatedLessonId ?? "")).toBe(true);
       expect(lessonSubtopicById.get(question.affiliatedLessonId ?? "")).toBe(
         question.subtopicId,
@@ -287,7 +287,9 @@ describe("DSA catalog", () => {
     }
 
     const questions = track.subtopics.flatMap((subtopic) => subtopic.questions);
-    const lessons = questions.filter((question) => question.sourceType === "lesson");
+    const lessons = questions.filter(
+      (question) => question.sourceType === "lesson",
+    );
     const leetcode = questions.filter(
       (question) => question.sourceType === "leetcode",
     );
@@ -344,9 +346,7 @@ describe("DSA catalog", () => {
       expect(question.lessonLabel).toBe("LC");
       expect(question.videoUrl).toBeUndefined();
       expect(question.leetcodeUrl).toBeDefined();
-      expect(new URL(question.leetcodeUrl ?? "").hostname).toBe(
-        "leetcode.com",
-      );
+      expect(new URL(question.leetcodeUrl ?? "").hostname).toBe("leetcode.com");
       expect(lessonIds.has(question.affiliatedLessonId ?? "")).toBe(true);
       expect(lessonSubtopicById.get(question.affiliatedLessonId ?? "")).toBe(
         question.subtopicId,
@@ -410,6 +410,28 @@ describe("DSA progress store", () => {
         `dsa-invalid-${crypto.randomUUID()}`,
       ),
     ).rejects.toThrow("Unknown DSA question");
+  });
+
+  test("returns watched lesson videos in the snapshot", async () => {
+    const userId = `dsa-video-${crypto.randomUUID()}`;
+    const lesson = lessonQuestions()[0];
+    const leetcode = leetcodeQuestions()[0];
+    const initialSnapshot = await getDsaSnapshot(userId);
+
+    expect(initialSnapshot.videoWatches).toEqual([]);
+
+    const event = await recordDsaVideoWatch({ questionId: lesson.id }, userId);
+
+    expect(event.questionId).toBe(lesson.id);
+
+    const watchedSnapshot = await getDsaSnapshot(userId);
+
+    expect(watchedSnapshot.videoWatches).toHaveLength(1);
+    expect(watchedSnapshot.videoWatches[0]?.questionId).toBe(lesson.id);
+
+    await expect(
+      recordDsaVideoWatch({ questionId: leetcode.id }, userId),
+    ).rejects.toThrow("Unknown DSA video");
   });
 });
 
