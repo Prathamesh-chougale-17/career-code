@@ -13,6 +13,10 @@ import {
   upsertFriendUserForTest,
 } from "@careeright/domain/friends/store";
 import {
+  friendConnectionSchema,
+  jobShareSchema,
+} from "@careeright/domain/friends/schema";
+import {
   listJobs,
   seedJobs,
   updateJobStatus,
@@ -88,6 +92,37 @@ async function seedFriendShareJobs(userId: string) {
 }
 
 describe("friends connections", () => {
+  test("normalizes nullable optional timestamps from persisted records", () => {
+    const connection = friendConnectionSchema.parse({
+      id: "connection-null-timestamps",
+      requesterId: "requester-null-timestamps",
+      recipientId: "recipient-null-timestamps",
+      pairKey: "recipient-null-timestamps:requester-null-timestamps",
+      status: "pending",
+      createdAt: new Date(0).toISOString(),
+      updatedAt: new Date(0).toISOString(),
+      respondedAt: null,
+      removedAt: null,
+    });
+    const share = jobShareSchema.parse({
+      id: "share-null-timestamps",
+      ownerId: "owner-null-timestamps",
+      recipientId: "recipient-null-timestamps",
+      connectionId: "connection-null-timestamps",
+      scope: "all",
+      dateKey: null,
+      note: "",
+      jobCount: 0,
+      createdAt: new Date(0).toISOString(),
+      updatedAt: new Date(0).toISOString(),
+      revokedAt: null,
+    });
+
+    expect(connection.respondedAt).toBeUndefined();
+    expect(connection.removedAt).toBeUndefined();
+    expect(share.revokedAt).toBeUndefined();
+  });
+
   test("dashboard route and sidebar expose friends", () => {
     const page = readFileSync("app/dashboard/friends/page.tsx", "utf8");
     const sidebar = readFileSync(

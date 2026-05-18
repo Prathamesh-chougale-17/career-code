@@ -131,6 +131,22 @@ function userIdFromDoc(doc: AuthUserDoc) {
   return null;
 }
 
+function userIdAliasesFromDoc(doc: AuthUserDoc) {
+  const aliases = new Set<string>();
+
+  if (typeof doc.id === "string" && doc.id.trim()) {
+    aliases.add(doc.id.trim());
+  }
+
+  if (doc._id instanceof ObjectId) {
+    aliases.add(doc._id.toHexString());
+  } else if (typeof doc._id === "string" && doc._id.trim()) {
+    aliases.add(doc._id.trim());
+  }
+
+  return Array.from(aliases);
+}
+
 function publicUserFromDoc(doc: AuthUserDoc): FriendUser | null {
   const docId = userIdFromDoc(doc);
 
@@ -215,7 +231,9 @@ async function readPublicUsers(userIds: string[]) {
       const user = publicUserFromDoc(doc);
 
       if (user) {
-        users.set(user.id, user);
+        for (const alias of new Set([user.id, ...userIdAliasesFromDoc(doc)])) {
+          users.set(alias, user);
+        }
       }
     }
   } else {
@@ -514,16 +532,28 @@ export async function searchFriendUsers(
     const seen = new Set<string>();
 
     users = [...userDocs, ...legacyUserDocs]
-      .map(publicUserFromDoc)
-      .filter((user): user is FriendUser => Boolean(user))
-      .filter((user) => {
-        if (user.id === userId || seen.has(user.id)) {
+      .map((doc) => ({
+        aliases: userIdAliasesFromDoc(doc),
+        user: publicUserFromDoc(doc),
+      }))
+      .filter(
+        (result): result is { aliases: string[]; user: FriendUser } =>
+          Boolean(result.user),
+      )
+      .filter(({ aliases, user }) => {
+        const keys = new Set([user.id, ...aliases]);
+
+        if (keys.has(userId) || Array.from(keys).some((key) => seen.has(key))) {
           return false;
         }
 
-        seen.add(user.id);
+        for (const key of keys) {
+          seen.add(key);
+        }
+
         return true;
       })
+      .map(({ user }) => user)
       .slice(0, 1);
   } else {
     users = memoryState().users

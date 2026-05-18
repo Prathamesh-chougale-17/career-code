@@ -7,6 +7,12 @@ const dateKeySchema = z
   .trim()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use a YYYY-MM-DD date.");
 const exactEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const optionalTimestampSchema = z
+  .preprocess(
+    (value) => (value === null ? undefined : value),
+    z.string().optional(),
+  )
+  .optional();
 
 export const friendConnectionStatusSchema = z.enum([
   "pending",
@@ -37,8 +43,8 @@ export const friendConnectionSchema = z.object({
   status: friendConnectionStatusSchema,
   createdAt: z.string(),
   updatedAt: z.string(),
-  respondedAt: z.string().optional(),
-  removedAt: z.string().optional(),
+  respondedAt: optionalTimestampSchema,
+  removedAt: optionalTimestampSchema,
 });
 
 export const friendConnectionViewSchema = friendConnectionSchema.extend({
@@ -88,7 +94,7 @@ export const jobShareSchema = z.object({
   jobCount: z.number().int().nonnegative(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  revokedAt: z.string().optional(),
+  revokedAt: optionalTimestampSchema,
 });
 
 export const jobShareItemSchema = z.object({
