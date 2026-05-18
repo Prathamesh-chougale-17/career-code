@@ -28,6 +28,7 @@ import {
   revokeDesktopSession,
   type DesktopSession,
 } from "./lib/auth";
+import { enableAutostartByDefault } from "./lib/autostart";
 import { createAuthenticatedHeaders, rpcClient } from "./lib/api";
 import { getCareerightOrigin } from "./lib/config";
 import { CareerightLogo } from "./platform/careeright-logo";
@@ -182,6 +183,14 @@ function App() {
       unlisten?.();
     };
   }, [queryClient]);
+
+  useEffect(() => {
+    if (status !== "signed-in") return;
+
+    enableAutostartByDefault().catch((error) => {
+      console.info("Careeright autostart setup failed", error);
+    });
+  }, [status]);
 
   async function handleSignIn() {
     setIsSigningIn(true);

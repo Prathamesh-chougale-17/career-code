@@ -1,6 +1,6 @@
 [package]
 name = "careeright-desktop"
-version = "1.0.4"
+version = "1.0.5"
 description = "Careeright desktop app"
 authors = ["ProFeoNix"]
 edition = "2021"
@@ -30,4 +30,5 @@ tauri-plugin-process = "2"
 tauri-plugin-single-instance = { version = "2", features = ["deep-link"] }
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-autostart = "2"
 tauri-plugin-updater = "2"
