@@ -127,6 +127,6 @@ jobs:
             Windows users should download the `.exe` or `.msi`.
             macOS users should download the `.dmg`.
             Linux users should download the `.AppImage` or `.deb`.
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           generateReleaseNotes: true
