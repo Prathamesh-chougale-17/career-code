@@ -9,7 +9,15 @@ import {
   Medal,
   Trophy,
 } from "lucide-react";
-import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+  type ActiveDotProps,
+  type DotItemDotProps,
+} from "recharts";
 
 import { leaderboardSnapshotQueryKey } from "@careeright/api/query-keys";
 import type {
@@ -97,6 +105,12 @@ function podiumLabel(rank: number) {
   if (rank === 2) return "2nd";
   if (rank === 3) return "3rd";
   return `${rank}th`;
+}
+
+function pointValue(value: unknown) {
+  const numericValue = Number(value);
+
+  return Number.isFinite(numericValue) ? numericValue : 0;
 }
 
 export function LeaderboardApp({
@@ -423,7 +437,18 @@ function LeaderboardLineChart({
                 type="monotone"
                 stroke={`var(--color-${item.key})`}
                 strokeWidth={item.member.isCurrentUser ? 3 : 2}
-                dot={false}
+                dot={(dotProps: DotItemDotProps) => (
+                  <LeaderboardChartDot
+                    {...dotProps}
+                    isCurrentUser={item.member.isCurrentUser}
+                  />
+                )}
+                activeDot={(dotProps: ActiveDotProps) => (
+                  <LeaderboardActiveDot
+                    {...dotProps}
+                    isCurrentUser={item.member.isCurrentUser}
+                  />
+                )}
               />
             ))}
             <ChartLegend content={<ChartLegendContent />} />
@@ -431,6 +456,79 @@ function LeaderboardLineChart({
         </ChartContainer>
       </CardContent>
     </Card>
+  );
+}
+
+function LeaderboardChartDot({
+  cx,
+  cy,
+  isCurrentUser,
+  stroke,
+  value,
+}: DotItemDotProps & { isCurrentUser: boolean }) {
+  if (typeof cx !== "number" || typeof cy !== "number") {
+    return null;
+  }
+
+  if (pointValue(value) <= 0) {
+    return null;
+  }
+
+  const radius = isCurrentUser ? 4 : 3;
+
+  return (
+    <g pointerEvents="none">
+      <circle cx={cx} cy={cy} r={radius + 4} fill={stroke} opacity={0.13} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={radius}
+        fill={stroke}
+        stroke="var(--background)"
+        strokeWidth={2}
+      />
+      {isCurrentUser ? (
+        <circle cx={cx} cy={cy} r={1.35} fill="var(--background)" />
+      ) : null}
+    </g>
+  );
+}
+
+function LeaderboardActiveDot({
+  cx,
+  cy,
+  isCurrentUser,
+  stroke,
+  value,
+}: ActiveDotProps & { isCurrentUser: boolean }) {
+  if (typeof cx !== "number" || typeof cy !== "number") {
+    return null;
+  }
+
+  const radius = isCurrentUser ? 5 : 4;
+  const hasActivity = pointValue(value) > 0;
+
+  return (
+    <g pointerEvents="none">
+      <circle cx={cx} cy={cy} r={radius + 8} fill={stroke} opacity={0.1} />
+      <circle cx={cx} cy={cy} r={radius + 4} fill={stroke} opacity={0.18} />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={radius}
+        fill={hasActivity ? stroke : "var(--background)"}
+        stroke={stroke}
+        strokeWidth={hasActivity ? 2 : 2.5}
+      />
+      {isCurrentUser ? (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={1.75}
+          fill={hasActivity ? "var(--background)" : stroke}
+        />
+      ) : null}
+    </g>
   );
 }
 
