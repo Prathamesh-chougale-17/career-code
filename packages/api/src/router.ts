@@ -23,6 +23,7 @@ import {
   updateDsaQuestionProgressInputSchema,
 } from "@careeright/domain/dsa/schema";
 import { getHistorySnapshot } from "@careeright/domain/history/store";
+import { getLeaderboardSnapshot } from "@careeright/domain/leaderboard/store";
 import {
   cancelFriendRequest,
   copySharedJobs,
@@ -182,6 +183,11 @@ export const appRouter = {
   history: {
     snapshot: protectedProcedure.handler(async ({ context }) =>
       getHistorySnapshot(context.userId),
+    ),
+  },
+  leaderboard: {
+    snapshot: protectedProcedure.handler(async ({ context }) =>
+      getLeaderboardSnapshot(context.userId),
     ),
   },
   friends: {

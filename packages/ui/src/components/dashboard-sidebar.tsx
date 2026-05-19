@@ -9,6 +9,7 @@ import {
   History as HistoryIcon,
   Server,
   Sparkles,
+  Trophy,
   UserRound,
   UsersRound,
 } from "lucide-react";
@@ -106,6 +107,7 @@ export function DashboardSidebar() {
                   </SidebarMenuBadge>
                 ) : null}
               </SidebarMenuItem>
+              <SidebarItem route="leaderboard" href="/dashboard/leaderboard" label="Leaderboard" icon={Trophy} currentRoute={currentRoute} />
               <SidebarItem route="history" href="/dashboard/history" label="History" icon={HistoryIcon} currentRoute={currentRoute} />
               <SidebarMenuItem>
                 <SidebarMenuButton

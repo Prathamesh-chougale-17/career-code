@@ -1436,6 +1436,7 @@ describe("mcp permissions", () => {
       "get_profile_snapshot",
       "get_task",
       "list_boards",
+      "list_dsa_questions",
       "list_job_application_runs",
       "list_job_digests",
       "list_jobs",

@@ -41,6 +41,7 @@ import { FriendsApp } from "@repo/ui/components/friends/friends-app";
 import { HistoryApp } from "@repo/ui/components/history/history-app";
 import { JobsApp } from "@repo/ui/components/jobs/jobs-app";
 import { KanbanApp } from "@repo/ui/components/kanban/kanban-app";
+import { LeaderboardApp } from "@repo/ui/components/leaderboard/leaderboard-app";
 import { McpToolsApp } from "@repo/ui/components/mcp/mcp-tools-app";
 import { ProfileApp } from "@repo/ui/components/profile/profile-app";
 import { ProposalApp } from "@repo/ui/components/proposals/proposal-app";
@@ -63,6 +64,7 @@ type Route =
   | "diary"
   | "dsa"
   | "friends"
+  | "leaderboard"
   | "history"
   | "proposals"
   | "mcp-tools"
@@ -371,6 +373,7 @@ function DashboardRoute({ route }: { route: Route }) {
   if (route === "diary") return <DiaryApp />;
   if (route === "dsa") return <DsaApp />;
   if (route === "friends") return <FriendsApp />;
+  if (route === "leaderboard") return <LeaderboardApp />;
   if (route === "history") return <HistoryApp />;
   if (route === "proposals") return <ProposalApp />;
   if (route === "mcp-tools") return <McpToolsApp />;

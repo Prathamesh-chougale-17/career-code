@@ -13,6 +13,7 @@ export const friendSharesQueryKey = (direction: "received" | "sent") =>
 export const friendShareDetailQueryKey = (shareId: string) =>
   ["friend-share-detail", shareId] as const;
 export const historySnapshotQueryKey = ["history-snapshot"] as const;
+export const leaderboardSnapshotQueryKey = ["leaderboard-snapshot"] as const;
 export const jobDigestsQueryKey = ["job-digests"] as const;
 export const jobApplicationRunsQueryKey = ["job-application-runs"] as const;
 export const jobSearchProfileQueryKey = ["job-search-profile"] as const;

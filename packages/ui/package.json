@@ -11,6 +11,7 @@
     "./components/history/*": "./src/components/history/*.tsx",
     "./components/jobs/*": "./src/components/jobs/*.tsx",
     "./components/kanban/*": "./src/components/kanban/*.tsx",
+    "./components/leaderboard/*": "./src/components/leaderboard/*.tsx",
     "./components/loading/*": "./src/components/loading/*.tsx",
     "./components/mcp/*": "./src/components/mcp/*.tsx",
     "./components/profile/*": "./src/components/profile/*.tsx",
