@@ -1,4 +1,20 @@
+import { realpathSync } from "node:fs";
+import { createRequire } from "node:module";
+import { relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+
+const require = createRequire(import.meta.url);
+const configDirectory = fileURLToPath(new URL(".", import.meta.url));
+const resolvePackageEntry = (packageName: string) => {
+  const packageEntry = realpathSync(require.resolve(packageName));
+  const relativeEntry = relative(configDirectory, packageEntry).replaceAll(
+    "\\",
+    "/",
+  );
+
+  return relativeEntry.startsWith(".") ? relativeEntry : `./${relativeEntry}`;
+};
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -19,12 +35,15 @@ const nextConfig: NextConfig = {
   ],
   turbopack: {
     resolveAlias: {
-      "@better-auth/mongo-adapter":
-        "./node_modules/@better-auth/mongo-adapter/dist/index.mjs",
-      "@better-auth/kysely-adapter":
-        "./node_modules/@better-auth/kysely-adapter/dist/index.mjs",
-      "@better-auth/memory-adapter":
-        "./node_modules/@better-auth/memory-adapter/dist/index.mjs",
+      "@better-auth/mongo-adapter": resolvePackageEntry(
+        "@better-auth/mongo-adapter",
+      ),
+      "@better-auth/kysely-adapter": resolvePackageEntry(
+        "@better-auth/kysely-adapter",
+      ),
+      "@better-auth/memory-adapter": resolvePackageEntry(
+        "@better-auth/memory-adapter",
+      ),
     },
   },
 };

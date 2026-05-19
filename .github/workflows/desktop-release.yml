@@ -18,6 +18,9 @@ jobs:
     runs-on: ${{ matrix.platform }}
     permissions:
       contents: write
+    env:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ vars.TURBO_TEAM }}
     strategy:
       fail-fast: false
       matrix:
@@ -100,16 +103,13 @@ jobs:
           NODE
 
       - name: Build shared workspace packages
-        run: |
-          pnpm --filter @careeright/db build
-          pnpm --filter @careeright/domain build
-          pnpm --filter @careeright/api build
+        run: pnpm exec turbo run build --filter @careeright/db --filter @careeright/domain --filter @careeright/api
 
       - name: Typecheck shared UI
-        run: pnpm --filter @repo/ui check-types
+        run: pnpm exec turbo run check-types --filter @repo/ui
 
       - name: Typecheck desktop
-        run: pnpm --filter @careeright/desktop check-types
+        run: pnpm exec turbo run check-types --filter @careeright/desktop
 
       - name: Build and upload Tauri artifacts
         uses: tauri-apps/tauri-action@v0

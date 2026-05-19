@@ -181,3 +181,22 @@ pnpm run lint
 pnpm run test
 pnpm run build
 ```
+
+## Build cache
+
+Careeright uses Turborepo for workspace builds. Next.js builds run with
+Turbopack, and `turbo.json` enables remote caching when Turbo is authenticated.
+
+For local remote cache:
+
+```bash
+pnpm exec turbo login
+pnpm exec turbo link
+```
+
+For GitHub Actions, set:
+
+```text
+TURBO_TOKEN=<Vercel access token>
+TURBO_TEAM=<Vercel team slug>
+```

@@ -1,12 +1,12 @@
 {
   "name": "@careeright/desktop",
   "private": true,
-  "version": "1.0.9",
+  "version": "1.0.10",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "pnpm build:web",
-    "build:web": "pnpm --filter @careeright/db build && pnpm --filter @careeright/domain build && pnpm --filter @careeright/api build && pnpm check-types && vite build",
+    "build": "pnpm check-types && vite build",
+    "build:web": "pnpm --workspace-root exec turbo run build --filter @careeright/desktop",
     "check-types": "tsc --noEmit",
     "preview": "vite preview",
     "tauri": "tauri",

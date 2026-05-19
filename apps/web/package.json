@@ -4,8 +4,8 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "next dev --webpack --port 3000",
-    "build": "next build --webpack",
+    "dev": "next dev --turbopack --port 3000",
+    "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit",

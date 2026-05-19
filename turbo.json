@@ -29,6 +29,12 @@
     "MONGODB_URI",
     "NODE_ENV"
   ],
+  "remoteCache": {
+    "enabled": true,
+    "signature": false,
+    "timeout": 60,
+    "uploadTimeout": 300
+  },
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
