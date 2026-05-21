@@ -14,11 +14,14 @@ import {
   PencilLine,
   Plus,
   RefreshCw,
+  RotateCcw,
   Save,
   Search,
   Sparkles,
   Tags,
   Trash2,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import Markdown from "react-markdown";
@@ -1680,14 +1683,138 @@ function renderReferenceText(
   return nodes.length > 0 ? nodes : text;
 }
 
+type MermaidColorMode = "light" | "dark";
+
+function detectMermaidColorMode(): MermaidColorMode {
+  if (typeof document === "undefined") {
+    return "light";
+  }
+
+  const root = document.documentElement;
+
+  if (
+    root.classList.contains("dark") ||
+    root.dataset.theme === "dark" ||
+    root.style.colorScheme === "dark"
+  ) {
+    return "dark";
+  }
+
+  return "light";
+}
+
+function useMermaidColorMode() {
+  const [colorMode, setColorMode] = useState<MermaidColorMode>("light");
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const updateColorMode = () => setColorMode(detectMermaidColorMode());
+    const observer = new MutationObserver(updateColorMode);
+    const mediaQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+
+    updateColorMode();
+    observer.observe(root, {
+      attributes: true,
+      attributeFilter: ["class", "data-theme", "style"],
+    });
+    mediaQuery?.addEventListener("change", updateColorMode);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery?.removeEventListener("change", updateColorMode);
+    };
+  }, []);
+
+  return colorMode;
+}
+
+function mermaidThemeVariables(colorMode: MermaidColorMode) {
+  if (colorMode === "dark") {
+    return {
+      darkMode: true,
+      background: "#111827",
+      mainBkg: "#111827",
+      primaryColor: "#1f2937",
+      primaryTextColor: "#f8fafc",
+      primaryBorderColor: "#94a3b8",
+      secondaryColor: "#172033",
+      secondaryTextColor: "#f8fafc",
+      secondaryBorderColor: "#64748b",
+      tertiaryColor: "#0f172a",
+      tertiaryTextColor: "#f8fafc",
+      tertiaryBorderColor: "#475569",
+      textColor: "#f8fafc",
+      titleColor: "#f8fafc",
+      lineColor: "#cbd5e1",
+      edgeLabelBackground: "#111827",
+      clusterBkg: "#0f172a",
+      clusterBorder: "#64748b",
+      noteBkgColor: "#1f2937",
+      noteTextColor: "#f8fafc",
+      noteBorderColor: "#94a3b8",
+      actorBkg: "#1f2937",
+      actorTextColor: "#f8fafc",
+      actorLineColor: "#94a3b8",
+      signalColor: "#cbd5e1",
+      signalTextColor: "#f8fafc",
+      labelBoxBkgColor: "#111827",
+      labelBoxBorderColor: "#64748b",
+      labelTextColor: "#f8fafc",
+      loopTextColor: "#f8fafc",
+      activationBkgColor: "#334155",
+      activationBorderColor: "#cbd5e1",
+    };
+  }
+
+  return {
+    darkMode: false,
+    background: "#ffffff",
+    mainBkg: "#ffffff",
+    primaryColor: "#f8fafc",
+    primaryTextColor: "#0f172a",
+    primaryBorderColor: "#64748b",
+    secondaryColor: "#eef2ff",
+    secondaryTextColor: "#0f172a",
+    secondaryBorderColor: "#94a3b8",
+    tertiaryColor: "#f1f5f9",
+    tertiaryTextColor: "#0f172a",
+    tertiaryBorderColor: "#cbd5e1",
+    textColor: "#0f172a",
+    titleColor: "#0f172a",
+    lineColor: "#334155",
+    edgeLabelBackground: "#ffffff",
+    clusterBkg: "#f8fafc",
+    clusterBorder: "#94a3b8",
+    noteBkgColor: "#fef9c3",
+    noteTextColor: "#0f172a",
+    noteBorderColor: "#ca8a04",
+    actorBkg: "#f8fafc",
+    actorTextColor: "#0f172a",
+    actorLineColor: "#64748b",
+    signalColor: "#334155",
+    signalTextColor: "#0f172a",
+    labelBoxBkgColor: "#ffffff",
+    labelBoxBorderColor: "#cbd5e1",
+    labelTextColor: "#0f172a",
+    loopTextColor: "#0f172a",
+    activationBkgColor: "#e2e8f0",
+    activationBorderColor: "#64748b",
+  };
+}
+
 function MermaidBlock({ chart }: { chart: string }) {
   const reactId = useId();
+  const colorMode = useMermaidColorMode();
   const [svg, setSvg] = useState("");
   const [error, setError] = useState("");
+  const [zoom, setZoom] = useState(1);
+  const zoomPercent = Math.round(zoom * 100);
 
   useEffect(() => {
     let cancelled = false;
-    const id = `careeright-mermaid-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}`;
+    const id = `careeright-mermaid-${reactId.replace(/[^a-zA-Z0-9_-]/g, "")}-${colorMode}`;
+
+    setError("");
 
     import("mermaid")
       .then(({ default: mermaid }) => {
@@ -1695,6 +1822,7 @@ function MermaidBlock({ chart }: { chart: string }) {
           startOnLoad: false,
           securityLevel: "strict",
           theme: "base",
+          themeVariables: mermaidThemeVariables(colorMode),
         });
 
         return mermaid.render(id, chart);
@@ -1715,7 +1843,7 @@ function MermaidBlock({ chart }: { chart: string }) {
     return () => {
       cancelled = true;
     };
-  }, [chart, reactId]);
+  }, [chart, colorMode, reactId]);
 
   if (error) {
     return (
@@ -1730,10 +1858,57 @@ function MermaidBlock({ chart }: { chart: string }) {
   }
 
   return (
-    <div
-      className="overflow-x-auto rounded-lg border border-border bg-muted/20 p-4 [&_svg]:mx-auto [&_svg]:max-w-full"
-      dangerouslySetInnerHTML={{ __html: svg }}
-    />
+    <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
+      <div className="flex items-center justify-between gap-3 border-b border-border bg-background/80 px-3 py-2">
+        <p className="text-sm font-medium">Diagram</p>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-xs"
+            aria-label="Zoom diagram out"
+            disabled={zoom <= 0.5}
+            onClick={() =>
+              setZoom((current) => Math.max(0.5, Number((current - 0.1).toFixed(2))))
+            }
+          >
+            <ZoomOut aria-hidden="true" />
+          </Button>
+          <span className="min-w-12 text-center text-xs font-medium text-muted-foreground">
+            {zoomPercent}%
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-xs"
+            aria-label="Zoom diagram in"
+            disabled={zoom >= 2.5}
+            onClick={() =>
+              setZoom((current) => Math.min(2.5, Number((current + 0.1).toFixed(2))))
+            }
+          >
+            <ZoomIn aria-hidden="true" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            aria-label="Reset diagram zoom"
+            disabled={zoom === 1}
+            onClick={() => setZoom(1)}
+          >
+            <RotateCcw aria-hidden="true" />
+          </Button>
+        </div>
+      </div>
+      <div className="overflow-auto p-4">
+        <div
+          className="mx-auto transition-[width] duration-200 [&_svg]:h-auto [&_svg]:w-full [&_svg]:max-w-none"
+          style={{ width: `${zoom * 100}%` }}
+          dangerouslySetInnerHTML={{ __html: svg }}
+        />
+      </div>
+    </div>
   );
 }
 
