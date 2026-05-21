@@ -70,6 +70,12 @@ const connectionDetails = [
     icon: <FileJson aria-hidden="true" />,
   },
   {
+    label: "Projects resource",
+    value: "careeright://projects/overview",
+    description: "Read project workspace summary, resources, and references.",
+    icon: <FileJson aria-hidden="true" />,
+  },
+  {
     label: "Job search resource",
     value: "careeright://jobs/search-profile",
     description: "Read profile-derived job search settings and ranking limits.",
@@ -160,6 +166,114 @@ const mcpTools: ToolDetail[] = [
     mode: "read",
     description:
       "Read MCP-seeded jobs from the connected user's tracker, newest seeded date first.",
+  },
+  {
+    name: "get_projects_summary",
+    mode: "read",
+    description:
+      "Read project workspace counts, notebook totals, resources, references, and resume-project import readiness.",
+  },
+  {
+    name: "list_projects",
+    mode: "read",
+    description:
+      "List project workspaces with metadata, resource links, and clickable reference attributes.",
+  },
+  {
+    name: "get_project",
+    mode: "read",
+    description:
+      "Fetch one project workspace with every markdown notebook page, resource, and reference.",
+  },
+  {
+    name: "create_project",
+    mode: "direct write",
+    description:
+      "Create a project workspace for markdown notes, Mermaid diagrams, resources, and references.",
+  },
+  {
+    name: "update_project",
+    mode: "direct update",
+    description:
+      "Update project metadata such as title, summary, stack, status, and timeline without overwriting notes.",
+  },
+  {
+    name: "archive_project",
+    mode: "direct update",
+    description: "Archive a project workspace while keeping its stored data.",
+  },
+  {
+    name: "delete_project",
+    mode: "destructive",
+    description:
+      "Soft-delete a project workspace after explicit user confirmation.",
+  },
+  {
+    name: "import_projects_from_profile",
+    mode: "idempotent write",
+    description:
+      "Create project workspaces from resume profile project items that are not already linked.",
+  },
+  {
+    name: "sync_project_from_profile",
+    mode: "idempotent update",
+    description:
+      "One-way sync linked resume project metadata while preserving notes, resources, and references.",
+  },
+  {
+    name: "create_project_note",
+    mode: "direct write",
+    description:
+      "Create a markdown notebook page. Fenced mermaid blocks render in the Projects tab.",
+  },
+  {
+    name: "update_project_note",
+    mode: "direct update",
+    description: "Update a project notebook page title and/or markdown content.",
+  },
+  {
+    name: "delete_project_note",
+    mode: "destructive",
+    description: "Delete a project notebook page after explicit user confirmation.",
+  },
+  {
+    name: "reorder_project_notes",
+    mode: "idempotent update",
+    description: "Replace notebook page order for a project.",
+  },
+  {
+    name: "create_project_resource",
+    mode: "direct write",
+    description:
+      "Add an HTTP/HTTPS repository, demo, documentation, article, video, design, or general link.",
+  },
+  {
+    name: "update_project_resource",
+    mode: "direct update",
+    description: "Update a project resource title, URL, type, or note.",
+  },
+  {
+    name: "delete_project_resource",
+    mode: "destructive",
+    description:
+      "Delete a project resource and remove it from related references.",
+  },
+  {
+    name: "create_project_attribute",
+    mode: "direct write",
+    description:
+      "Create a project-scoped clickable reference term such as Kafka, Redis, or a launch date.",
+  },
+  {
+    name: "update_project_attribute",
+    mode: "direct update",
+    description:
+      "Update a clickable reference term, aliases, date details, description, or related resources.",
+  },
+  {
+    name: "delete_project_attribute",
+    mode: "destructive",
+    description: "Delete a clickable project reference term.",
   },
   {
     name: "get_latest_unapplied_job_batch",

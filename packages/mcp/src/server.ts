@@ -42,6 +42,27 @@ import {
   getProfileSnapshot,
   listProfileImports,
 } from "@careeright/domain/profile/store";
+import {
+  archiveProject,
+  createAttribute,
+  createNote,
+  createProject,
+  createResource,
+  deleteAttribute,
+  deleteNote,
+  deleteProject,
+  deleteResource,
+  getProject,
+  getProjectsSummary,
+  importFromProfileProjects,
+  listProjects,
+  reorderNotes,
+  syncFromProfileProject,
+  updateAttribute,
+  updateNote,
+  updateProject,
+  updateResource,
+} from "@careeright/domain/projects/store";
 
 const mcpColumnIdSchema = z.enum([
   "backlog",
@@ -77,6 +98,33 @@ const mcpProfileItemTypeSchema = z.enum([
   "skill",
   "certification",
   "achievement",
+]);
+
+const mcpProjectStatusSchema = z.enum([
+  "active",
+  "paused",
+  "completed",
+  "archived",
+]);
+
+const mcpProjectResourceTypeSchema = z.enum([
+  "repository",
+  "demo",
+  "documentation",
+  "article",
+  "video",
+  "design",
+  "link",
+  "other",
+]);
+
+const mcpProjectAttributeTypeSchema = z.enum([
+  "technology",
+  "concept",
+  "date",
+  "person",
+  "link",
+  "other",
 ]);
 
 const mcpSeedJobSchema = z.object({
@@ -200,6 +248,20 @@ const mcpOptionalFormUrlSchema = z
     }
   }, "Only http and https URLs are allowed.")
   .optional();
+
+const mcpHttpUrlSchema = z
+  .string()
+  .min(1)
+  .max(500)
+  .url()
+  .refine((value) => {
+    try {
+      const protocol = new URL(value).protocol;
+      return protocol === "http:" || protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, "Only http and https URLs are allowed.");
 
 const mcpOptionalEmailSchema = z
   .string()
@@ -381,6 +443,12 @@ function jsonText(data: unknown) {
       },
     ],
   };
+}
+
+function definedPatch<T extends Record<string, unknown>>(input: T) {
+  return Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  );
 }
 
 async function latestJobApplicationPayload(userId: string) {
@@ -657,6 +725,562 @@ export function createKanbanMcpServer(userId = SOLO_USER_ID) {
       },
     },
     async () => jsonText(await dsaQuestionsPayload(userId)),
+  );
+
+  server.registerTool(
+    "get_projects_summary",
+    {
+      title: "Get Projects Summary",
+      description:
+        "Read counts for the connected user's project workspaces, notebook pages, resources, clickable references, and resume-project import readiness.",
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async () =>
+      jsonText({
+        summary: await getProjectsSummary(userId),
+      }),
+  );
+
+  server.registerTool(
+    "list_projects",
+    {
+      title: "List Projects",
+      description:
+        "List the connected user's project workspaces with metadata, resources, and clickable reference attributes. Notes are fetched with get_project.",
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async () =>
+      jsonText({
+        projects: await listProjects(userId),
+      }),
+  );
+
+  server.registerTool(
+    "get_project",
+    {
+      title: "Get Project",
+      description:
+        "Fetch one project workspace with all notebook pages, resources, and clickable reference attributes.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+      },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (input) =>
+      jsonText({
+        project: await getProject(input, userId),
+      }),
+  );
+
+  server.registerTool(
+    "create_project",
+    {
+      title: "Create Project",
+      description:
+        "Create a private project workspace for markdown notes, Mermaid diagrams, resources, and project-scoped references.",
+      inputSchema: {
+        title: z.string().min(1).max(140).describe("Project name."),
+        summary: z.string().max(3000).optional().describe("Project summary."),
+        techStack: z
+          .array(z.string().min(1).max(50))
+          .max(30)
+          .optional()
+          .describe("Technologies used by the project."),
+        status: mcpProjectStatusSchema.optional().describe("Project status."),
+        dateText: z
+          .string()
+          .max(160)
+          .optional()
+          .describe("Timeline text, for example Jan 2026 - Present."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ title, summary, techStack, status, dateText }) =>
+      jsonText({
+        project: await createProject(
+          {
+            title,
+            ...definedPatch({ summary, techStack, status, dateText }),
+          },
+          userId,
+        ),
+      }),
+  );
+
+  server.registerTool(
+    "update_project",
+    {
+      title: "Update Project",
+      description:
+        "Update project metadata such as title, summary, tech stack, status, or timeline. This does not overwrite notes, resources, or references.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+        title: z.string().min(1).max(140).optional().describe("New project name."),
+        summary: z.string().max(3000).optional().describe("New project summary."),
+        techStack: z
+          .array(z.string().min(1).max(50))
+          .max(30)
+          .optional()
+          .describe("Replacement technology list."),
+        status: mcpProjectStatusSchema.optional().describe("Replacement status."),
+        dateText: z.string().max(160).optional().describe("Replacement timeline text."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ projectId, title, summary, techStack, status, dateText }) =>
+      jsonText({
+        project: await updateProject(
+          {
+            projectId,
+            patch: definedPatch({ title, summary, techStack, status, dateText }),
+          },
+          userId,
+        ),
+      }),
+  );
+
+  server.registerTool(
+    "archive_project",
+    {
+      title: "Archive Project",
+      description:
+        "Archive a project workspace while keeping it recoverable in stored project data.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async (input) =>
+      jsonText({
+        project: await archiveProject(input, userId),
+      }),
+  );
+
+  server.registerTool(
+    "delete_project",
+    {
+      title: "Delete Project",
+      description:
+        "Soft-delete a project workspace from the user's project tab. Use only after explicit user confirmation.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) =>
+      jsonText({
+        project: await deleteProject(input, userId),
+      }),
+  );
+
+  server.registerTool(
+    "import_projects_from_profile",
+    {
+      title: "Import Projects From Profile",
+      description:
+        "Create project workspaces for resume profile items of type project that have not already been imported.",
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async () =>
+      jsonText({
+        result: await importFromProfileProjects(userId),
+      }),
+  );
+
+  server.registerTool(
+    "sync_project_from_profile",
+    {
+      title: "Sync Project From Profile",
+      description:
+        "One-way sync linked resume project metadata into a project workspace. Notes, resources, and references are preserved.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Linked project workspace ID."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) =>
+      jsonText({
+        project: await syncFromProfileProject(input, userId),
+      }),
+  );
+
+  server.registerTool(
+    "create_project_note",
+    {
+      title: "Create Project Note",
+      description:
+        "Create a markdown notebook page for a project. GitHub-flavored markdown and fenced mermaid blocks render in Careeright.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+        title: z.string().min(1).max(140).describe("Notebook page title."),
+        content: z
+          .string()
+          .max(100_000)
+          .optional()
+          .describe("Markdown content. Use ```mermaid fences for diagrams."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ projectId, title, content }) =>
+      jsonText({
+        note: await createNote(
+          {
+            projectId,
+            title,
+            ...definedPatch({ content }),
+          },
+          userId,
+        ),
+      }),
+  );
+
+  server.registerTool(
+    "update_project_note",
+    {
+      title: "Update Project Note",
+      description:
+        "Update a project notebook page's title and/or markdown content.",
+      inputSchema: {
+        noteId: z.string().min(1).describe("Project note ID."),
+        title: z.string().min(1).max(140).optional().describe("New note title."),
+        content: z
+          .string()
+          .max(100_000)
+          .optional()
+          .describe("Replacement markdown content."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ noteId, title, content }) =>
+      jsonText({
+        note: await updateNote(
+          {
+            noteId,
+            patch: definedPatch({ title, content }),
+          },
+          userId,
+        ),
+      }),
+  );
+
+  server.registerTool(
+    "delete_project_note",
+    {
+      title: "Delete Project Note",
+      description:
+        "Delete a notebook page from a project. Use only after explicit user confirmation.",
+      inputSchema: {
+        noteId: z.string().min(1).describe("Project note ID."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) =>
+      jsonText({
+        note: await deleteNote(input, userId),
+      }),
+  );
+
+  server.registerTool(
+    "reorder_project_notes",
+    {
+      title: "Reorder Project Notes",
+      description:
+        "Replace a project's notebook page order. The noteIds array must include every note in the project exactly once.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+        noteIds: z
+          .array(z.string().min(1))
+          .max(200)
+          .describe("All note IDs in the desired order."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) =>
+      jsonText({
+        notes: await reorderNotes(input, userId),
+      }),
+  );
+
+  server.registerTool(
+    "create_project_resource",
+    {
+      title: "Create Project Resource",
+      description:
+        "Add an HTTP/HTTPS resource link to a project, such as a repository, demo, docs page, article, video, or design link.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+        title: z.string().min(1).max(140).describe("Resource title."),
+        url: mcpHttpUrlSchema.describe("HTTP or HTTPS resource URL."),
+        type: mcpProjectResourceTypeSchema
+          .optional()
+          .describe("Resource category. Defaults to link."),
+        note: z.string().max(1000).optional().describe("Why this link matters."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ projectId, title, url, type, note }) =>
+      jsonText({
+        resource: await createResource(
+          {
+            projectId,
+            title,
+            url,
+            ...definedPatch({ type, note }),
+          },
+          userId,
+        ),
+      }),
+  );
+
+  server.registerTool(
+    "update_project_resource",
+    {
+      title: "Update Project Resource",
+      description:
+        "Update a project resource's title, URL, type, or note.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+        resourceId: z.string().min(1).describe("Project resource ID."),
+        title: z.string().min(1).max(140).optional().describe("New resource title."),
+        url: mcpHttpUrlSchema.optional().describe("New HTTP or HTTPS resource URL."),
+        type: mcpProjectResourceTypeSchema.optional().describe("New resource type."),
+        note: z.string().max(1000).optional().describe("New resource note."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ projectId, resourceId, title, url, type, note }) =>
+      jsonText({
+        resource: await updateResource(
+          {
+            projectId,
+            resourceId,
+            patch: definedPatch({ title, url, type, note }),
+          },
+          userId,
+        ),
+      }),
+  );
+
+  server.registerTool(
+    "delete_project_resource",
+    {
+      title: "Delete Project Resource",
+      description:
+        "Delete a project resource and unlink it from project references. Use only after explicit user confirmation.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+        resourceId: z.string().min(1).describe("Project resource ID."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) =>
+      jsonText({
+        resource: await deleteResource(input, userId),
+      }),
+  );
+
+  server.registerTool(
+    "create_project_attribute",
+    {
+      title: "Create Project Attribute",
+      description:
+        "Create a project-scoped clickable reference term. Matching labels and aliases become clickable inside project markdown preview.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+        label: z.string().min(1).max(80).describe("Primary clickable term, for example Kafka."),
+        aliases: z
+          .array(z.string().min(1).max(80))
+          .max(20)
+          .optional()
+          .describe("Other terms that should open the same reference."),
+        type: mcpProjectAttributeTypeSchema
+          .optional()
+          .describe("Reference type. Defaults to concept."),
+        dateValue: z
+          .string()
+          .max(80)
+          .optional()
+          .describe("Date details when type is date."),
+        description: z
+          .string()
+          .max(2000)
+          .optional()
+          .describe("Reference explanation in the context of this project."),
+        resourceIds: z
+          .array(z.string().min(1))
+          .max(50)
+          .optional()
+          .describe("Project resource IDs related to this reference."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({ projectId, label, aliases, type, dateValue, description, resourceIds }) =>
+      jsonText({
+        attribute: await createAttribute(
+          {
+            projectId,
+            label,
+            ...definedPatch({ aliases, type, dateValue, description, resourceIds }),
+          },
+          userId,
+        ),
+      }),
+  );
+
+  server.registerTool(
+    "update_project_attribute",
+    {
+      title: "Update Project Attribute",
+      description:
+        "Update a project reference term, aliases, type, date details, description, or related resources.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+        attributeId: z.string().min(1).describe("Project attribute ID."),
+        label: z.string().min(1).max(80).optional().describe("New clickable term."),
+        aliases: z
+          .array(z.string().min(1).max(80))
+          .max(20)
+          .optional()
+          .describe("Replacement aliases."),
+        type: mcpProjectAttributeTypeSchema.optional().describe("New reference type."),
+        dateValue: z.string().max(80).optional().describe("New date details."),
+        description: z.string().max(2000).optional().describe("New explanation."),
+        resourceIds: z
+          .array(z.string().min(1))
+          .max(50)
+          .optional()
+          .describe("Replacement related resource IDs."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
+    },
+    async ({
+      projectId,
+      attributeId,
+      label,
+      aliases,
+      type,
+      dateValue,
+      description,
+      resourceIds,
+    }) =>
+      jsonText({
+        attribute: await updateAttribute(
+          {
+            projectId,
+            attributeId,
+            patch: definedPatch({
+              label,
+              aliases,
+              type,
+              dateValue,
+              description,
+              resourceIds,
+            }),
+          },
+          userId,
+        ),
+      }),
+  );
+
+  server.registerTool(
+    "delete_project_attribute",
+    {
+      title: "Delete Project Attribute",
+      description:
+        "Delete a clickable project reference term. Use only after explicit user confirmation.",
+      inputSchema: {
+        projectId: z.string().min(1).describe("Project workspace ID."),
+        attributeId: z.string().min(1).describe("Project attribute ID."),
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: true,
+        openWorldHint: false,
+      },
+    },
+    async (input) =>
+      jsonText({
+        attribute: await deleteAttribute(input, userId),
+      }),
   );
 
   server.registerTool(
@@ -1177,6 +1801,33 @@ export function createKanbanMcpServer(userId = SOLO_USER_ID) {
             {
               profile: await getProfileSnapshot(userId),
               profileImports: await listProfileImports(userId),
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+    }),
+  );
+
+  server.registerResource(
+    "projects_overview",
+    "careeright://projects/overview",
+    {
+      title: "Projects Overview",
+      description:
+        "Project workspace summary plus project metadata, resources, and clickable references. Use get_project for notebook pages.",
+      mimeType: "application/json",
+    },
+    async () => ({
+      contents: [
+        {
+          uri: "careeright://projects/overview",
+          mimeType: "application/json",
+          text: JSON.stringify(
+            {
+              summary: await getProjectsSummary(userId),
+              projects: await listProjects(userId),
             },
             null,
             2,

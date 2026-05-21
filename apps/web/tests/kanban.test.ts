@@ -1430,16 +1430,29 @@ describe("mcp permissions", () => {
     )._registeredTools;
 
     expect(Object.keys(tools).sort()).toEqual([
+      "archive_project",
       "create_job_application_run",
+      "create_project",
+      "create_project_attribute",
+      "create_project_note",
+      "create_project_resource",
+      "delete_project",
+      "delete_project_attribute",
+      "delete_project_note",
+      "delete_project_resource",
       "get_job_search_profile",
       "get_latest_unapplied_job_batch",
       "get_profile_snapshot",
+      "get_project",
+      "get_projects_summary",
       "get_task",
+      "import_projects_from_profile",
       "list_boards",
       "list_dsa_questions",
       "list_job_application_runs",
       "list_job_digests",
       "list_jobs",
+      "list_projects",
       "list_tasks",
       "prepare_job_search_brief",
       "prepare_task_breakdown_prompt",
@@ -1448,17 +1461,204 @@ describe("mcp permissions", () => {
       "propose_task_breakdown_from_tasks",
       "propose_task_delete",
       "propose_task_update",
+      "reorder_project_notes",
       "review_task_breakdown_proposal",
       "score_job_candidates",
       "seed_jobs",
       "seed_ranked_jobs",
+      "sync_project_from_profile",
       "update_job_application_attempt",
+      "update_project",
+      "update_project_attribute",
+      "update_project_note",
+      "update_project_resource",
     ]);
     expect(tools.accept_proposal).toBeUndefined();
     expect(tools.reject_proposal).toBeUndefined();
     expect(tools.propose_task_breakdown).toBeUndefined();
     expect(tools.apply_profile_import).toBeUndefined();
     expect(tools.reject_profile_import).toBeUndefined();
+  });
+
+  test("project MCP tools manage workspaces, notes, resources, and references", async () => {
+    const userId = `mcp-projects-${crypto.randomUUID()}`;
+    const server = createKanbanMcpServer(userId);
+    const tools = (
+      server as unknown as {
+        _registeredTools: Record<
+          string,
+          {
+            inputSchema?: { parse: (input: unknown) => unknown };
+            handler: (input?: unknown) => Promise<{
+              content: Array<{ type: "text"; text: string }>;
+            }>;
+          }
+        >;
+      }
+    )._registeredTools;
+    const readPayload = <T,>(
+      result: Awaited<ReturnType<(typeof tools)[string]["handler"]>>,
+    ) => JSON.parse(result.content[0].text) as T;
+
+    const createdPayload = readPayload<{
+      project: { id: string; title: string; techStack: string[] };
+    }>(
+      await tools.create_project.handler({
+        title: "MCP Project Notebook",
+        summary: "LLM-managed project workspace.",
+        techStack: ["Kafka", "Next.js"],
+        dateText: "May 2026",
+      }),
+    );
+    const projectId = createdPayload.project.id;
+
+    expect(createdPayload.project).toMatchObject({
+      title: "MCP Project Notebook",
+      techStack: ["Kafka", "Next.js"],
+    });
+
+    const summaryPayload = readPayload<{ summary: { totalProjects: number } }>(
+      await tools.get_projects_summary.handler(),
+    );
+    const listPayload = readPayload<{ projects: Array<{ id: string }> }>(
+      await tools.list_projects.handler(),
+    );
+
+    expect(summaryPayload.summary.totalProjects).toBe(1);
+    expect(listPayload.projects.map((project) => project.id)).toContain(projectId);
+
+    const firstNote = readPayload<{ note: { id: string; title: string } }>(
+      await tools.create_project_note.handler({
+        projectId,
+        title: "Architecture",
+        content:
+          "# Architecture\n\nKafka moves events.\n\n```mermaid\ngraph TD\n  API --> Kafka\n```",
+      }),
+    ).note;
+    const secondNote = readPayload<{ note: { id: string; title: string } }>(
+      await tools.create_project_note.handler({
+        projectId,
+        title: "Interview Story",
+        content: "Explain tradeoffs clearly.",
+      }),
+    ).note;
+    const resource = readPayload<{ resource: { id: string; type: string } }>(
+      await tools.create_project_resource.handler({
+        projectId,
+        title: "Kafka docs",
+        url: "https://kafka.apache.org/documentation/",
+        type: "documentation",
+        note: "Primary reference.",
+      }),
+    ).resource;
+    const attribute = readPayload<{
+      attribute: { id: string; label: string; resourceIds: string[] };
+    }>(
+      await tools.create_project_attribute.handler({
+        projectId,
+        label: "Kafka",
+        aliases: ["Apache Kafka"],
+        type: "technology",
+        description: "Event streaming backbone.",
+        resourceIds: [resource.id],
+      }),
+    ).attribute;
+
+    expect(resource.type).toBe("documentation");
+    expect(attribute).toMatchObject({
+      label: "Kafka",
+      resourceIds: [resource.id],
+    });
+
+    await tools.update_project_note.handler({
+      noteId: firstNote.id,
+      content: "# Architecture\n\nKafka and workers handle async ranking.",
+    });
+    const reorderedPayload = readPayload<{ notes: Array<{ id: string }> }>(
+      await tools.reorder_project_notes.handler({
+        projectId,
+        noteIds: [secondNote.id, firstNote.id],
+      }),
+    );
+
+    expect(reorderedPayload.notes.map((note) => note.id)).toEqual([
+      secondNote.id,
+      firstNote.id,
+    ]);
+
+    await tools.update_project.handler({
+      projectId,
+      status: "completed",
+      summary: "Updated by an MCP client.",
+    });
+    await tools.update_project_resource.handler({
+      projectId,
+      resourceId: resource.id,
+      note: "Updated reference note.",
+    });
+    await tools.update_project_attribute.handler({
+      projectId,
+      attributeId: attribute.id,
+      description: "Updated reference description.",
+    });
+
+    const detailPayload = readPayload<{
+      project: {
+        project: {
+          status: string;
+          resources: Array<{ note: string }>;
+          attributes: Array<{ description: string }>;
+        };
+        notes: Array<{ id: string; content: string }>;
+      };
+    }>(await tools.get_project.handler({ projectId }));
+
+    expect(detailPayload.project.project.status).toBe("completed");
+    expect(detailPayload.project.notes[1]?.content).toContain("async ranking");
+    expect(detailPayload.project.project.resources[0]?.note).toBe(
+      "Updated reference note.",
+    );
+    expect(detailPayload.project.project.attributes[0]?.description).toBe(
+      "Updated reference description.",
+    );
+
+    expect(() =>
+      tools.create_project_resource.inputSchema?.parse({
+        projectId,
+        title: "Unsafe",
+        url: "javascript:alert(1)",
+      }),
+    ).toThrow(/http and https/i);
+
+    await tools.delete_project_attribute.handler({
+      projectId,
+      attributeId: attribute.id,
+    });
+    await tools.delete_project_resource.handler({
+      projectId,
+      resourceId: resource.id,
+    });
+    await tools.delete_project_note.handler({ noteId: secondNote.id });
+    const archivedPayload = readPayload<{ project: { status: string } }>(
+      await tools.archive_project.handler({ projectId }),
+    );
+
+    expect(archivedPayload.project.status).toBe("archived");
+
+    await tools.delete_project.handler({ projectId });
+    const afterDeletePayload = readPayload<{ projects: Array<{ id: string }> }>(
+      await tools.list_projects.handler(),
+    );
+
+    expect(afterDeletePayload.projects.map((project) => project.id)).not.toContain(
+      projectId,
+    );
+
+    const importPayload = readPayload<{ result: { created: unknown[]; skipped: number } }>(
+      await tools.import_projects_from_profile.handler(),
+    );
+
+    expect(importPayload.result).toMatchObject({ created: [], skipped: 0 });
   });
 
   test("job tools seed and list jobs directly", async () => {
