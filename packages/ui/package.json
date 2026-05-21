@@ -15,6 +15,7 @@
     "./components/loading/*": "./src/components/loading/*.tsx",
     "./components/mcp/*": "./src/components/mcp/*.tsx",
     "./components/profile/*": "./src/components/profile/*.tsx",
+    "./components/projects/*": "./src/components/projects/*.tsx",
     "./components/proposals/*": "./src/components/proposals/*.tsx",
     "./components/ui/*": "./src/components/ui/*.tsx",
     "./hooks/use-mobile": "./src/hooks/use-mobile.ts",
@@ -50,10 +51,14 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^1.14.0",
+    "mermaid": "^11.15.0",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
+    "react-markdown": "^10.1.0",
     "recharts": "3.8.0",
+    "rehype-sanitize": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^3.5.0",
     "xlsx": "^0.18.5"
   }

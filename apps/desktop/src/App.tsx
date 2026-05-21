@@ -44,6 +44,7 @@ import { KanbanApp } from "@repo/ui/components/kanban/kanban-app";
 import { LeaderboardApp } from "@repo/ui/components/leaderboard/leaderboard-app";
 import { McpToolsApp } from "@repo/ui/components/mcp/mcp-tools-app";
 import { ProfileApp } from "@repo/ui/components/profile/profile-app";
+import { ProjectsApp } from "@repo/ui/components/projects/projects-app";
 import { ProposalApp } from "@repo/ui/components/proposals/proposal-app";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -65,6 +66,7 @@ type Route =
   | "dsa"
   | "friends"
   | "leaderboard"
+  | "projects"
   | "history"
   | "proposals"
   | "mcp-tools"
@@ -374,6 +376,7 @@ function DashboardRoute({ route }: { route: Route }) {
   if (route === "dsa") return <DsaApp />;
   if (route === "friends") return <FriendsApp />;
   if (route === "leaderboard") return <LeaderboardApp />;
+  if (route === "projects") return <ProjectsApp />;
   if (route === "history") return <HistoryApp />;
   if (route === "proposals") return <ProposalApp />;
   if (route === "mcp-tools") return <McpToolsApp />;

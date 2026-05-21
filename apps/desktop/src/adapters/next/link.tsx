@@ -12,6 +12,7 @@ function routeFromHref(href: string) {
   if (href.startsWith("/dashboard/dsa")) return "dsa";
   if (href.startsWith("/dashboard/friends")) return "friends";
   if (href.startsWith("/dashboard/leaderboard")) return "leaderboard";
+  if (href.startsWith("/dashboard/projects")) return "projects";
   if (href.startsWith("/dashboard/history")) return "history";
   if (href.startsWith("/dashboard/proposal")) return "proposals";
   if (href.startsWith("/dashboard/mcp-tools")) return "mcp-tools";

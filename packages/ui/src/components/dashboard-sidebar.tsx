@@ -6,6 +6,7 @@ import {
   Briefcase,
   Code2,
   ClipboardList,
+  FolderKanban,
   History as HistoryIcon,
   Server,
   Sparkles,
@@ -108,6 +109,7 @@ export function DashboardSidebar() {
                 ) : null}
               </SidebarMenuItem>
               <SidebarItem route="leaderboard" href="/dashboard/leaderboard" label="Leaderboard" icon={Trophy} currentRoute={currentRoute} />
+              <SidebarItem route="projects" href="/dashboard/projects" label="Projects" icon={FolderKanban} currentRoute={currentRoute} />
               <SidebarItem route="history" href="/dashboard/history" label="History" icon={HistoryIcon} currentRoute={currentRoute} />
               <SidebarMenuItem>
                 <SidebarMenuButton

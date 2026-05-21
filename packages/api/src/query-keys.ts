@@ -21,4 +21,8 @@ export const jobsQueryKey = ["jobs"] as const;
 export const mcpTokensQueryKey = ["mcp-tokens"] as const;
 export const profileImportsQueryKey = ["profile-imports"] as const;
 export const profileSnapshotQueryKey = ["profile-snapshot"] as const;
+export const projectsSummaryQueryKey = ["projects-summary"] as const;
+export const projectsListQueryKey = ["projects-list"] as const;
+export const projectDetailQueryKey = (projectId: string) =>
+  ["project-detail", projectId] as const;
 export const proposalHistoryQueryKey = ["proposal-history"] as const;

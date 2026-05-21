@@ -7,3 +7,4 @@ export * from "@careeright/domain/diary/schema";
 export * from "@careeright/domain/dsa/schema";
 export * from "@careeright/domain/friends/schema";
 export * from "@careeright/domain/leaderboard/schema";
+export * from "@careeright/domain/projects/schema";

@@ -25,6 +25,27 @@ import {
 import { getHistorySnapshot } from "@careeright/domain/history/store";
 import { getLeaderboardSnapshot } from "@careeright/domain/leaderboard/store";
 import {
+  archiveProject,
+  createAttribute,
+  createNote,
+  createProject,
+  createResource,
+  deleteAttribute,
+  deleteNote,
+  deleteProject,
+  deleteResource,
+  getProject,
+  getProjectsSummary,
+  importFromProfileProjects,
+  listProjects,
+  reorderNotes,
+  syncFromProfileProject,
+  updateAttribute,
+  updateNote,
+  updateProject,
+  updateResource,
+} from "@careeright/domain/projects/store";
+import {
   cancelFriendRequest,
   copySharedJobs,
   createJobShare,
@@ -122,6 +143,22 @@ import {
   updateProfileApplicationDefaultsInputSchema,
   updateProfileItemInputSchema,
 } from "@careeright/domain/profile/schema";
+import {
+  createProjectAttributeInputSchema,
+  createProjectInputSchema,
+  createProjectNoteInputSchema,
+  createProjectResourceInputSchema,
+  deleteProjectAttributeInputSchema,
+  deleteProjectNoteInputSchema,
+  deleteProjectResourceInputSchema,
+  projectIdInputSchema,
+  reorderProjectNotesInputSchema,
+  syncFromProfileProjectInputSchema,
+  updateProjectAttributeInputSchema,
+  updateProjectInputSchema,
+  updateProjectNoteInputSchema,
+  updateProjectResourceInputSchema,
+} from "@careeright/domain/projects/schema";
 
 type AuthenticatedRpcContext = {
   userId: string;
@@ -189,6 +226,97 @@ export const appRouter = {
     snapshot: protectedProcedure.handler(async ({ context }) =>
       getLeaderboardSnapshot(context.userId),
     ),
+  },
+  projects: {
+    summary: protectedProcedure.handler(async ({ context }) =>
+      getProjectsSummary(context.userId),
+    ),
+    list: protectedProcedure.handler(async ({ context }) =>
+      listProjects(context.userId),
+    ),
+    get: protectedProcedure
+      .input(projectIdInputSchema)
+      .handler(async ({ context, input }) => {
+        return getProject(input, context.userId);
+      }),
+    create: protectedProcedure
+      .input(createProjectInputSchema)
+      .handler(async ({ context, input }) => {
+        return createProject(input, context.userId);
+      }),
+    update: protectedProcedure
+      .input(updateProjectInputSchema)
+      .handler(async ({ context, input }) => {
+        return updateProject(input, context.userId);
+      }),
+    archive: protectedProcedure
+      .input(projectIdInputSchema)
+      .handler(async ({ context, input }) => {
+        return archiveProject(input, context.userId);
+      }),
+    delete: protectedProcedure
+      .input(projectIdInputSchema)
+      .handler(async ({ context, input }) => {
+        return deleteProject(input, context.userId);
+      }),
+    importFromProfileProjects: protectedProcedure.handler(async ({ context }) =>
+      importFromProfileProjects(context.userId),
+    ),
+    syncFromProfileProject: protectedProcedure
+      .input(syncFromProfileProjectInputSchema)
+      .handler(async ({ context, input }) => {
+        return syncFromProfileProject(input, context.userId);
+      }),
+    createNote: protectedProcedure
+      .input(createProjectNoteInputSchema)
+      .handler(async ({ context, input }) => {
+        return createNote(input, context.userId);
+      }),
+    updateNote: protectedProcedure
+      .input(updateProjectNoteInputSchema)
+      .handler(async ({ context, input }) => {
+        return updateNote(input, context.userId);
+      }),
+    deleteNote: protectedProcedure
+      .input(deleteProjectNoteInputSchema)
+      .handler(async ({ context, input }) => {
+        return deleteNote(input, context.userId);
+      }),
+    reorderNotes: protectedProcedure
+      .input(reorderProjectNotesInputSchema)
+      .handler(async ({ context, input }) => {
+        return reorderNotes(input, context.userId);
+      }),
+    createResource: protectedProcedure
+      .input(createProjectResourceInputSchema)
+      .handler(async ({ context, input }) => {
+        return createResource(input, context.userId);
+      }),
+    updateResource: protectedProcedure
+      .input(updateProjectResourceInputSchema)
+      .handler(async ({ context, input }) => {
+        return updateResource(input, context.userId);
+      }),
+    deleteResource: protectedProcedure
+      .input(deleteProjectResourceInputSchema)
+      .handler(async ({ context, input }) => {
+        return deleteResource(input, context.userId);
+      }),
+    createAttribute: protectedProcedure
+      .input(createProjectAttributeInputSchema)
+      .handler(async ({ context, input }) => {
+        return createAttribute(input, context.userId);
+      }),
+    updateAttribute: protectedProcedure
+      .input(updateProjectAttributeInputSchema)
+      .handler(async ({ context, input }) => {
+        return updateAttribute(input, context.userId);
+      }),
+    deleteAttribute: protectedProcedure
+      .input(deleteProjectAttributeInputSchema)
+      .handler(async ({ context, input }) => {
+        return deleteAttribute(input, context.userId);
+      }),
   },
   friends: {
     summary: protectedProcedure.handler(async ({ context }) =>
