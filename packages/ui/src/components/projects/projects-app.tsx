@@ -548,13 +548,13 @@ export function ProjectsApp({
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      <header className="flex flex-col gap-3 rounded-lg border border-border bg-background px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+      <header className="flex flex-col gap-3 rounded-lg border border-border bg-background px-3 py-3 sm:px-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-start gap-3">
           <SidebarTrigger className="mt-0.5" />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-heading text-2xl font-semibold tracking-normal">
+              <h1 className="font-heading text-xl font-semibold tracking-normal sm:text-2xl">
                 Projects
               </h1>
               <Badge variant="secondary">
@@ -571,6 +571,7 @@ export function ProjectsApp({
           <Button
             type="button"
             variant="outline"
+            className="w-full sm:w-auto"
             disabled={importMutation.isPending}
             onClick={() => importMutation.mutate()}
           >
@@ -581,7 +582,7 @@ export function ProjectsApp({
             )}
             Import from resume
           </Button>
-          <Button type="button" onClick={openCreateProject}>
+          <Button type="button" className="w-full sm:w-auto" onClick={openCreateProject}>
             <Plus data-icon="inline-start" />
             New project
           </Button>
@@ -589,17 +590,17 @@ export function ProjectsApp({
       </header>
 
       <Card>
-        <CardHeader className="gap-2">
+        <CardHeader className="gap-2 px-3 sm:px-6">
           <CardTitle>Project workspace</CardTitle>
           <CardDescription>
             Pick a project on the left, then keep its story, stack, sync state,
             resources, and references in one place.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-5 xl:grid-cols-[22rem_minmax(0,1fr)]">
-          <div className="grid gap-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
+        <CardContent className="grid min-w-0 gap-4 px-3 sm:px-6 xl:grid-cols-[22rem_minmax(0,1fr)] xl:gap-5">
+          <div className="grid min-w-0 gap-4">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
                 <p className="font-medium">Project library</p>
                 <p className="text-sm text-muted-foreground">
                   {summaryQuery.data?.unlinkedProfileProjects ?? 0} resume
@@ -636,13 +637,13 @@ export function ProjectsApp({
                 </EmptyHeader>
               </Empty>
             ) : (
-              <div className="grid max-h-80 gap-2 overflow-auto pr-1">
+              <div className="grid max-h-72 gap-2 overflow-auto pr-1 sm:max-h-80">
                 {filteredProjects.map((project) => (
                   <button
                     key={project.id}
                     type="button"
                     className={cn(
-                      "grid gap-2 rounded-lg border border-border bg-card p-3 text-left text-card-foreground transition-colors hover:bg-muted/50",
+                      "grid min-w-0 gap-2 rounded-lg border border-border bg-card p-3 text-left text-card-foreground transition-colors hover:bg-muted/50",
                       selectedProject?.id === project.id &&
                         "border-primary bg-primary/5",
                     )}
@@ -652,14 +653,14 @@ export function ProjectsApp({
                       setIsEditingNote(false);
                     }}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate font-medium">{project.title}</p>
                         <p className="line-clamp-1 text-xs text-muted-foreground">
                           {project.summary || "No summary yet"}
                         </p>
                       </div>
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="shrink-0">
                         {projectStatusLabels[project.status]}
                       </Badge>
                     </div>
@@ -874,11 +875,11 @@ function ProjectInfoPanel({
   onSync: () => void;
 }) {
   return (
-    <div className="grid gap-5 rounded-lg border border-border bg-muted/20 p-4">
+    <div className="grid min-w-0 gap-4 rounded-lg border border-border bg-muted/20 p-3 sm:gap-5 sm:p-4">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="font-heading text-2xl font-semibold tracking-normal">
+            <h2 className="min-w-0 break-words font-heading text-xl font-semibold tracking-normal sm:text-2xl">
               {project.title}
             </h2>
             <Badge variant={project.status === "archived" ? "outline" : "secondary"}>
@@ -893,11 +894,12 @@ function ProjectInfoPanel({
               "Add a project summary to make this workspace useful during interviews."}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
           {project.sourceProfileItemId ? (
             <Button
               type="button"
               variant="outline"
+              className="w-full sm:w-auto"
               disabled={syncPending}
               onClick={onSync}
             >
@@ -909,12 +911,13 @@ function ProjectInfoPanel({
               Sync
             </Button>
           ) : null}
-          <Button type="button" variant="outline" onClick={onEdit}>
+          <Button type="button" variant="outline" className="w-full sm:w-auto" onClick={onEdit}>
             Edit
           </Button>
           <Button
             type="button"
             variant="outline"
+            className="w-full sm:w-auto"
             disabled={archivePending}
             onClick={onArchive}
           >
@@ -924,6 +927,7 @@ function ProjectInfoPanel({
           <Button
             type="button"
             variant="destructive"
+            className="w-full sm:w-auto"
             disabled={deletePending}
             onClick={onDelete}
           >
@@ -953,9 +957,9 @@ function ProjectInfoPanel({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+      <div className="flex min-w-0 flex-wrap items-center gap-3 text-sm text-muted-foreground">
         {project.dateText ? (
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex min-w-0 items-center gap-1 break-words">
             <CalendarDays aria-hidden="true" />
             {project.dateText}
           </span>
@@ -1028,10 +1032,10 @@ function ProjectWorkspace({
   const { project, notes } = detail;
 
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 gap-4 sm:gap-5">
       <Tabs defaultValue="notes">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <TabsList>
+        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <TabsList className="grid h-auto w-full grid-cols-3 sm:inline-flex sm:w-fit">
             <TabsTrigger value="notes">Notes</TabsTrigger>
             <TabsTrigger value="resources">Resources</TabsTrigger>
             <TabsTrigger value="references">References</TabsTrigger>
@@ -1039,19 +1043,24 @@ function ProjectWorkspace({
         </div>
         <TabsContent value="notes">
           <Card>
-            <CardHeader className="gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-              <div>
+            <CardHeader className="gap-3 px-3 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+              <div className="min-w-0">
                 <CardTitle>Notebook</CardTitle>
                 <CardDescription>
                   Write markdown and preview the rendered project page with Mermaid diagrams.
                 </CardDescription>
               </div>
-              <Button type="button" onClick={onCreateNote} disabled={createNotePending}>
+              <Button
+                type="button"
+                className="w-full sm:w-auto"
+                onClick={onCreateNote}
+                disabled={createNotePending}
+              >
                 <Plus data-icon="inline-start" />
                 New note
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="min-w-0 px-3 sm:px-6">
               {notes.length === 0 ? (
                 <Empty className="border border-dashed bg-muted/20">
                   <EmptyHeader>
@@ -1065,14 +1074,14 @@ function ProjectWorkspace({
                   </EmptyHeader>
                 </Empty>
               ) : (
-                <div className="grid gap-4">
-                  <div className="flex gap-2 overflow-x-auto rounded-lg border border-border bg-muted/20 p-2">
+                <div className="grid min-w-0 gap-4">
+                  <div className="flex max-w-full gap-2 overflow-x-auto rounded-lg border border-border bg-muted/20 p-2">
                     {notes.map((note) => (
                       <button
                         key={note.id}
                         type="button"
                         className={cn(
-                          "min-w-56 max-w-72 rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-background",
+                          "min-w-[11rem] max-w-[75vw] rounded-md px-3 py-2 text-left text-sm transition-colors hover:bg-background sm:min-w-56 sm:max-w-72",
                           note.id === activeNoteId && "bg-background shadow-sm",
                         )}
                         onClick={() => onSelectNote(note.id)}
@@ -1085,10 +1094,10 @@ function ProjectWorkspace({
                     ))}
                   </div>
                   {activeNote ? (
-                    <div className="grid gap-4">
+                    <div className="grid min-w-0 gap-4">
                       {isEditingNote ? (
                         <>
-                          <div className="flex flex-col gap-2 sm:flex-row">
+                          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
                             <Input
                               value={noteDraft.title}
                               onChange={(event) =>
@@ -1101,6 +1110,7 @@ function ProjectWorkspace({
                             />
                             <Button
                               type="button"
+                              className="w-full sm:w-auto"
                               disabled={saveNotePending || !noteDraft.title.trim()}
                               onClick={onSaveNote}
                             >
@@ -1117,6 +1127,7 @@ function ProjectWorkspace({
                             <Button
                               type="button"
                               variant="outline"
+                              className="w-full sm:w-auto"
                               onClick={onCancelNoteEdit}
                             >
                               Cancel
@@ -1124,6 +1135,7 @@ function ProjectWorkspace({
                             <Button
                               type="button"
                               variant="outline"
+                              className="w-full sm:w-auto"
                               disabled={deleteNotePending}
                               onClick={() => onDeleteNote(activeNote.id)}
                             >
@@ -1131,7 +1143,7 @@ function ProjectWorkspace({
                               Delete
                             </Button>
                           </div>
-                          <div className="grid min-h-[42rem] gap-4 xl:grid-cols-2">
+                          <div className="grid min-h-[24rem] gap-4 sm:min-h-[32rem] xl:min-h-[42rem] xl:grid-cols-2">
                             <Textarea
                               value={noteDraft.content}
                               onChange={(event) =>
@@ -1140,7 +1152,7 @@ function ProjectWorkspace({
                                   content: event.target.value,
                                 })
                               }
-                              className="min-h-[42rem] resize-y font-mono text-sm leading-6"
+                              className="min-h-[24rem] resize-y font-mono text-sm leading-6 sm:min-h-[32rem] xl:min-h-[42rem]"
                               placeholder={
                                 "# Architecture\n\n```mermaid\ngraph TD\n  API --> MongoDB\n```\n\nKafka powers the event pipeline."
                               }
@@ -1154,23 +1166,24 @@ function ProjectWorkspace({
                         </>
                       ) : (
                         <>
-                          <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-4 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/20 p-3 sm:flex-row sm:items-start sm:justify-between sm:p-4">
                             <div className="min-w-0">
-                              <h3 className="truncate font-heading text-2xl font-semibold tracking-normal">
+                              <h3 className="break-words font-heading text-xl font-semibold tracking-normal sm:text-2xl">
                                 {noteDraft.title}
                               </h3>
                               <p className="text-sm text-muted-foreground">
                                 Last edited {formatDateTime(activeNote.updatedAt)}
                               </p>
                             </div>
-                            <div className="flex flex-wrap gap-2">
-                              <Button type="button" onClick={onEditNote}>
+                            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                              <Button type="button" className="w-full sm:w-auto" onClick={onEditNote}>
                                 <PencilLine data-icon="inline-start" />
                                 Edit
                               </Button>
                               <Button
                                 type="button"
                                 variant="outline"
+                                className="w-full sm:w-auto"
                                 disabled={deleteNotePending}
                                 onClick={() => onDeleteNote(activeNote.id)}
                               >
@@ -1230,7 +1243,7 @@ function MiniStat({
   value: number;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-muted/20 p-3">
+    <div className="min-w-0 rounded-lg border border-border bg-muted/20 p-3">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Icon aria-hidden="true" />
         {label}
@@ -1259,19 +1272,24 @@ function ResourcesPanel({
 }) {
   return (
     <Card>
-      <CardHeader className="gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-        <div>
+      <CardHeader className="gap-3 px-3 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="min-w-0">
           <CardTitle>Resources</CardTitle>
           <CardDescription>
             Keep repos, demos, docs, articles, videos, and design links close to the project.
           </CardDescription>
         </div>
-        <Button type="button" onClick={onCreate} disabled={createPending}>
+        <Button
+          type="button"
+          className="w-full sm:w-auto"
+          onClick={onCreate}
+          disabled={createPending}
+        >
           <Plus data-icon="inline-start" />
           Add resource
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0 px-3 sm:px-6">
         {project.resources.length === 0 ? (
           <Empty className="border border-dashed bg-muted/20">
             <EmptyHeader>
@@ -1285,29 +1303,34 @@ function ResourcesPanel({
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid min-w-0 gap-3 md:grid-cols-2">
             {project.resources.map((resource) => (
               <div
                 key={resource.id}
-                className="grid gap-3 rounded-lg border border-border bg-card p-4"
+                className="grid min-w-0 gap-3 rounded-lg border border-border bg-card p-3 sm:p-4"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                   <div className="min-w-0">
-                    <p className="font-medium">{resource.title}</p>
+                    <p className="break-words font-medium">{resource.title}</p>
                     <p className="truncate text-sm text-muted-foreground">
                       {resource.url}
                     </p>
                   </div>
-                  <Badge variant="outline">{resourceTypeLabels[resource.type]}</Badge>
+                  <Badge variant="outline" className="w-fit shrink-0">
+                    {resourceTypeLabels[resource.type]}
+                  </Badge>
                 </div>
                 {resource.note ? (
-                  <p className="text-sm text-muted-foreground">{resource.note}</p>
+                  <p className="break-words text-sm text-muted-foreground">
+                    {resource.note}
+                  </p>
                 ) : null}
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => onOpenExternal(resource.url)}
                   >
                     <ExternalLink data-icon="inline-start" />
@@ -1317,6 +1340,7 @@ function ResourcesPanel({
                     type="button"
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => onEdit(resource)}
                   >
                     Edit
@@ -1325,6 +1349,7 @@ function ResourcesPanel({
                     type="button"
                     variant="destructive"
                     size="sm"
+                    className="w-full sm:w-auto"
                     disabled={deletePending}
                     onClick={() => onDelete(resource.id)}
                   >
@@ -1360,19 +1385,24 @@ function AttributesPanel({
 }) {
   return (
     <Card>
-      <CardHeader className="gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-        <div>
+      <CardHeader className="gap-3 px-3 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div className="min-w-0">
           <CardTitle>Clickable references</CardTitle>
           <CardDescription>
             Terms here become clickable inside rendered markdown preview.
           </CardDescription>
         </div>
-        <Button type="button" onClick={onCreate} disabled={createPending}>
+        <Button
+          type="button"
+          className="w-full sm:w-auto"
+          onClick={onCreate}
+          disabled={createPending}
+        >
           <Plus data-icon="inline-start" />
           Add reference
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0 px-3 sm:px-6">
         {project.attributes.length === 0 ? (
           <Empty className="border border-dashed bg-muted/20">
             <EmptyHeader>
@@ -1386,19 +1416,19 @@ function AttributesPanel({
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid min-w-0 gap-3 md:grid-cols-2">
             {project.attributes.map((attribute) => (
               <div
                 key={attribute.id}
-                className="grid gap-3 rounded-lg border border-border bg-card p-4"
+                className="grid min-w-0 gap-3 rounded-lg border border-border bg-card p-3 sm:p-4"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
                   <button
                     type="button"
                     className="min-w-0 text-left"
                     onClick={() => onOpenAttribute(attribute)}
                   >
-                    <p className="font-medium text-primary underline-offset-4 hover:underline">
+                    <p className="break-words font-medium text-primary underline-offset-4 hover:underline">
                       {attribute.label}
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -1406,20 +1436,21 @@ function AttributesPanel({
                       {attribute.dateValue ? ` · ${attribute.dateValue}` : ""}
                     </p>
                   </button>
-                  <Badge variant="outline">
+                  <Badge variant="outline" className="w-fit shrink-0">
                     {attribute.aliases.length} aliases
                   </Badge>
                 </div>
                 {attribute.description ? (
-                  <p className="line-clamp-3 text-sm text-muted-foreground">
+                  <p className="line-clamp-3 break-words text-sm text-muted-foreground">
                     {attribute.description}
                   </p>
                 ) : null}
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
+                    className="w-full sm:w-auto"
                     onClick={() => onEdit(attribute)}
                   >
                     Edit
@@ -1428,6 +1459,7 @@ function AttributesPanel({
                     type="button"
                     variant="destructive"
                     size="sm"
+                    className="w-full sm:w-auto"
                     disabled={deletePending}
                     onClick={() => onDelete(attribute.id)}
                   >
@@ -1460,30 +1492,30 @@ function MarkdownPreview({
   }
 
   return (
-    <div className="min-h-[42rem] overflow-auto rounded-lg border border-border bg-background p-5">
+    <div className="min-h-[24rem] overflow-auto rounded-lg border border-border bg-background p-3 sm:min-h-[32rem] sm:p-5 xl:min-h-[42rem]">
       {content.trim() ? (
-        <div className="grid gap-4 text-sm leading-7">
+        <div className="grid min-w-0 gap-4 text-sm leading-7">
           <Markdown
             remarkPlugins={[remarkGfm]}
             rehypePlugins={[rehypeSanitize]}
             components={{
               h1: ({ children }) => (
-                <h1 className="font-heading text-3xl font-semibold">
+                <h1 className="break-words font-heading text-2xl font-semibold sm:text-3xl">
                   {renderReferences(children)}
                 </h1>
               ),
               h2: ({ children }) => (
-                <h2 className="font-heading text-2xl font-semibold">
+                <h2 className="break-words font-heading text-xl font-semibold sm:text-2xl">
                   {renderReferences(children)}
                 </h2>
               ),
               h3: ({ children }) => (
-                <h3 className="font-heading text-xl font-medium">
+                <h3 className="break-words font-heading text-lg font-medium sm:text-xl">
                   {renderReferences(children)}
                 </h3>
               ),
               p: ({ children }) => (
-                <p className="text-foreground/90">
+                <p className="break-words text-foreground/90">
                   {renderReferences(children)}
                 </p>
               ),
@@ -1543,7 +1575,7 @@ function MarkdownPreview({
                 }
 
                 return (
-                  <pre className="overflow-x-auto rounded-lg border border-border bg-muted/40 p-4 text-xs leading-6">
+                  <pre className="max-w-full overflow-x-auto rounded-lg border border-border bg-muted/40 p-3 text-xs leading-6 sm:p-4">
                     {children}
                   </pre>
                 );
@@ -1564,7 +1596,7 @@ function MarkdownPreview({
           </Markdown>
         </div>
       ) : (
-        <Empty className="min-h-[28rem] border border-dashed bg-muted/20">
+        <Empty className="min-h-[20rem] border border-dashed bg-muted/20 sm:min-h-[28rem]">
           <EmptyHeader>
             <EmptyMedia variant="icon">
               <FileText aria-hidden="true" />
@@ -1859,9 +1891,9 @@ function MermaidBlock({ chart }: { chart: string }) {
 
   return (
     <div className="overflow-hidden rounded-lg border border-border bg-muted/20">
-      <div className="flex items-center justify-between gap-3 border-b border-border bg-background/80 px-3 py-2">
+      <div className="flex flex-col items-start gap-2 border-b border-border bg-background/80 px-3 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         <p className="text-sm font-medium">Diagram</p>
-        <div className="flex items-center gap-1">
+        <div className="flex w-full items-center justify-between gap-1 sm:w-auto sm:justify-start">
           <Button
             type="button"
             variant="outline"
@@ -1874,7 +1906,7 @@ function MermaidBlock({ chart }: { chart: string }) {
           >
             <ZoomOut aria-hidden="true" />
           </Button>
-          <span className="min-w-12 text-center text-xs font-medium text-muted-foreground">
+          <span className="min-w-10 text-center text-xs font-medium text-muted-foreground sm:min-w-12">
             {zoomPercent}%
           </span>
           <Button
@@ -1901,7 +1933,7 @@ function MermaidBlock({ chart }: { chart: string }) {
           </Button>
         </div>
       </div>
-      <div className="overflow-auto p-4">
+      <div className="overflow-auto p-2 sm:p-4">
         <div
           className="mx-auto transition-[width] duration-200 [&_svg]:h-auto [&_svg]:w-full [&_svg]:max-w-none"
           style={{ width: `${zoom * 100}%` }}
@@ -2286,9 +2318,9 @@ function ReferenceSheet({
                 {attribute.dateValue ? ` · ${attribute.dateValue}` : ""}
               </SheetDescription>
             </SheetHeader>
-            <div className="grid gap-5 overflow-auto px-6 pb-6">
+            <div className="grid min-w-0 gap-5 overflow-auto px-4 pb-6 sm:px-6">
               {attribute.description ? (
-                <p className="text-sm leading-7 text-foreground/90">
+                <p className="break-words text-sm leading-7 text-foreground/90">
                   {attribute.description}
                 </p>
               ) : (
@@ -2316,10 +2348,12 @@ function ReferenceSheet({
                     <button
                       key={resource.id}
                       type="button"
-                      className="rounded-lg border border-border p-3 text-left hover:bg-muted/50"
+                      className="min-w-0 rounded-lg border border-border p-3 text-left hover:bg-muted/50"
                       onClick={() => onOpenExternal(resource.url)}
                     >
-                      <span className="block font-medium">{resource.title}</span>
+                      <span className="block break-words font-medium">
+                        {resource.title}
+                      </span>
                       <span className="block truncate text-sm text-muted-foreground">
                         {resource.url}
                       </span>
