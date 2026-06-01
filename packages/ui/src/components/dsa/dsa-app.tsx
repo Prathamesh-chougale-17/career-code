@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Cell, Pie, PieChart } from "recharts";
 import {
   BookOpenCheck,
   CheckCircle2,
@@ -11,7 +12,6 @@ import {
   Loader2,
   PlayCircle,
   Sparkles,
-  Target,
   Trophy,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -26,13 +26,18 @@ import { Badge } from "../ui/badge";
 import { Button, buttonVariants } from "../ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "../ui/chart";
 import {
   Dialog,
   DialogContent,
@@ -97,6 +102,29 @@ const DSA_BADGE_TONES = [
 ];
 
 const DSA_VIDEO_PLAYBACK_RATE = 1.5;
+
+const DSA_RATIO_CHART_CONFIG = {
+  done: {
+    label: "Done",
+    color: "var(--chart-1)",
+  },
+  remaining: {
+    label: "Remaining",
+    color: "var(--muted)",
+  },
+  watched: {
+    label: "Watched",
+    color: "var(--chart-2)",
+  },
+  pending: {
+    label: "Pending",
+    color: "var(--muted)",
+  },
+  practice: {
+    label: "Practice done",
+    color: "var(--chart-3)",
+  },
+} satisfies ChartConfig;
 
 type YouTubePlayer = {
   destroy?: () => void;
@@ -404,14 +432,21 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
   );
   const lessonQuestions = questions.filter(
     (question) => question.sourceType === "lesson",
-  ).length;
+  );
   const leetcodeQuestions = questions.filter(
     (question) => question.sourceType === "leetcode",
-  ).length;
+  );
+  const completedQuestionIds = new Set(
+    snapshot.progress
+      .filter((item) => item.completed)
+      .map((item) => item.questionId),
+  );
   const watchedVideos = new Set(
     snapshot.videoWatches.map((event) => event.questionId),
   ).size;
-
+  const completedPracticeQuestions = leetcodeQuestions.filter((question) =>
+    completedQuestionIds.has(question.id),
+  ).length;
   return (
     <Card
       size="sm"
@@ -423,67 +458,131 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
           DSA Progress
         </CardTitle>
         <CardDescription>
-          {snapshot.catalog.tracks.length} tracks with affiliated LeetCode
-          practice.
+          Completion ratios for the whole roadmap, lesson videos, and practice.
         </CardDescription>
-        <CardAction className="flex flex-wrap justify-end gap-2">
-          <Badge variant="secondary">
-            {snapshot.summary.completedQuestions}/
-            {snapshot.summary.totalQuestions} done
-          </Badge>
-          <Badge variant="outline">
-            {snapshot.summary.completionPercentage}%
-          </Badge>
-        </CardAction>
       </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
-        <DsaMetric
-          label="Tracks"
-          value={snapshot.catalog.tracks.length}
-          toneIndex={5}
+      <CardContent className="grid gap-4 lg:grid-cols-3">
+        <DsaRatioDonut
+          title="Roadmap completion"
+          description="Solved vs waiting"
+          primaryKey="done"
+          remainderKey="remaining"
+          primaryValue={snapshot.summary.completedQuestions}
+          remainderValue={
+            snapshot.summary.totalQuestions - snapshot.summary.completedQuestions
+          }
         />
-        <DsaMetric label="Lessons" value={lessonQuestions} toneIndex={0} />
-        <DsaMetric label="Watched" value={watchedVideos} toneIndex={1} />
-        <DsaMetric label="LeetCode" value={leetcodeQuestions} toneIndex={2} />
-        <DsaMetric
-          label="Subtopics"
-          value={snapshot.catalog.tracks.reduce(
-            (count, trackItem) => count + trackItem.subtopics.length,
+        <DsaRatioDonut
+          title="Video coverage"
+          description="Watched vs queued"
+          primaryKey="watched"
+          remainderKey="pending"
+          primaryValue={watchedVideos}
+          remainderValue={Math.max(lessonQuestions.length - watchedVideos, 0)}
+        />
+        <DsaRatioDonut
+          title="Practice completion"
+          description="LeetCode solved vs waiting"
+          primaryKey="practice"
+          remainderKey="remaining"
+          primaryValue={completedPracticeQuestions}
+          remainderValue={Math.max(
+            leetcodeQuestions.length - completedPracticeQuestions,
             0,
           )}
-          toneIndex={3}
-        />
-        <DsaMetric
-          label="Remaining"
-          value={
-            snapshot.summary.totalQuestions -
-            snapshot.summary.completedQuestions
-          }
-          toneIndex={4}
         />
       </CardContent>
     </Card>
   );
 }
 
-function DsaMetric({
-  label,
-  value,
-  toneIndex,
+function DsaRatioDonut({
+  title,
+  description,
+  primaryKey,
+  remainderKey,
+  primaryValue,
+  remainderValue,
 }: {
-  label: string;
-  value: number;
-  toneIndex: number;
+  title: string;
+  description: string;
+  primaryKey: keyof typeof DSA_RATIO_CHART_CONFIG;
+  remainderKey: keyof typeof DSA_RATIO_CHART_CONFIG;
+  primaryValue: number;
+  remainderValue: number;
 }) {
+  const total = primaryValue + remainderValue;
+  const percentage = percent(primaryValue, total);
+  const chartData = [
+    {
+      key: primaryKey,
+      value: primaryValue,
+      fill: `var(--color-${primaryKey})`,
+    },
+    {
+      key: remainderKey,
+      value: remainderValue,
+      fill: `var(--color-${remainderKey})`,
+    },
+  ];
+
   return (
-    <div
-      className={cn(
-        "rounded-lg border px-3 py-2 shadow-sm",
-        DSA_SURFACE_TONES[toneIndex % DSA_SURFACE_TONES.length],
-      )}
-    >
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-heading text-xl font-medium">{value}</p>
+    <div className="min-w-0">
+      <div className="mb-2">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="relative">
+        <ChartContainer
+          config={DSA_RATIO_CHART_CONFIG}
+          className="mx-auto h-[150px] w-full max-w-[220px]"
+        >
+          <PieChart accessibilityLayer>
+            <ChartTooltip
+              cursor={false}
+              position={{ x: 8, y: 8 }}
+              content={
+                <ChartTooltipContent
+                  hideLabel
+                  nameKey="key"
+                  formatter={(value, name) => {
+                    const key = String(name) as keyof typeof DSA_RATIO_CHART_CONFIG;
+                    const label = DSA_RATIO_CHART_CONFIG[key]?.label ?? name;
+
+                    return (
+                      <div className="flex min-w-28 items-center justify-between gap-3">
+                        <span className="text-muted-foreground">{label}</span>
+                        <span className="font-medium text-foreground">
+                          {percent(Number(value), total)}%
+                        </span>
+                      </div>
+                    );
+                  }}
+                />
+              }
+            />
+            <Pie
+              data={chartData}
+              dataKey="value"
+              nameKey="key"
+              innerRadius={46}
+              outerRadius={68}
+              paddingAngle={2}
+              strokeWidth={0}
+            >
+              {chartData.map((entry) => (
+                <Cell key={entry.key} fill={entry.fill} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-heading text-2xl font-semibold text-foreground">
+            {percentage}%
+          </span>
+          <span className="text-xs text-muted-foreground">complete</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -637,7 +736,7 @@ function DsaJourneyMap({
         </div>
         <Badge variant="secondary">
           <Trophy data-icon="inline-start" aria-hidden="true" />
-          {completedSubtopics}/{subtopics.length} complete
+          Journey map
         </Badge>
       </div>
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -682,12 +781,12 @@ function DsaJourneyMap({
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     <DsaMiniBadge
                       icon={<BookOpenCheck aria-hidden="true" />}
-                      label={`${stats.completedQuestions}/${stats.totalQuestions} questions`}
+                      label="Questions"
                       complete={stats.isQuestionsComplete}
                     />
                     <DsaMiniBadge
                       icon={<PlayCircle aria-hidden="true" />}
-                      label={`${stats.watchedVideos}/${stats.totalVideos} videos`}
+                      label="Videos"
                       complete={stats.isVideosComplete}
                     />
                   </div>
@@ -713,40 +812,61 @@ function DsaProgressCluster({
   return (
     <div
       className={cn(
-        "flex shrink-0 flex-wrap items-center gap-2 text-xs",
-        compact ? "lg:justify-end" : "lg:max-w-[420px] lg:justify-end",
+        "flex min-w-0 shrink-0 flex-col gap-1.5 text-xs",
+        compact ? "lg:w-44" : "lg:w-64",
       )}
     >
-      <Badge
-        variant={stats.isComplete ? "default" : "outline"}
-        className={cn(!stats.isComplete && DSA_BADGE_TONES[toneIndex])}
-      >
-        {stats.isComplete ? (
-          <Trophy data-icon="inline-start" aria-hidden="true" />
-        ) : (
-          <Target data-icon="inline-start" aria-hidden="true" />
-        )}
-        {stats.completedQuestions}/{stats.totalQuestions} done
-      </Badge>
-      <Badge
-        variant="outline"
-        className={DSA_BADGE_TONES[(toneIndex + 1) % DSA_BADGE_TONES.length]}
-      >
-        <PlayCircle data-icon="inline-start" aria-hidden="true" />
-        {stats.watchedVideos}/{stats.totalVideos} videos
-      </Badge>
+      <DsaClusterRatioLine
+        label={stats.isComplete ? "Complete" : "Questions"}
+        value={stats.completionPercentage}
+        toneIndex={toneIndex}
+      />
       {!compact ? (
-        <Badge
-          variant="outline"
-          className={DSA_BADGE_TONES[(toneIndex + 2) % DSA_BADGE_TONES.length]}
-        >
-          <BookOpenCheck data-icon="inline-start" aria-hidden="true" />
-          {stats.completedPracticeQuestions}/{stats.totalPracticeQuestions}{" "}
-          practice
-        </Badge>
+        <>
+          <DsaClusterRatioLine
+            label="Videos"
+            value={stats.videoPercentage}
+            toneIndex={toneIndex + 1}
+          />
+          <DsaClusterRatioLine
+            label="Practice"
+            value={percent(
+              stats.completedPracticeQuestions,
+              stats.totalPracticeQuestions,
+            )}
+            toneIndex={toneIndex + 2}
+          />
+        </>
       ) : null}
-      <span className="min-w-12 rounded-full border border-border bg-background/75 px-2 py-1 text-center font-semibold text-foreground">
-        {stats.completionPercentage}%
+    </div>
+  );
+}
+
+function DsaClusterRatioLine({
+  label,
+  value,
+  toneIndex,
+}: {
+  label: string;
+  value: number;
+  toneIndex: number;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="w-16 shrink-0 truncate text-muted-foreground">
+        {label}
+      </span>
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{
+            width: `${Math.max(0, Math.min(100, value))}%`,
+            backgroundColor: `var(--chart-${(toneIndex % 5) + 1})`,
+          }}
+        />
+      </div>
+      <span className="w-10 shrink-0 text-right font-semibold text-foreground">
+        {value}%
       </span>
     </div>
   );
@@ -785,9 +905,11 @@ function DsaMilestoneOrb({
             ? "bg-chart-2 text-background"
             : "bg-muted text-muted-foreground",
         )}
-        aria-label={`${stats.watchedVideos} of ${stats.totalVideos} videos watched`}
+        aria-label={
+          stats.isVideosComplete ? "All videos watched" : "Videos in progress"
+        }
       >
-        {stats.watchedVideos}
+        <PlayCircle className="size-3" aria-hidden="true" />
       </span>
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Cell, Pie, PieChart } from "recharts";
 import {
   BookOpenCheck,
   CheckCircle2,
@@ -24,13 +25,18 @@ import { Badge } from "../ui/badge";
 import { Button, buttonVariants } from "../ui/button";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "../ui/chart";
 import {
   Dialog,
   DialogContent,
@@ -83,6 +89,25 @@ const SYSTEM_DESIGN_BADGE_TONES = [
 ];
 
 const SYSTEM_DESIGN_VIDEO_PLAYBACK_RATE = 1.25;
+
+const SYSTEM_DESIGN_RATIO_CHART_CONFIG = {
+  done: {
+    label: "Done",
+    color: "var(--chart-3)",
+  },
+  remaining: {
+    label: "Remaining",
+    color: "var(--muted)",
+  },
+  watched: {
+    label: "Watched",
+    color: "var(--chart-1)",
+  },
+  pending: {
+    label: "Pending",
+    color: "var(--muted)",
+  },
+} satisfies ChartConfig;
 
 type YouTubePlayer = {
   destroy?: () => void;
@@ -372,11 +397,6 @@ function SystemDesignSummaryCard({
 }: {
   snapshot: SystemDesignSnapshot;
 }) {
-  const moduleCount = snapshot.catalog.tracks.reduce(
-    (count, track) => count + track.modules.length,
-    0,
-  );
-
   return (
     <Card
       size="sm"
@@ -388,65 +408,125 @@ function SystemDesignSummaryCard({
           System Design Progress
         </CardTitle>
         <CardDescription>
-          {snapshot.catalog.tracks.length} tracks with curated videos from
-          basics to core.
+          Completion ratios for the whole roadmap and watched videos.
         </CardDescription>
-        <CardAction className="flex flex-wrap justify-end gap-2">
-          <Badge variant="secondary">
-            {snapshot.summary.completedItems}/{snapshot.summary.totalItems} done
-          </Badge>
-          <Badge variant="outline">
-            {snapshot.summary.completionPercentage}%
-          </Badge>
-        </CardAction>
       </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <SystemDesignMetric
-          label="Tracks"
-          value={snapshot.catalog.tracks.length}
-          toneIndex={5}
+      <CardContent className="grid gap-4 md:grid-cols-2">
+        <SystemDesignRatioDonut
+          title="Roadmap completion"
+          description="Done vs waiting"
+          primaryKey="done"
+          remainderKey="remaining"
+          primaryValue={snapshot.summary.completedItems}
+          remainderValue={
+            snapshot.summary.totalItems - snapshot.summary.completedItems
+          }
         />
-        <SystemDesignMetric label="Modules" value={moduleCount} toneIndex={0} />
-        <SystemDesignMetric
-          label="Lessons"
-          value={snapshot.summary.totalLessons}
-          toneIndex={1}
-        />
-        <SystemDesignMetric
-          label="Watched"
-          value={snapshot.summary.watchedVideos}
-          toneIndex={3}
-        />
-        <SystemDesignMetric
-          label="Remaining"
-          value={snapshot.summary.totalItems - snapshot.summary.completedItems}
-          toneIndex={4}
+        <SystemDesignRatioDonut
+          title="Video coverage"
+          description="Watched vs queued"
+          primaryKey="watched"
+          remainderKey="pending"
+          primaryValue={snapshot.summary.watchedVideos}
+          remainderValue={Math.max(
+            snapshot.summary.totalLessons - snapshot.summary.watchedVideos,
+            0,
+          )}
         />
       </CardContent>
     </Card>
   );
 }
 
-function SystemDesignMetric({
-  label,
-  value,
-  toneIndex,
+function SystemDesignRatioDonut({
+  title,
+  description,
+  primaryKey,
+  remainderKey,
+  primaryValue,
+  remainderValue,
 }: {
-  label: string;
-  value: number;
-  toneIndex: number;
+  title: string;
+  description: string;
+  primaryKey: keyof typeof SYSTEM_DESIGN_RATIO_CHART_CONFIG;
+  remainderKey: keyof typeof SYSTEM_DESIGN_RATIO_CHART_CONFIG;
+  primaryValue: number;
+  remainderValue: number;
 }) {
+  const total = primaryValue + remainderValue;
+  const percentage = percent(primaryValue, total);
+  const chartData = [
+    {
+      key: primaryKey,
+      value: primaryValue,
+      fill: `var(--color-${primaryKey})`,
+    },
+    {
+      key: remainderKey,
+      value: remainderValue,
+      fill: `var(--color-${remainderKey})`,
+    },
+  ];
+
   return (
-    <div
-      className={cn(
-        "rounded-lg border px-3 py-2 shadow-sm",
-        SYSTEM_DESIGN_SURFACE_TONES[
-          toneIndex % SYSTEM_DESIGN_SURFACE_TONES.length
-        ],
-      )}
-    >
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="font-heading text-xl font-medium">{value}</p>
+    <div className="min-w-0">
+      <div className="mb-2">
+        <p className="text-sm font-semibold text-foreground">{title}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      <div className="relative">
+        <ChartContainer
+          config={SYSTEM_DESIGN_RATIO_CHART_CONFIG}
+          className="mx-auto h-[165px] w-full max-w-[240px]"
+        >
+          <PieChart accessibilityLayer>
+            <ChartTooltip
+              cursor={false}
+              position={{ x: 8, y: 8 }}
+              content={
+                <ChartTooltipContent
+                  hideLabel
+                  nameKey="key"
+                  formatter={(value, name) => {
+                    const key =
+                      String(name) as keyof typeof SYSTEM_DESIGN_RATIO_CHART_CONFIG;
+                    const label =
+                      SYSTEM_DESIGN_RATIO_CHART_CONFIG[key]?.label ?? name;
+
+                    return (
+                      <div className="flex min-w-28 items-center justify-between gap-3">
+                        <span className="text-muted-foreground">{label}</span>
+                        <span className="font-medium text-foreground">
+                          {percent(Number(value), total)}%
+                        </span>
+                      </div>
+                    );
+                  }}
+                />
+              }
+            />
+            <Pie
+              data={chartData}
+              dataKey="value"
+              nameKey="key"
+              innerRadius={50}
+              outerRadius={74}
+              paddingAngle={2}
+              strokeWidth={0}
+            >
+              {chartData.map((entry) => (
+                <Cell key={entry.key} fill={entry.fill} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ChartContainer>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+          <span className="font-heading text-2xl font-semibold text-foreground">
+            {percentage}%
+          </span>
+          <span className="text-xs text-muted-foreground">complete</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -774,19 +854,54 @@ function SystemDesignProgressCluster({
   compact?: boolean;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-      <Badge
-        variant="outline"
-        className={SYSTEM_DESIGN_BADGE_TONES[toneIndex % SYSTEM_DESIGN_BADGE_TONES.length]}
-      >
-        {stats.completedItems}/{stats.totalItems} done
-      </Badge>
-      <Badge variant="outline">{stats.completionPercentage}%</Badge>
+    <div
+      className={cn(
+        "flex min-w-0 shrink-0 flex-col gap-1.5 text-xs",
+        compact ? "lg:w-44" : "lg:w-60",
+      )}
+    >
+      <SystemDesignClusterRatioLine
+        label={stats.isComplete ? "Complete" : "Lessons"}
+        value={stats.completionPercentage}
+        toneIndex={toneIndex}
+      />
       {!compact ? (
-        <Badge variant="secondary">
-          {stats.watchedVideos}/{stats.totalVideos} videos
-        </Badge>
+        <SystemDesignClusterRatioLine
+          label="Videos"
+          value={stats.videoPercentage}
+          toneIndex={toneIndex + 1}
+        />
       ) : null}
+    </div>
+  );
+}
+
+function SystemDesignClusterRatioLine({
+  label,
+  value,
+  toneIndex,
+}: {
+  label: string;
+  value: number;
+  toneIndex: number;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="w-16 shrink-0 truncate text-muted-foreground">
+        {label}
+      </span>
+      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+        <div
+          className="h-full rounded-full transition-all"
+          style={{
+            width: `${Math.max(0, Math.min(100, value))}%`,
+            backgroundColor: `var(--chart-${(toneIndex % 5) + 1})`,
+          }}
+        />
+      </div>
+      <span className="w-10 shrink-0 text-right font-semibold text-foreground">
+        {value}%
+      </span>
     </div>
   );
 }
