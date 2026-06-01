@@ -709,15 +709,6 @@ function DsaJourneyMap({
   openSubtopicIds: string[];
   onSelectSubtopic: (subtopicId: string) => void;
 }) {
-  const completedSubtopics = subtopics.filter(
-    (subtopic) =>
-      getDsaProgressStats(
-        subtopic.questions,
-        completedQuestionIds,
-        watchedVideoQuestionIds,
-      ).isComplete,
-  ).length;
-
   return (
     <section className="rounded-xl border border-primary/20 bg-background/70 p-3 shadow-sm">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
