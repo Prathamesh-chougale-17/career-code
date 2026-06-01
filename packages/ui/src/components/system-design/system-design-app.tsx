@@ -127,7 +127,6 @@ type SystemDesignStats = {
   totalItems: number;
   completedItems: number;
   totalLessons: number;
-  totalDrills: number;
   totalVideos: number;
   watchedVideos: number;
   completionPercentage: number;
@@ -301,8 +300,7 @@ export function SystemDesignApp({
                     Roadmap tracks
                   </CardTitle>
                   <CardDescription>
-                    Videos and design drills are grouped in a basic-to-core
-                    learning path.
+                    Videos are grouped in a basic-to-core learning path.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -390,8 +388,8 @@ function SystemDesignSummaryCard({
           System Design Progress
         </CardTitle>
         <CardDescription>
-          {snapshot.catalog.tracks.length} tracks with curated videos and design
-          checkpoints.
+          {snapshot.catalog.tracks.length} tracks with curated videos from
+          basics to core.
         </CardDescription>
         <CardAction className="flex flex-wrap justify-end gap-2">
           <Badge variant="secondary">
@@ -402,7 +400,7 @@ function SystemDesignSummaryCard({
           </Badge>
         </CardAction>
       </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+      <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <SystemDesignMetric
           label="Tracks"
           value={snapshot.catalog.tracks.length}
@@ -413,11 +411,6 @@ function SystemDesignSummaryCard({
           label="Lessons"
           value={snapshot.summary.totalLessons}
           toneIndex={1}
-        />
-        <SystemDesignMetric
-          label="Drills"
-          value={snapshot.summary.totalDrills}
-          toneIndex={2}
         />
         <SystemDesignMetric
           label="Watched"
@@ -595,7 +588,6 @@ function SystemDesignItemAccordion({
                     completed={completed}
                     pending={pending}
                     watched={videoWatched}
-                    isDrill={item.sourceType === "drill"}
                   />
                   <div className="min-w-0">
                     <span className="flex min-w-0 flex-wrap items-center gap-2">
@@ -608,9 +600,7 @@ function SystemDesignItemAccordion({
                       <span className="truncate">{item.title}</span>
                     </span>
                     <span className="block text-sm font-normal text-muted-foreground">
-                      {item.sourceType === "lesson"
-                        ? item.sourceName
-                        : "Design checkpoint"}
+                      {item.sourceName}
                     </span>
                   </div>
                 </div>
@@ -620,9 +610,7 @@ function SystemDesignItemAccordion({
                       <PlayCircle data-icon="inline-start" aria-hidden="true" />
                       {videoWatched ? "Watched" : "Video"}
                     </Badge>
-                  ) : (
-                    <Badge variant="outline">Drill</Badge>
-                  )}
+                  ) : null}
                   {completed ? (
                     <Badge>
                       <CheckCircle2 data-icon="inline-start" aria-hidden="true" />
@@ -721,12 +709,10 @@ function SystemDesignItemStateIcon({
   completed,
   pending,
   watched,
-  isDrill,
 }: {
   completed: boolean;
   pending: boolean;
   watched: boolean;
-  isDrill: boolean;
 }) {
   return (
     <div
@@ -742,8 +728,6 @@ function SystemDesignItemStateIcon({
     >
       {completed ? (
         <CheckCircle2 className="size-4" aria-hidden="true" />
-      ) : isDrill ? (
-        <ListChecks className="size-4" aria-hidden="true" />
       ) : (
         <PlayCircle className="size-4" aria-hidden="true" />
       )}
@@ -799,14 +783,9 @@ function SystemDesignProgressCluster({
       </Badge>
       <Badge variant="outline">{stats.completionPercentage}%</Badge>
       {!compact ? (
-        <>
-          <Badge variant="secondary">
-            {stats.watchedVideos}/{stats.totalVideos} videos
-          </Badge>
-          {stats.totalDrills > 0 ? (
-            <Badge variant="outline">{stats.totalDrills} drills</Badge>
-          ) : null}
-        </>
+        <Badge variant="secondary">
+          {stats.watchedVideos}/{stats.totalVideos} videos
+        </Badge>
       ) : null}
     </div>
   );
@@ -818,7 +797,6 @@ function getSystemDesignStats(
   watchedVideoItemIds: Set<string>,
 ): SystemDesignStats {
   const lessonItems = items.filter((item) => item.sourceType === "lesson");
-  const drillItems = items.filter((item) => item.sourceType === "drill");
   const videoItems = lessonItems.filter((item) => item.videoUrl);
   const completedItems = items.filter((item) =>
     completedItemIds.has(item.id),
@@ -832,7 +810,6 @@ function getSystemDesignStats(
     totalItems,
     completedItems,
     totalLessons: lessonItems.length,
-    totalDrills: drillItems.length,
     totalVideos: videoItems.length,
     watchedVideos,
     completionPercentage: percent(completedItems, totalItems),

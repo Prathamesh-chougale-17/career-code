@@ -773,17 +773,13 @@ function SystemDesignItemCard({
         <Badge tone={completed ? "success" : "default"}>
           {completed ? "Complete" : "Open"}
         </Badge>
-        <Badge tone={item.sourceType === "drill" ? "violet" : "accent"}>
-          {item.sourceType === "drill" ? "Drill" : item.lessonLabel}
-        </Badge>
+        <Badge tone="accent">{item.lessonLabel}</Badge>
       </View>
       <Text selectable style={[styles.questionTitle, { color: colors.text }]}>
         {item.title}
       </Text>
       <Text selectable style={[styles.mutedText, { color: colors.textMuted }]}>
-        {item.sourceType === "lesson"
-          ? `${item.lessonLabel} - ${item.sourceName ?? "Lesson"}`
-          : item.description}
+        {item.lessonLabel} - {item.sourceName ?? "Lesson"}
       </Text>
       <View style={styles.taskActions}>
         <Button disabled={isBusy} onPress={onToggle} variant={completed ? "secondary" : "primary"}>

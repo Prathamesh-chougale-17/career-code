@@ -26,17 +26,11 @@ type LessonInput = {
   description?: string;
 };
 
-type DrillInput = {
-  slug: string;
-  title: string;
-  description: string;
-};
-
 type ModuleInput = {
   id: string;
   title: string;
   description: string;
-  items: Array<LessonInput | DrillInput>;
+  items: LessonInput[];
 };
 
 type TrackInput = {
@@ -56,14 +50,6 @@ function videoUrl(videoId: string, playlistId: string) {
 
 function lesson(input: LessonInput): LessonInput {
   return input;
-}
-
-function drill(input: DrillInput): DrillInput {
-  return input;
-}
-
-function isLesson(item: LessonInput | DrillInput): item is LessonInput {
-  return "videoId" in item;
 }
 
 const tracks = [
@@ -118,12 +104,6 @@ const tracks = [
             playlistId: GAURAV_SEN_PLAYLIST_ID,
             playlistTitle: "System Design Playlist",
             sourceName: "Gaurav Sen",
-          }),
-          drill({
-            slug: "capacity-estimate-drill",
-            title: "Capacity Estimate Drill",
-            description:
-              "Pick a product, estimate daily active users, requests per second, storage per day, and peak traffic. Record assumptions before calculating.",
           }),
         ],
       },
@@ -205,12 +185,6 @@ const tracks = [
             playlistTitle: "System Design Fundamentals",
             sourceName: "ByteByteGo",
           }),
-          drill({
-            slug: "api-contract-drill",
-            title: "API Contract Drill",
-            description:
-              "Write the core REST or RPC endpoints for a URL shortener, including request shape, response shape, errors, and idempotency notes.",
-          }),
         ],
       },
       {
@@ -274,12 +248,6 @@ const tracks = [
             playlistId: BYTEBYTEGO_FUNDAMENTALS_PLAYLIST_ID,
             playlistTitle: "System Design Fundamentals",
             sourceName: "ByteByteGo",
-          }),
-          drill({
-            slug: "scaling-bottleneck-review",
-            title: "Scaling Bottleneck Review",
-            description:
-              "For one design, identify the first bottleneck at 10x, 100x, and 1000x traffic. Add the smallest architecture change for each stage.",
           }),
         ],
       },
@@ -352,12 +320,6 @@ const tracks = [
             playlistId: BYTEBYTEGO_FUNDAMENTALS_PLAYLIST_ID,
             playlistTitle: "System Design Fundamentals",
             sourceName: "ByteByteGo",
-          }),
-          drill({
-            slug: "data-model-drill",
-            title: "Data Model Drill",
-            description:
-              "Model entities, indexes, partition key, retention, and read/write paths for a chat system or food delivery app.",
           }),
         ],
       },
@@ -510,12 +472,6 @@ const tracks = [
             playlistId: GAURAV_SEN_PLAYLIST_ID,
             playlistTitle: "System Design Playlist",
             sourceName: "Gaurav Sen",
-          }),
-          drill({
-            slug: "hld-diagram-drill",
-            title: "HLD Diagram Drill",
-            description:
-              "Draw one end-to-end design with clients, edge, services, queues, databases, caches, and observability. Add arrows for read and write paths.",
           }),
         ],
       },
@@ -678,12 +634,6 @@ const tracks = [
             playlistTitle: "System Design Walkthroughs",
             sourceName: "Hello Interview",
           }),
-          drill({
-            slug: "sequence-diagram-drill",
-            title: "Sequence Diagram Drill",
-            description:
-              "For one HLD prompt, write the exact sequence of calls for the critical user action, including retries and async steps.",
-          }),
         ],
       },
     ],
@@ -731,12 +681,6 @@ const tracks = [
             playlistId: CODER_ARMY_PLAYLIST_ID,
             playlistTitle: "System Design Full Course",
             sourceName: "Coder Army",
-          }),
-          drill({
-            slug: "uml-class-diagram-drill",
-            title: "UML Class Diagram Drill",
-            description:
-              "Model classes, interfaces, relationships, and cardinality for Parking Lot or Splitwise before writing code.",
           }),
         ],
       },
@@ -906,12 +850,6 @@ const tracks = [
             playlistTitle: "Low Level Design from Basics to Advanced",
             sourceName: "Concept and Coding",
           }),
-          drill({
-            slug: "concurrency-edge-case-review",
-            title: "Concurrency and Edge-Case Review",
-            description:
-              "For BookMyShow, ATM, or Payment Gateway, list race conditions, locks or transactions, idempotency keys, failure modes, and retries.",
-          }),
         ],
       },
     ],
@@ -939,14 +877,6 @@ function buildStaticCatalog() {
             title: item.title,
             description: item.description ?? "",
           };
-
-          if (!isLesson(item)) {
-            return {
-              ...baseItem,
-              sourceType: "drill",
-              lessonLabel: "DRILL",
-            };
-          }
 
           lessonCount += 1;
 

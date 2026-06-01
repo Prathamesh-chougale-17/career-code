@@ -42,10 +42,6 @@ function lessonItems(trackId?: string) {
   return allItems(trackId).filter((item) => item.sourceType === "lesson");
 }
 
-function drillItems(trackId?: string) {
-  return allItems(trackId).filter((item) => item.sourceType === "drill");
-}
-
 function assertAscii(value: string) {
   if (!value) {
     return;
@@ -85,8 +81,10 @@ describe("System Design catalog", () => {
       "lld-case-studies",
     ]);
     expect(lessonItems()).toHaveLength(86);
-    expect(drillItems()).toHaveLength(8);
-    expect(SYSTEM_DESIGN_ITEMS).toHaveLength(94);
+    expect(SYSTEM_DESIGN_ITEMS).toHaveLength(86);
+    expect(
+      SYSTEM_DESIGN_ITEMS.every((item) => item.sourceType === "lesson"),
+    ).toBe(true);
     expect(new Set(SYSTEM_DESIGN_ITEMS.map((item) => item.id)).size).toBe(
       SYSTEM_DESIGN_ITEMS.length,
     );
@@ -181,7 +179,7 @@ describe("System Design catalog", () => {
       catalog.tracks.flatMap((track) =>
         track.modules.flatMap((roadmapModule) => roadmapModule.items),
       ),
-    ).toHaveLength(94);
+    ).toHaveLength(86);
   });
 });
 
@@ -193,11 +191,11 @@ describe("System Design progress store", () => {
     const initialSnapshot = await getSystemDesignSnapshot(userA);
 
     expect(initialSnapshot.summary).toEqual({
-      totalItems: 94,
+      totalItems: 86,
       completedItems: 0,
       completionPercentage: 0,
       totalLessons: 86,
-      totalDrills: 8,
+      totalDrills: 0,
       watchedVideos: 0,
     });
 
@@ -247,7 +245,6 @@ describe("System Design progress store", () => {
   test("returns watched lesson videos in the snapshot", async () => {
     const userId = `system-design-video-${crypto.randomUUID()}`;
     const lesson = lessonItems()[0];
-    const drill = drillItems()[0];
     const initialSnapshot = await getSystemDesignSnapshot(userId);
 
     expect(initialSnapshot.videoWatches).toEqual([]);
@@ -266,7 +263,10 @@ describe("System Design progress store", () => {
     expect(watchedSnapshot.summary.watchedVideos).toBe(1);
 
     await expect(
-      recordSystemDesignVideoWatch({ itemId: drill.id }, userId),
+      recordSystemDesignVideoWatch(
+        { itemId: "missing-system-design-video" },
+        userId,
+      ),
     ).rejects.toThrow("Unknown System Design video");
   });
 });
@@ -282,7 +282,7 @@ describe("System Design RPC", () => {
       context: { userId },
     });
 
-    expect(snapshot.summary.totalItems).toBe(94);
+    expect(snapshot.summary.totalItems).toBe(86);
 
     const result = await updateProgress({ itemId, completed: true });
 
