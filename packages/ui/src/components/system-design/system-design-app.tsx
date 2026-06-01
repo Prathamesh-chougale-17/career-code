@@ -497,7 +497,7 @@ function SystemDesignRatioDonut({
                       <div className="flex min-w-28 items-center justify-between gap-3">
                         <span className="text-muted-foreground">{label}</span>
                         <span className="font-medium text-foreground">
-                          {percent(Number(value), total)}%
+                          {Number(value).toLocaleString()}
                         </span>
                       </div>
                     );
