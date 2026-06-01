@@ -63,6 +63,7 @@ function routeFromPathname(pathname: string): CareerightDashboardRoute {
   if (pathname.startsWith("/dashboard/jobs")) return "jobs";
   if (pathname.startsWith("/dashboard/diary")) return "diary";
   if (pathname.startsWith("/dashboard/dsa")) return "dsa";
+  if (pathname.startsWith("/dashboard/system-design")) return "system-design";
   if (pathname.startsWith("/dashboard/friends")) return "friends";
   if (pathname.startsWith("/dashboard/leaderboard")) return "leaderboard";
   if (pathname.startsWith("/dashboard/projects")) return "projects";
@@ -80,6 +81,7 @@ function hrefFromRoute(route: CareerightDashboardRoute) {
   if (route === "leaderboard") return "/dashboard/leaderboard";
   if (route === "projects") return "/dashboard/projects";
   if (route === "proposals") return "/dashboard/proposal";
+  if (route === "system-design") return "/dashboard/system-design";
   if (route === "mcp-tools") return "/dashboard/mcp-tools";
   return `/dashboard/${route}`;
 }

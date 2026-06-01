@@ -21,7 +21,7 @@ const updatedAt = "May 14, 2026";
 
 const collectedData = [
   "Google sign-in information such as name, email address, account identifier, and profile image when provided by Google.",
-  "Career workspace data such as board tasks, job tracker records, status changes, diary entries, DSA progress, proposals, MCP token metadata, profile items, application defaults, and resume import data.",
+  "Career workspace data such as board tasks, job tracker records, status changes, diary entries, DSA and System Design progress, proposals, MCP token metadata, profile items, application defaults, and resume import data.",
   "Files you choose to upload, such as PDF resumes for profile import.",
   "Technical data needed to run and protect the service, such as session cookies, authentication tokens, IP address, device/browser information, app version, request logs, and error diagnostics.",
 ] as const;
@@ -37,7 +37,7 @@ const notCollectedData = [
 
 const usageReasons = [
   "Create and secure your Careeright account.",
-  "Sync your jobs, board tasks, diary entries, DSA progress, proposals, MCP tools, and profile data across web and mobile.",
+  "Sync your jobs, board tasks, diary entries, DSA and System Design progress, proposals, MCP tools, and profile data across web and mobile.",
   "Import and review resume/profile information you choose to upload.",
   "Operate, debug, protect, and improve Careeright.",
   "Respond to support, privacy, and deletion requests.",
@@ -121,8 +121,8 @@ export default function PrivacyPolicyPage() {
           </PolicyCard>
           <PolicyCard icon={<Briefcase />} title="Workspace data">
             We store the career data you create or import, including jobs,
-            tasks, profile details, diary notes, DSA progress, proposals, and
-            resume-related data.
+            tasks, profile details, diary notes, DSA and System Design
+            progress, proposals, and resume-related data.
           </PolicyCard>
           <PolicyCard icon={<LockKeyhole />} title="Security">
             Data is sent over encrypted HTTPS connections. Authentication

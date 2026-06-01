@@ -40,14 +40,19 @@ import {
   diaryRecentQueryKey,
   dsaSnapshotQueryKey,
   historySnapshotQueryKey,
+  systemDesignSnapshotQueryKey,
 } from "@careeright/api/query-keys";
 import type {
   DiaryStatus,
   SaveDiaryIntervalInput,
 } from "@careeright/domain/diary/schema";
 import type { DsaQuestion, DsaTrack } from "@careeright/domain/dsa/schema";
+import type {
+  SystemDesignItem,
+  SystemDesignTrack,
+} from "@careeright/domain/system-design/schema";
 
-type LearnView = "diary" | "dsa" | "history";
+type LearnView = "diary" | "dsa" | "system-design" | "history";
 type DiaryDraft = {
   dailySummary: string;
   status: DiaryStatus;
@@ -57,6 +62,7 @@ type DiaryDraft = {
 const learnOptions: { label: string; value: LearnView }[] = [
   { label: "Diary", value: "diary" },
   { label: "DSA", value: "dsa" },
+  { label: "System", value: "system-design" },
   { label: "History", value: "history" },
 ];
 
@@ -65,6 +71,10 @@ export default function LearnScreen() {
 
   if (view === "dsa") {
     return <DsaView setView={setView} view={view} />;
+  }
+
+  if (view === "system-design") {
+    return <SystemDesignView setView={setView} view={view} />;
   }
 
   if (view === "history") {
@@ -483,6 +493,152 @@ function DsaView({
   );
 }
 
+function SystemDesignView({
+  setView,
+  view,
+}: {
+  setView: (view: LearnView) => void;
+  view: LearnView;
+}) {
+  const { colors } = useAppTheme();
+  const listContentStyle = useScreenContentStyle({ tabBar: true });
+  const queryClient = useQueryClient();
+  const snapshotQuery = useQuery({
+    queryKey: systemDesignSnapshotQueryKey,
+    queryFn: () => rpcClient.systemDesign.snapshot(),
+  });
+  const [selectedTrackId, setSelectedTrackId] = useState("");
+
+  useEffect(() => {
+    const firstTrackId = snapshotQuery.data?.catalog.tracks[0]?.id;
+
+    if (firstTrackId && !selectedTrackId) {
+      setSelectedTrackId(firstTrackId);
+    }
+  }, [selectedTrackId, snapshotQuery.data?.catalog.tracks]);
+
+  const selectedTrack = snapshotQuery.data?.catalog.tracks.find(
+    (track) => track.id === selectedTrackId,
+  );
+  const items = selectedTrack ? flattenSystemDesignItems(selectedTrack) : [];
+  const progressByItem = new Map(
+    (snapshotQuery.data?.progress ?? []).map((item) => [item.itemId, item]),
+  );
+
+  const progressMutation = useMutation({
+    mutationFn: ({ completed, itemId }: { completed: boolean; itemId: string }) =>
+      rpcClient.systemDesign.updateItemProgress({ completed, itemId }),
+    onError: (error) => {
+      Alert.alert(
+        "Could not update progress",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+    },
+    onSuccess: async () => {
+      successImpact();
+      await queryClient.invalidateQueries({
+        queryKey: systemDesignSnapshotQueryKey,
+      });
+    },
+  });
+
+  const watchMutation = useMutation({
+    mutationFn: (itemId: string) =>
+      rpcClient.systemDesign.recordVideoWatch({ itemId }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: systemDesignSnapshotQueryKey,
+      });
+    },
+  });
+
+  const header = (
+    <View style={styles.headerWrap}>
+      <ScreenHeader
+        title="System Design"
+        subtitle="HLD, LLD, and distributed systems from basics to core."
+      />
+      <SegmentedControl onChange={setView} options={learnOptions} value={view} />
+      {snapshotQuery.data ? (
+        <View style={styles.statGrid}>
+          <StatCard
+            icon={BookOpenCheck}
+            label="Completed"
+            value={snapshotQuery.data.summary.completedItems}
+            detail={`${snapshotQuery.data.summary.completionPercentage}% done`}
+          />
+          <StatCard
+            icon={CalendarDays}
+            label="Lessons"
+            value={snapshotQuery.data.summary.totalLessons}
+            tone="accent"
+          />
+        </View>
+      ) : null}
+      <View style={styles.filterRow}>
+        {(snapshotQuery.data?.catalog.tracks ?? []).map((track) => (
+          <Pressable key={track.id} onPress={() => setSelectedTrackId(track.id)}>
+            <Badge tone={track.id === selectedTrackId ? "primary" : "default"}>
+              {track.title}
+            </Badge>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  );
+
+  if (snapshotQuery.isPending) {
+    return <LoadingState message="Loading System Design plan" />;
+  }
+
+  if (snapshotQuery.isError) {
+    return (
+      <EmptyState
+        title="System Design unavailable"
+        message="Careeright could not load your System Design snapshot."
+      />
+    );
+  }
+
+  return (
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <FlashList
+        ListEmptyComponent={
+          <EmptyState title="No items" message="Pick another track to continue." />
+        }
+        ListHeaderComponent={header}
+        contentContainerStyle={[styles.listContent, listContentStyle]}
+        contentInsetAdjustmentBehavior="automatic"
+        data={items}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => {
+          const progress = progressByItem.get(item.id);
+
+          return (
+            <SystemDesignItemCard
+              completed={Boolean(progress?.completed)}
+              isBusy={progressMutation.isPending}
+              onOpen={() => {
+                if (item.videoUrl) {
+                  watchMutation.mutate(item.id);
+                  openExternalUrl(item.videoUrl);
+                }
+              }}
+              onToggle={() =>
+                progressMutation.mutate({
+                  completed: !progress?.completed,
+                  itemId: item.id,
+                })
+              }
+              item={item}
+            />
+          );
+        }}
+      />
+    </View>
+  );
+}
+
 function HistoryView({
   setView,
   view,
@@ -594,6 +750,58 @@ function DsaQuestionCard({
 
 function flattenTrackQuestions(track: DsaTrack) {
   return track.subtopics.flatMap((subtopic) => subtopic.questions);
+}
+
+function SystemDesignItemCard({
+  completed,
+  isBusy,
+  item,
+  onOpen,
+  onToggle,
+}: {
+  completed: boolean;
+  isBusy: boolean;
+  item: SystemDesignItem;
+  onOpen: () => void;
+  onToggle: () => void;
+}) {
+  const { colors } = useAppTheme();
+
+  return (
+    <Card style={styles.questionCard}>
+      <View style={styles.taskTopRow}>
+        <Badge tone={completed ? "success" : "default"}>
+          {completed ? "Complete" : "Open"}
+        </Badge>
+        <Badge tone={item.sourceType === "drill" ? "violet" : "accent"}>
+          {item.sourceType === "drill" ? "Drill" : item.lessonLabel}
+        </Badge>
+      </View>
+      <Text selectable style={[styles.questionTitle, { color: colors.text }]}>
+        {item.title}
+      </Text>
+      <Text selectable style={[styles.mutedText, { color: colors.textMuted }]}>
+        {item.sourceType === "lesson"
+          ? `${item.lessonLabel} - ${item.sourceName ?? "Lesson"}`
+          : item.description}
+      </Text>
+      <View style={styles.taskActions}>
+        <Button disabled={isBusy} onPress={onToggle} variant={completed ? "secondary" : "primary"}>
+          {completed ? "Mark open" : "Mark done"}
+        </Button>
+        {item.videoUrl ? (
+          <Button onPress={onOpen} variant="ghost">
+            <PlayCircle color={colors.text} size={16} />
+            Open
+          </Button>
+        ) : null}
+      </View>
+    </Card>
+  );
+}
+
+function flattenSystemDesignItems(track: SystemDesignTrack) {
+  return track.modules.flatMap((module) => module.items);
 }
 
 const styles = StyleSheet.create({

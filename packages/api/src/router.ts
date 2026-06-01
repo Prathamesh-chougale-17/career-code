@@ -22,6 +22,15 @@ import {
   recordDsaVideoWatchInputSchema,
   updateDsaQuestionProgressInputSchema,
 } from "@careeright/domain/dsa/schema";
+import {
+  getSystemDesignSnapshot,
+  recordSystemDesignVideoWatch,
+  updateSystemDesignItemProgress,
+} from "@careeright/domain/system-design/store";
+import {
+  recordSystemDesignVideoWatchInputSchema,
+  updateSystemDesignItemProgressInputSchema,
+} from "@careeright/domain/system-design/schema";
 import { getHistorySnapshot } from "@careeright/domain/history/store";
 import { getLeaderboardSnapshot } from "@careeright/domain/leaderboard/store";
 import {
@@ -215,6 +224,21 @@ export const appRouter = {
       .input(recordDsaVideoWatchInputSchema)
       .handler(async ({ context, input }) => {
         return recordDsaVideoWatch(input, context.userId);
+      }),
+  },
+  systemDesign: {
+    snapshot: protectedProcedure.handler(async ({ context }) =>
+      getSystemDesignSnapshot(context.userId),
+    ),
+    updateItemProgress: protectedProcedure
+      .input(updateSystemDesignItemProgressInputSchema)
+      .handler(async ({ context, input }) => {
+        return updateSystemDesignItemProgress(input, context.userId);
+      }),
+    recordVideoWatch: protectedProcedure
+      .input(recordSystemDesignVideoWatchInputSchema)
+      .handler(async ({ context, input }) => {
+        return recordSystemDesignVideoWatch(input, context.userId);
       }),
   },
   history: {

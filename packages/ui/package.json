@@ -17,6 +17,7 @@
     "./components/profile/*": "./src/components/profile/*.tsx",
     "./components/projects/*": "./src/components/projects/*.tsx",
     "./components/proposals/*": "./src/components/proposals/*.tsx",
+    "./components/system-design/*": "./src/components/system-design/*.tsx",
     "./components/ui/*": "./src/components/ui/*.tsx",
     "./hooks/use-mobile": "./src/hooks/use-mobile.ts",
     "./lib/utils": "./src/lib/utils.ts",

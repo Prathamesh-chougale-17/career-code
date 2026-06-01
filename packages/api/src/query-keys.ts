@@ -5,6 +5,9 @@ export const diaryRecentQueryKey = ["diary-recent"] as const;
 export const diaryDayQueryKey = (dateKey: string) =>
   ["diary-day", dateKey] as const;
 export const dsaSnapshotQueryKey = ["dsa-snapshot"] as const;
+export const systemDesignSnapshotQueryKey = [
+  "system-design-snapshot",
+] as const;
 export const friendsSummaryQueryKey = ["friends-summary"] as const;
 export const friendSearchQueryKey = (query: string) =>
   ["friend-search", query] as const;

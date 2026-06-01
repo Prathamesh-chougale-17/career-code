@@ -15,6 +15,7 @@ export type CareerightDashboardRoute =
   | "jobs"
   | "diary"
   | "dsa"
+  | "system-design"
   | "friends"
   | "leaderboard"
   | "projects"

@@ -341,6 +341,20 @@ export function DsaLoadingPage() {
   );
 }
 
+export function SystemDesignLoadingPage() {
+  return (
+    <>
+      <DashboardHeaderSkeleton
+        titleClassName="w-32"
+        subtitleClassName="w-[28rem]"
+      />
+      <DashboardMain innerClassName="max-w-[1280px]">
+        <DsaContentSkeleton />
+      </DashboardMain>
+    </>
+  );
+}
+
 export function HistoryLoadingPage() {
   return (
     <>

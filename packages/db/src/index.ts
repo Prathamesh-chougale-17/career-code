@@ -129,6 +129,22 @@ async function ensureMongoIndexes(db: Db) {
       { key: { trackId: 1, subtopicId: 1, order: 1 } },
       { key: { sourceType: 1, affiliatedLessonId: 1 } },
     ]),
+    db.collection("systemDesignProgress").createIndexes([
+      { key: { userId: 1, itemId: 1 }, unique: true },
+    ]),
+    db.collection("systemDesignVideoWatchEvents").createIndexes([
+      { key: { userId: 1, watchedAt: -1 } },
+      { key: { userId: 1, itemId: 1, watchedAt: -1 } },
+    ]),
+    db.collection("systemDesignTracks").createIndexes([
+      { key: { id: 1 }, unique: true },
+      { key: { order: 1, title: 1 } },
+    ]),
+    db.collection("systemDesignItems").createIndexes([
+      { key: { id: 1 }, unique: true },
+      { key: { trackId: 1, moduleId: 1, order: 1 } },
+      { key: { sourceType: 1 } },
+    ]),
     db
       .collection("diaryDays")
       .createIndexes([{ key: { userId: 1, dateKey: -1 } }]),

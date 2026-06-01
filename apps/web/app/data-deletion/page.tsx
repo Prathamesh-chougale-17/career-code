@@ -11,7 +11,7 @@ const deletionMailto =
 export const metadata: Metadata = {
   title: "Careeright Data Deletion Request",
   description:
-    "Request deletion of your Careeright account data, profile data, job tracker data, board tasks, diary entries, DSA progress, proposals, and uploaded resume data.",
+    "Request deletion of your Careeright account data, profile data, job tracker data, board tasks, diary entries, DSA and System Design progress, proposals, and uploaded resume data.",
 };
 
 export default function DataDeletionPage() {
@@ -88,8 +88,9 @@ export default function DataDeletionPage() {
         <div className="mx-auto grid w-full max-w-5xl gap-5 md:grid-cols-3">
           <InfoCard icon={<Trash2 />} title="What we delete">
             Careeright account data linked to your Google sign-in, including
-            board tasks, job tracker records, diary entries, DSA progress,
-            proposals, profile items, resume import data, and MCP tokens.
+            board tasks, job tracker records, diary entries, DSA and System
+            Design progress, proposals, profile items, resume import data, and
+            MCP tokens.
           </InfoCard>
           <InfoCard icon={<Mail />} title="What to include">
             Include your Careeright Google account email and write whether you

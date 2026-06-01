@@ -46,6 +46,7 @@ import { McpToolsApp } from "@repo/ui/components/mcp/mcp-tools-app";
 import { ProfileApp } from "@repo/ui/components/profile/profile-app";
 import { ProjectsApp } from "@repo/ui/components/projects/projects-app";
 import { ProposalApp } from "@repo/ui/components/proposals/proposal-app";
+import { SystemDesignApp } from "@repo/ui/components/system-design/system-design-app";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Dialog,
@@ -64,6 +65,7 @@ type Route =
   | "jobs"
   | "diary"
   | "dsa"
+  | "system-design"
   | "friends"
   | "leaderboard"
   | "projects"
@@ -374,6 +376,7 @@ function DashboardRoute({ route }: { route: Route }) {
   if (route === "jobs") return <JobsApp />;
   if (route === "diary") return <DiaryApp />;
   if (route === "dsa") return <DsaApp />;
+  if (route === "system-design") return <SystemDesignApp />;
   if (route === "friends") return <FriendsApp />;
   if (route === "leaderboard") return <LeaderboardApp />;
   if (route === "projects") return <ProjectsApp />;

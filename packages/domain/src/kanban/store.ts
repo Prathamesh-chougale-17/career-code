@@ -10,6 +10,7 @@ import { getMongoDb, isMongoConfigured } from "@careeright/db";
 import { deleteDiaryUserData } from "@careeright/domain/diary/store";
 import { deleteDsaUserData } from "@careeright/domain/dsa/store";
 import { deleteJobUserData } from "@careeright/domain/jobs/store";
+import { deleteSystemDesignUserData } from "@careeright/domain/system-design/store";
 import {
   createDefaultBoard,
   createDefaultColumns,
@@ -1895,6 +1896,7 @@ export async function deleteUserScopedData(userId = SOLO_USER_ID) {
       jobCounts,
       diaryCounts,
       dsaCounts,
+      systemDesignCounts,
     ] = await Promise.all([
       collections.boards.deleteMany({ userId }),
       collections.columns.deleteMany({ userId }),
@@ -1909,6 +1911,7 @@ export async function deleteUserScopedData(userId = SOLO_USER_ID) {
       deleteJobUserData(userId),
       deleteDiaryUserData(userId),
       deleteDsaUserData(userId),
+      deleteSystemDesignUserData(userId),
     ]);
 
     return {
@@ -1925,6 +1928,7 @@ export async function deleteUserScopedData(userId = SOLO_USER_ID) {
       ...jobCounts,
       ...diaryCounts,
       ...dsaCounts,
+      ...systemDesignCounts,
     };
   }
 
@@ -1933,6 +1937,7 @@ export async function deleteUserScopedData(userId = SOLO_USER_ID) {
   const jobCounts = await deleteJobUserData(userId);
   const diaryCounts = await deleteDiaryUserData(userId);
   const dsaCounts = await deleteDsaUserData(userId);
+  const systemDesignCounts = await deleteSystemDesignUserData(userId);
   const counts = {
     boards: memory.boards.filter((item) => item.userId === userId).length,
     columns: memory.columns.filter((item) => item.userId === userId).length,
@@ -1962,5 +1967,6 @@ export async function deleteUserScopedData(userId = SOLO_USER_ID) {
     ...jobCounts,
     ...diaryCounts,
     ...dsaCounts,
+    ...systemDesignCounts,
   };
 }

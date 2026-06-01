@@ -8,6 +8,7 @@ import {
   ClipboardList,
   FolderKanban,
   History as HistoryIcon,
+  Network,
   Server,
   Sparkles,
   Trophy,
@@ -93,6 +94,7 @@ export function DashboardSidebar() {
               <SidebarItem route="jobs" href="/dashboard/jobs" label="Jobs" icon={Briefcase} currentRoute={currentRoute} />
               <SidebarItem route="diary" href="/dashboard/diary" label="Diary" icon={BookOpen} currentRoute={currentRoute} />
               <SidebarItem route="dsa" href="/dashboard/dsa" label="DSA" icon={Code2} currentRoute={currentRoute} />
+              <SidebarItem route="system-design" href="/dashboard/system-design" label="System Design" icon={Network} currentRoute={currentRoute} />
               <SidebarMenuItem>
                 <SidebarMenuButton
                   isActive={currentRoute === "friends"}
