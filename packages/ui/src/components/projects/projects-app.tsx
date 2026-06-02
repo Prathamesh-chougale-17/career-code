@@ -23,6 +23,7 @@ import {
 import {
   Suspense,
   lazy,
+  useDeferredValue,
   useEffect,
   useMemo,
   useState,
@@ -244,6 +245,7 @@ export function ProjectsApp({
   const { rpcClient, openExternal } = useCareerightUi();
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const [selectedProjectId, setSelectedProjectId] = useState("");
   const [activeNoteId, setActiveNoteId] = useState("");
   const [projectDialog, setProjectDialog] = useState<ProjectDialogState | null>(
@@ -278,11 +280,13 @@ export function ProjectsApp({
     queryKey: projectsSummaryQueryKey,
     queryFn: () => rpcClient.projects.summary(),
     initialData: initialSummary,
+    notifyOnChangeProps: ["data"],
   });
   const projectsQuery = useQuery({
     queryKey: projectsListQueryKey,
     queryFn: () => rpcClient.projects.list(),
     initialData: initialProjects,
+    notifyOnChangeProps: ["data", "isPending"],
   });
   const projects = projectsQuery.data ?? [];
   const selectedProject =
@@ -294,13 +298,14 @@ export function ProjectsApp({
     queryKey: projectDetailQueryKey(effectiveProjectId),
     queryFn: () => rpcClient.projects.get({ projectId: effectiveProjectId }),
     enabled: Boolean(effectiveProjectId),
+    notifyOnChangeProps: ["data", "isPending"],
   });
   const detail = detailQuery.data;
   const notes = detail?.notes ?? [];
   const activeNote =
     notes.find((note) => note.id === activeNoteId) ?? notes[0] ?? null;
   const filteredProjects = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
+    const query = deferredSearchQuery.trim().toLowerCase();
 
     if (!query) {
       return projects;
@@ -317,7 +322,7 @@ export function ProjectsApp({
         .toLowerCase()
         .includes(query),
     );
-  }, [projects, searchQuery]);
+  }, [deferredSearchQuery, projects]);
 
   useEffect(() => {
     if (!selectedProjectId && projects[0]) {

@@ -15,6 +15,7 @@ import {
   UserRound,
   UsersRound,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 import {
@@ -41,6 +42,7 @@ import {
   dashboardMetricsQueryKey,
   friendsSummaryQueryKey,
 } from "@careeright/api/query-keys";
+import { scheduleIdleTask } from "../lib/schedule-idle-task";
 
 export function DashboardSidebar() {
   const {
@@ -50,13 +52,32 @@ export function DashboardSidebar() {
     UserAccountMenuComponent,
     rpcClient,
   } = useCareerightUi();
+  const [shouldLoadFriendsSummary, setShouldLoadFriendsSummary] = useState(
+    currentRoute === "friends",
+  );
+
+  useEffect(() => {
+    if (shouldLoadFriendsSummary || currentRoute === "friends") {
+      setShouldLoadFriendsSummary(true);
+      return;
+    }
+
+    return scheduleIdleTask(() => setShouldLoadFriendsSummary(true), {
+      fallbackDelay: 500,
+      timeout: 1500,
+    });
+  }, [currentRoute, shouldLoadFriendsSummary]);
+
   const metricsQuery = useQuery({
     queryKey: dashboardMetricsQueryKey,
     queryFn: () => rpcClient.dashboard.metrics(),
+    notifyOnChangeProps: ["data", "isPending"],
   });
   const friendsQuery = useQuery({
     queryKey: friendsSummaryQueryKey,
     queryFn: () => rpcClient.friends.summary(),
+    enabled: shouldLoadFriendsSummary,
+    notifyOnChangeProps: ["data"],
   });
   const metrics = metricsQuery.data;
   const friendsSummary = friendsQuery.data;
@@ -206,4 +227,3 @@ function Metric({ label, value }: { label: string; value: number }) {
     </div>
   );
 }
-

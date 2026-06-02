@@ -131,11 +131,13 @@ export function FriendsApp({ initialSummary }: { initialSummary?: FriendsSummary
     queryKey: friendsSummaryQueryKey,
     queryFn: () => rpcClient.friends.summary(),
     initialData: initialSummary,
+    notifyOnChangeProps: ["data"],
   });
   const searchQueryResult = useQuery({
     queryKey: friendSearchQueryKey(normalizedSearchEmail),
     queryFn: () => rpcClient.friends.searchUsers({ query: normalizedSearchEmail }),
     enabled: canSearchByEmail,
+    notifyOnChangeProps: ["data", "isPending"],
   });
 
   const summary = summaryQuery.data;
@@ -864,6 +866,7 @@ function SharesCard({
     queryKey: friendShareDetailQueryKey(selectedShareId ?? ""),
     queryFn: () => rpcClient.friends.getShare({ shareId: selectedShareId ?? "" }),
     enabled: Boolean(selectedShareId),
+    notifyOnChangeProps: ["data", "isPending"],
   });
 
   return (

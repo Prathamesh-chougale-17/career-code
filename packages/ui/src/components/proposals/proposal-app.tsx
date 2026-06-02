@@ -139,6 +139,7 @@ export function ProposalApp({
     queryKey: boardSnapshotQueryKey,
     queryFn: () => rpcClient.board.snapshot(),
     initialData: initialSnapshot,
+    notifyOnChangeProps: ["data", "isPending", "isError", "error"],
     staleTime: 60_000,
   });
 
@@ -146,6 +147,7 @@ export function ProposalApp({
     queryKey: proposalHistoryQueryKey,
     queryFn: () => rpcClient.proposal.list(),
     initialData: initialProposals,
+    notifyOnChangeProps: ["data", "isPending", "isError", "error"],
     staleTime: 60_000,
   });
 

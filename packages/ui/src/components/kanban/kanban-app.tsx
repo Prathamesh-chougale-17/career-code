@@ -29,11 +29,7 @@ import {
   Check,
 } from "lucide-react";
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
-import type {
-  CSSProperties,
-  FormEvent,
-  ReactNode,
-} from "react";
+import type { CSSProperties, FormEvent, ReactNode } from "react";
 
 import { TaskReferenceLinks } from "../task-reference-links";
 import { Badge } from "../ui/badge";
@@ -47,11 +43,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-} from "../ui/empty";
+import { Empty, EmptyDescription, EmptyHeader } from "../ui/empty";
 import { ScrollArea } from "../ui/scroll-area";
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
@@ -202,6 +194,7 @@ export function KanbanApp({
     queryKey: boardSnapshotQueryKey,
     queryFn: () => rpcClient.board.snapshot(),
     initialData: initialSnapshot,
+    notifyOnChangeProps: ["data", "isPending", "isError", "error"],
     staleTime: 60_000,
   });
 
@@ -250,8 +243,7 @@ export function KanbanApp({
   });
 
   const revertTaskMutation = useMutation({
-    mutationFn: (taskId: string) =>
-      rpcClient.task.revertToProposal({ taskId }),
+    mutationFn: (taskId: string) => rpcClient.task.revertToProposal({ taskId }),
     onSuccess: () => void invalidateBoard(),
   });
 
@@ -259,13 +251,13 @@ export function KanbanApp({
     mutationFn: (input: ReorderTaskInput) => rpcClient.task.reorder(input),
     onMutate: async (input) => {
       await queryClient.cancelQueries({ queryKey: boardSnapshotQueryKey });
-      const previousSnapshot =
-        queryClient.getQueryData<BoardSnapshot>(boardSnapshotQueryKey);
+      const previousSnapshot = queryClient.getQueryData<BoardSnapshot>(
+        boardSnapshotQueryKey,
+      );
 
       queryClient.setQueryData<BoardSnapshot>(
         boardSnapshotQueryKey,
-        (currentSnapshot) =>
-          applyOptimisticTaskReorder(currentSnapshot, input),
+        (currentSnapshot) => applyOptimisticTaskReorder(currentSnapshot, input),
       );
 
       return { previousSnapshot };
@@ -293,13 +285,19 @@ export function KanbanApp({
     }
 
     for (const task of snapshot?.tasks ?? []) {
-      grouped.set(task.columnId, [...(grouped.get(task.columnId) ?? []), task]);
+      const columnTasks = grouped.get(task.columnId);
+
+      if (columnTasks) {
+        columnTasks.push(task);
+      } else {
+        grouped.set(task.columnId, [task]);
+      }
     }
 
     for (const [columnId, tasks] of grouped) {
       grouped.set(
         columnId,
-        [...tasks].sort((a, b) => a.order - b.order),
+        tasks.sort((a, b) => a.order - b.order),
       );
     }
 
@@ -378,9 +376,9 @@ export function KanbanApp({
           <CardHeader>
             <CardTitle>Board could not load</CardTitle>
             <CardDescription>
-            {snapshotQuery.error instanceof Error
-              ? snapshotQuery.error.message
-              : "Something went wrong while loading the board."}
+              {snapshotQuery.error instanceof Error
+                ? snapshotQuery.error.message
+                : "Something went wrong while loading the board."}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -446,12 +444,8 @@ export function KanbanApp({
                         column={column}
                         tasks={tasksByColumn.get(column.id) ?? []}
                         onEdit={openEditTaskDialog}
-                        onDelete={(taskId) =>
-                          deleteTaskMutation.mutate(taskId)
-                        }
-                        onRevert={(taskId) =>
-                          revertTaskMutation.mutate(taskId)
-                        }
+                        onDelete={(taskId) => deleteTaskMutation.mutate(taskId)}
+                        onRevert={(taskId) => revertTaskMutation.mutate(taskId)}
                         busyTaskId={
                           deleteTaskMutation.isPending
                             ? deleteTaskMutation.variables
@@ -564,25 +558,28 @@ function KanbanInitialSkeleton() {
                         <Skeleton className="h-6 w-10 rounded-full" />
                       </div>
                       <div className="grid min-h-0 flex-1 content-start gap-3 overflow-hidden p-3">
-                        {Array.from({ length: columnIndex === 0 ? 4 : 3 }, (_, cardIndex) => (
-                          <div
-                            key={cardIndex}
-                            className="rounded-xl border border-border bg-background/80 p-3 shadow-sm"
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0 flex-1 space-y-2">
-                                <Skeleton className="h-4 w-4/5 rounded-md" />
-                                <Skeleton className="h-3 w-full rounded-md" />
-                                <Skeleton className="h-3 w-2/3 rounded-md" />
+                        {Array.from(
+                          { length: columnIndex === 0 ? 4 : 3 },
+                          (_, cardIndex) => (
+                            <div
+                              key={cardIndex}
+                              className="rounded-xl border border-border bg-background/80 p-3 shadow-sm"
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1 space-y-2">
+                                  <Skeleton className="h-4 w-4/5 rounded-md" />
+                                  <Skeleton className="h-3 w-full rounded-md" />
+                                  <Skeleton className="h-3 w-2/3 rounded-md" />
+                                </div>
+                                <Skeleton className="size-7 rounded-md" />
                               </div>
-                              <Skeleton className="size-7 rounded-md" />
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                <Skeleton className="h-5 w-16 rounded-full" />
+                                <Skeleton className="h-5 w-20 rounded-full" />
+                              </div>
                             </div>
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              <Skeleton className="h-5 w-16 rounded-full" />
-                              <Skeleton className="h-5 w-20 rounded-full" />
-                            </div>
-                          </div>
-                        ))}
+                          ),
+                        )}
                       </div>
                     </div>
                   ))}
@@ -627,9 +624,7 @@ function KanbanColumn({
       <CardHeader className="px-4">
         <CardTitle className="flex items-center gap-2 text-sm">
           <span className={cn("size-2.5 rounded-full", column.color)} />
-          <span className="truncate">
-            {column.title}
-          </span>
+          <span className="truncate">{column.title}</span>
         </CardTitle>
         <CardAction>
           <Badge variant="outline">{tasks.length}</Badge>
@@ -869,9 +864,7 @@ function TaskCardView({
       </CardContent>
 
       {actions ? (
-        <CardFooter className="justify-end gap-1 px-3">
-          {actions}
-        </CardFooter>
+        <CardFooter className="justify-end gap-1 px-3">{actions}</CardFooter>
       ) : null}
     </Card>
   );
@@ -940,6 +933,3 @@ function IconButton({
     </Button>
   );
 }
-
-
-

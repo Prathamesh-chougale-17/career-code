@@ -2,6 +2,8 @@ import {
   dehydrate,
   hydrate,
   type DehydratedState,
+  type Query,
+  type QueryCacheNotifyEvent,
   type QueryClient,
 } from "@tanstack/react-query";
 import type { Store } from "@tauri-apps/plugin-store";
@@ -39,6 +41,13 @@ type PersistedQueryCache = {
   version: typeof cacheVersion;
   savedAt: number;
   state: DehydratedState;
+};
+
+type DesktopPersistableQuery = Pick<Query, "queryKey" | "state">;
+type DesktopQueryCacheEvent = {
+  action?: { type?: string };
+  query?: DesktopPersistableQuery;
+  type: QueryCacheNotifyEvent["type"];
 };
 
 let storePromise: Promise<Store> | undefined;
@@ -88,7 +97,10 @@ export function installDesktopQueryPersistence(
   }
 
   let disposed = false;
+  let idleSaveCancel: (() => void) | undefined;
+  let lastSerializedSnapshot: string | undefined;
   let saveTimer: number | undefined;
+  let savePromise = Promise.resolve();
 
   function scheduleSave() {
     if (disposed) {
@@ -96,32 +108,56 @@ export function installDesktopQueryPersistence(
     }
 
     window.clearTimeout(saveTimer);
+    idleSaveCancel?.();
     saveTimer = window.setTimeout(() => {
-      void saveDesktopQueryCache(queryClient, userId);
+      idleSaveCancel = schedulePersistenceIdleTask(persistNow);
     }, persistDelayMs);
+  }
+
+  function persistNow() {
+    savePromise = savePromise
+      .then(async () => {
+        lastSerializedSnapshot = await saveDesktopQueryCache(
+          queryClient,
+          userId,
+          lastSerializedSnapshot,
+        );
+      })
+      .catch((error: unknown) => {
+        console.info("Careeright query cache persistence failed", error);
+      });
   }
 
   function saveSoon() {
     if (document.visibilityState === "hidden") {
-      window.clearTimeout(saveTimer);
-      void saveDesktopQueryCache(queryClient, userId);
+      flushSave();
       return;
     }
 
     scheduleSave();
   }
 
-  const unsubscribe = queryClient.getQueryCache().subscribe(saveSoon);
+  function flushSave() {
+    window.clearTimeout(saveTimer);
+    idleSaveCancel?.();
+    idleSaveCancel = undefined;
+    persistNow();
+  }
+
+  const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+    if (shouldSaveDesktopQueryCacheEvent(event)) {
+      saveSoon();
+    }
+  });
 
   window.addEventListener("visibilitychange", saveSoon);
-  window.addEventListener("beforeunload", saveSoon);
+  window.addEventListener("beforeunload", flushSave);
 
   return () => {
-    window.clearTimeout(saveTimer);
+    flushSave();
     unsubscribe();
     window.removeEventListener("visibilitychange", saveSoon);
-    window.removeEventListener("beforeunload", saveSoon);
-    void saveDesktopQueryCache(queryClient, userId);
+    window.removeEventListener("beforeunload", flushSave);
     disposed = true;
   };
 }
@@ -136,34 +172,132 @@ export async function clearDesktopQueryCache(userId: string) {
   await store.save();
 }
 
-async function saveDesktopQueryCache(queryClient: QueryClient, userId: string) {
-  if (!isTauriRuntime()) {
-    return;
+export function shouldDehydrateDesktopQuery(query: DesktopPersistableQuery) {
+  const root = query.queryKey[0];
+
+  return (
+    query.state.status === "success" &&
+    typeof root === "string" &&
+    persistedQueryRoots.has(root)
+  );
+}
+
+export function shouldSaveDesktopQueryCacheEvent(
+  event: DesktopQueryCacheEvent,
+) {
+  if (!event.query) {
+    return false;
   }
 
-  const state = dehydrate(queryClient, {
-    shouldDehydrateQuery: (query) => {
-      const root = query.queryKey[0];
+  if (event.type === "removed") {
+    return isDesktopPersistedQueryRoot(event.query.queryKey);
+  }
 
-      return (
-        query.state.status === "success" &&
-        typeof root === "string" &&
-        persistedQueryRoots.has(root)
-      );
-    },
-  });
+  if (event.type === "added") {
+    return shouldDehydrateDesktopQuery(event.query);
+  }
 
-  if (state.queries.length === 0) {
-    return;
+  if (event.type !== "updated" || !shouldDehydrateDesktopQuery(event.query)) {
+    return false;
+  }
+
+  return event.action?.type === "success" || event.action?.type === "setState";
+}
+
+export function createDesktopQueryCacheSnapshot(queryClient: QueryClient) {
+  return normalizeDesktopQueryCacheState(
+    dehydrate(queryClient, {
+      shouldDehydrateQuery: shouldDehydrateDesktopQuery,
+    }),
+  );
+}
+
+export function serializeDesktopQueryCacheState(state: DehydratedState) {
+  return JSON.stringify(state);
+}
+
+async function saveDesktopQueryCache(
+  queryClient: QueryClient,
+  userId: string,
+  previousSerializedSnapshot: string | undefined,
+) {
+  if (!isTauriRuntime()) {
+    return previousSerializedSnapshot;
+  }
+
+  const state = createDesktopQueryCacheSnapshot(queryClient);
+  const serializedSnapshot = serializeDesktopQueryCacheState(state);
+
+  if (serializedSnapshot === previousSerializedSnapshot) {
+    return previousSerializedSnapshot;
   }
 
   const store = await getStore();
+
+  if (state.queries.length === 0) {
+    await store.delete(cacheKey(userId));
+    await store.save();
+    return serializedSnapshot;
+  }
+
   await store.set(cacheKey(userId), {
     version: cacheVersion,
     savedAt: Date.now(),
     state,
   } satisfies PersistedQueryCache);
   await store.save();
+  return serializedSnapshot;
+}
+
+function normalizeDesktopQueryCacheState(state: DehydratedState) {
+  return {
+    mutations: [],
+    queries: state.queries
+      .map((query) => {
+        const normalizedQuery = {
+          ...query,
+          state: {
+            ...query.state,
+            fetchFailureCount: 0,
+            fetchFailureReason: null,
+            fetchMeta: null,
+            fetchStatus: "idle" as const,
+          },
+        };
+
+        delete normalizedQuery.dehydratedAt;
+        return normalizedQuery;
+      })
+      .sort((left, right) => left.queryHash.localeCompare(right.queryHash)),
+  } satisfies DehydratedState;
+}
+
+function isDesktopPersistedQueryRoot(queryKey: readonly unknown[]) {
+  const root = queryKey[0];
+
+  return typeof root === "string" && persistedQueryRoots.has(root);
+}
+
+function schedulePersistenceIdleTask(task: () => void) {
+  const desktopWindow = window as Window & {
+    cancelIdleCallback?: (handle: number) => void;
+    requestIdleCallback?: (
+      callback: IdleRequestCallback,
+      options?: IdleRequestOptions,
+    ) => number;
+  };
+
+  if (desktopWindow.requestIdleCallback && desktopWindow.cancelIdleCallback) {
+    const handle = desktopWindow.requestIdleCallback(task, {
+      timeout: 1000,
+    });
+
+    return () => desktopWindow.cancelIdleCallback?.(handle);
+  }
+
+  const timeoutId = window.setTimeout(task, 0);
+
+  return () => window.clearTimeout(timeoutId);
 }
 
 function cacheKey(userId: string) {

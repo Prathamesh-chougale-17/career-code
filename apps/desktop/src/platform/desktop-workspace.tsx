@@ -34,15 +34,16 @@ import { useQueryClient } from "@repo/ui/providers/query-provider";
 
 import Link from "../adapters/next/link";
 import { enableAutostartByDefault } from "../lib/autostart";
-import { createAuthenticatedHeaders, remoteRpcClient, rpcClient } from "../lib/api";
+import {
+  createAuthenticatedHeaders,
+  remoteRpcClient,
+  rpcClient,
+} from "../lib/api";
 import type { DesktopSession } from "../lib/auth";
 import { getCareerightOrigin } from "../lib/config";
 import { CareerightLogo } from "./careeright-logo";
 import { ThemeToggle } from "./theme-toggle";
-import {
-  UserAccountMenu,
-  type DesktopOfflineState,
-} from "./user-account-menu";
+import { UserAccountMenu, type DesktopOfflineState } from "./user-account-menu";
 
 type Route =
   | "analytics"
@@ -67,9 +68,11 @@ const defaultOfflineState: DesktopOfflineState = {
 };
 
 const loadDashboardAnalyticsApp = () =>
-  import("@repo/ui/components/dashboard/dashboard-analytics-app").then((module) => ({
-    default: module.DashboardAnalyticsApp,
-  }));
+  import("@repo/ui/components/dashboard/dashboard-analytics-app").then(
+    (module) => ({
+      default: module.DashboardAnalyticsApp,
+    }),
+  );
 const loadKanbanApp = () =>
   import("@repo/ui/components/kanban/kanban-app").then((module) => ({
     default: module.KanbanApp,
@@ -87,9 +90,11 @@ const loadDsaApp = () =>
     default: module.DsaApp,
   }));
 const loadSystemDesignApp = () =>
-  import("@repo/ui/components/system-design/system-design-app").then((module) => ({
-    default: module.SystemDesignApp,
-  }));
+  import("@repo/ui/components/system-design/system-design-app").then(
+    (module) => ({
+      default: module.SystemDesignApp,
+    }),
+  );
 const loadFriendsApp = () =>
   import("@repo/ui/components/friends/friends-app").then((module) => ({
     default: module.FriendsApp,
@@ -149,6 +154,10 @@ const routePreloaders: Record<Route, () => Promise<unknown>> = {
   profile: loadProfileApp,
 };
 
+export function preloadInitialDesktopWorkspaceRoute() {
+  return routePreloaders.analytics();
+}
+
 export function DesktopWorkspace({
   onSignOut,
   session,
@@ -167,7 +176,9 @@ export function DesktopWorkspace({
       return storedTheme;
     }
 
-    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    return window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
   });
 
   useEffect(() => {
@@ -181,12 +192,17 @@ export function DesktopWorkspace({
       const nextRoute = detail?.route;
 
       if (nextRoute) {
+        void warmDesktopRoute(queryClient, nextRoute);
         startTransition(() => setRoute(nextRoute));
       }
     }
 
     window.addEventListener("careeright:navigate", handleDesktopNavigation);
-    return () => window.removeEventListener("careeright:navigate", handleDesktopNavigation);
+    return () =>
+      window.removeEventListener(
+        "careeright:navigate",
+        handleDesktopNavigation,
+      );
   }, []);
 
   useEffect(() => {
@@ -194,14 +210,19 @@ export function DesktopWorkspace({
       const detail = (event as CustomEvent<{ route?: Route }>).detail;
 
       if (detail?.route) {
-        void routePreloaders[detail.route]();
-        void preloadRouteData(queryClient, detail.route);
+        void warmDesktopRoute(queryClient, detail.route);
       }
     }
 
-    window.addEventListener("careeright:preload-route", handleDesktopRoutePreload);
+    window.addEventListener(
+      "careeright:preload-route",
+      handleDesktopRoutePreload,
+    );
     return () =>
-      window.removeEventListener("careeright:preload-route", handleDesktopRoutePreload);
+      window.removeEventListener(
+        "careeright:preload-route",
+        handleDesktopRoutePreload,
+      );
   }, [queryClient]);
 
   useEffect(() => {
@@ -215,61 +236,90 @@ export function DesktopWorkspace({
     let disposeQueryPersistence: () => void = () => undefined;
     let disposeOfflineReplay: () => void = () => undefined;
     let disposeOfflineStatus: () => void = () => undefined;
+    let cancelOfflineStartupWork: () => void = () => undefined;
 
-    void Promise.all([
-      import("../lib/query-persistence"),
-      import("../lib/offline-mutations"),
-    ]).then(([queryPersistence, offlineMutations]) => {
-      if (disposed) {
-        return;
-      }
+    const cancelStartupWork = scheduleDesktopIdleTask(() => {
+      void import("../lib/query-persistence")
+        .then((queryPersistence) => {
+          if (disposed) {
+            return;
+          }
 
-      disposeQueryPersistence = queryPersistence.installDesktopQueryPersistence(
-        queryClient,
-        session.user.id,
-      );
-      disposeOfflineReplay = offlineMutations.installDesktopOfflineMutationReplay(
-        remoteRpcClient,
-        queryClient,
-        session.user.id,
-      );
-
-      async function refreshOfflineState() {
-        const pendingCount =
-          await offlineMutations.getDesktopOfflineMutationQueueSize(
-            session.user.id,
+          disposeQueryPersistence =
+            queryPersistence.installDesktopQueryPersistence(
+              queryClient,
+              session.user.id,
+            );
+        })
+        .catch((error: unknown) => {
+          console.info(
+            "Careeright query cache persistence setup failed",
+            error,
           );
-
-        if (disposed) {
-          return;
-        }
-
-        setOfflineState({
-          isOffline:
-            typeof navigator !== "undefined" ? !navigator.onLine : false,
-          isReplayActive: offlineMutations.isDesktopOfflineMutationReplayActive(),
-          pendingCount,
         });
-      }
 
-      disposeOfflineStatus =
-        offlineMutations.subscribeDesktopOfflineMutationStatus(() => {
-          void refreshOfflineState();
-        });
-      void refreshOfflineState();
+      cancelOfflineStartupWork = scheduleDesktopIdleTask(() => {
+        void import("../lib/offline-mutations")
+          .then((offlineMutations) => {
+            if (disposed) {
+              return;
+            }
+
+            disposeOfflineReplay =
+              offlineMutations.installDesktopOfflineMutationReplay(
+                remoteRpcClient,
+                queryClient,
+                session.user.id,
+              );
+
+            async function refreshOfflineState() {
+              const pendingCount =
+                await offlineMutations.getDesktopOfflineMutationQueueSize(
+                  session.user.id,
+                );
+
+              if (disposed) {
+                return;
+              }
+
+              setOfflineState({
+                isOffline:
+                  typeof navigator !== "undefined" ? !navigator.onLine : false,
+                isReplayActive:
+                  offlineMutations.isDesktopOfflineMutationReplayActive(),
+                pendingCount,
+              });
+            }
+
+            disposeOfflineStatus =
+              offlineMutations.subscribeDesktopOfflineMutationStatus(() => {
+                void refreshOfflineState();
+              });
+            void refreshOfflineState();
+          })
+          .catch((error: unknown) => {
+            console.info("Careeright offline replay setup failed", error);
+          });
+      });
     });
 
     return () => {
       disposed = true;
+      cancelStartupWork();
+      cancelOfflineStartupWork();
       disposeQueryPersistence();
       disposeOfflineReplay();
       disposeOfflineStatus();
     };
   }, [queryClient, session.user.id]);
 
-  const navigate = useCallback((nextRoute: Route) => {
-    startTransition(() => setRoute(nextRoute));
-  }, []);
+  const navigate = useCallback(
+    (nextRoute: Route) => {
+      void warmDesktopRoute(queryClient, nextRoute);
+      startTransition(() => setRoute(nextRoute));
+    },
+    [queryClient],
+  );
 
   const DesktopThemeToggle = useCallback(
     () => (
@@ -395,6 +445,41 @@ async function copyText(text: string) {
   await navigator.clipboard.writeText(text);
 }
 
+function warmDesktopRoute(
+  queryClient: ReturnType<typeof useQueryClient>,
+  route: Route,
+) {
+  void routePreloaders[route]();
+
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    return;
+  }
+
+  void preloadRouteData(queryClient, route);
+}
+
+function scheduleDesktopIdleTask(task: () => void) {
+  const desktopWindow = window as Window & {
+    cancelIdleCallback?: (handle: number) => void;
+    requestIdleCallback?: (
+      callback: IdleRequestCallback,
+      options?: IdleRequestOptions,
+    ) => number;
+  };
+
+  if (desktopWindow.requestIdleCallback && desktopWindow.cancelIdleCallback) {
+    const handle = desktopWindow.requestIdleCallback(task, {
+      timeout: 1200,
+    });
+
+    return () => desktopWindow.cancelIdleCallback?.(handle);
+  }
+
+  const timeoutId = window.setTimeout(task, 350);
+
+  return () => window.clearTimeout(timeoutId);
+}
+
 async function preloadRouteData(
   queryClient: ReturnType<typeof useQueryClient>,
   route: Route,
@@ -427,7 +512,9 @@ async function preloadRouteData(
   } else if (route === "diary") {
     const today = localDateKey();
 
-    prefetch(diaryRecentQueryKey, () => rpcClient.diary.listRecent({ limit: 30 }));
+    prefetch(diaryRecentQueryKey, () =>
+      rpcClient.diary.listRecent({ limit: 30 }),
+    );
     prefetch(diaryDayQueryKey(today), () =>
       rpcClient.diary.getDay({ dateKey: today }),
     );
@@ -440,7 +527,9 @@ async function preloadRouteData(
   } else if (route === "friends") {
     prefetch(friendsSummaryQueryKey, () => rpcClient.friends.summary());
   } else if (route === "leaderboard") {
-    prefetch(leaderboardSnapshotQueryKey, () => rpcClient.leaderboard.snapshot());
+    prefetch(leaderboardSnapshotQueryKey, () =>
+      rpcClient.leaderboard.snapshot(),
+    );
   } else if (route === "projects") {
     prefetch(projectsSummaryQueryKey, () => rpcClient.projects.summary());
     prefetch(projectsListQueryKey, () => rpcClient.projects.list());

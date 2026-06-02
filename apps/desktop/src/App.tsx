@@ -17,21 +17,29 @@ import "./App.css";
 
 type Status = "booting" | "signed-out" | "signed-in";
 
-const DesktopAuthScreen = lazy(() =>
+const loadDesktopAuthScreen = () =>
   import("./platform/desktop-auth-screen").then((module) => ({
     default: module.DesktopAuthScreen,
-  })),
-);
-const DesktopUpdatePrompt = lazy(() =>
+  }));
+const loadDesktopUpdatePrompt = () =>
   import("./platform/desktop-update-prompt").then((module) => ({
     default: module.DesktopUpdatePrompt,
-  })),
-);
-const DesktopWorkspace = lazy(() =>
-  import("./platform/desktop-workspace").then((module) => ({
+  }));
+let desktopWorkspaceModulePromise:
+  | Promise<typeof import("./platform/desktop-workspace")>
+  | undefined;
+const loadDesktopWorkspaceModule = () => {
+  desktopWorkspaceModulePromise ??= import("./platform/desktop-workspace");
+  return desktopWorkspaceModulePromise;
+};
+const loadDesktopWorkspace = () =>
+  loadDesktopWorkspaceModule().then((module) => ({
     default: module.DesktopWorkspace,
-  })),
-);
+  }));
+
+const DesktopAuthScreen = lazy(loadDesktopAuthScreen);
+const DesktopUpdatePrompt = lazy(loadDesktopUpdatePrompt);
+const DesktopWorkspace = lazy(loadDesktopWorkspace);
 
 applyInitialDesktopTheme();
 
@@ -41,48 +49,55 @@ function App() {
   const [session, setSession] = useState<DesktopSession | null>(null);
   const [authError, setAuthError] = useState("");
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [shouldLoadUpdatePrompt, setShouldLoadUpdatePrompt] = useState(false);
 
   useEffect(() => {
     let mounted = true;
+    let cancelSessionRefresh: () => void = () => undefined;
 
     loadDesktopSession()
       .then(async (storedSession) => {
         if (!mounted) return;
 
         if (!storedSession) {
+          void loadDesktopAuthScreen();
           setSession(null);
           setStatus("signed-out");
           return;
         }
 
-        await restoreCachedWorkspace(queryClient, storedSession.user.id);
+        await prepareCachedWorkspace(queryClient, storedSession.user.id);
 
         if (!mounted) return;
         setSession(storedSession);
         setStatus("signed-in");
-
-        try {
-          const refreshedSession = await refreshDesktopSession(storedSession);
-
-          if (mounted) {
-            setSession(refreshedSession);
-          }
-        } catch {
-          // Keep a valid local session even if the identity refresh is offline.
-        }
+        cancelSessionRefresh = scheduleDesktopSessionRefresh(
+          storedSession,
+          (refreshedSession) => {
+            if (mounted) {
+              setSession(refreshedSession);
+            }
+          },
+        );
       })
       .catch((error: unknown) => {
         if (!mounted) return;
+        void loadDesktopAuthScreen();
         setAuthError(getErrorMessage(error));
         setStatus("signed-out");
       });
 
     return () => {
       mounted = false;
+      cancelSessionRefresh();
     };
   }, [queryClient]);
 
   useEffect(() => {
+    if (status !== "signed-out") {
+      return;
+    }
+
     let unlisten: (() => void) | undefined;
 
     listenForDesktopCallbacks(async (url) => {
@@ -99,7 +114,7 @@ function App() {
 
       try {
         const nextSession = await exchangeDesktopCode(code, state);
-        await restoreCachedWorkspace(queryClient, nextSession.user.id);
+        await prepareCachedWorkspace(queryClient, nextSession.user.id);
         setSession(nextSession);
         setStatus("signed-in");
         await queryClient.invalidateQueries();
@@ -107,7 +122,7 @@ function App() {
         const storedSession = await loadDesktopSession().catch(() => null);
 
         if (storedSession) {
-          await restoreCachedWorkspace(queryClient, storedSession.user.id);
+          await prepareCachedWorkspace(queryClient, storedSession.user.id);
           setSession(storedSession);
           setStatus("signed-in");
           setAuthError("");
@@ -130,7 +145,17 @@ function App() {
     return () => {
       unlisten?.();
     };
-  }, [queryClient]);
+  }, [queryClient, status]);
+
+  useEffect(() => {
+    if (status === "booting" || shouldLoadUpdatePrompt) {
+      return;
+    }
+
+    return scheduleDesktopIdleTask(() => setShouldLoadUpdatePrompt(true), {
+      timeout: 2500,
+    });
+  }, [shouldLoadUpdatePrompt, status]);
 
   async function handleSignIn() {
     setIsSigningIn(true);
@@ -143,7 +168,7 @@ function App() {
       const storedSession = await loadDesktopSession().catch(() => null);
 
       if (storedSession) {
-        await restoreCachedWorkspace(queryClient, storedSession.user.id);
+        await prepareCachedWorkspace(queryClient, storedSession.user.id);
         setSession(storedSession);
         setStatus("signed-in");
         setAuthError("");
@@ -164,7 +189,7 @@ function App() {
       const nextSession = await pollDesktopAuthState(state);
 
       if (nextSession) {
-        await restoreCachedWorkspace(queryClient, nextSession.user.id);
+        await prepareCachedWorkspace(queryClient, nextSession.user.id);
         setSession(nextSession);
         setStatus("signed-in");
         setIsSigningIn(false);
@@ -220,9 +245,11 @@ function App() {
             onSignIn={handleSignIn}
           />
         </Suspense>
-        <Suspense fallback={null}>
-          <DesktopUpdatePrompt />
-        </Suspense>
+        {shouldLoadUpdatePrompt ? (
+          <Suspense fallback={null}>
+            <DesktopUpdatePrompt />
+          </Suspense>
+        ) : null}
       </Fragment>
     );
   }
@@ -236,9 +263,11 @@ function App() {
       <Suspense fallback={<WorkspaceBootFallback />}>
         <DesktopWorkspace session={session} onSignOut={handleSignOut} />
       </Suspense>
-      <Suspense fallback={null}>
-        <DesktopUpdatePrompt />
-      </Suspense>
+      {shouldLoadUpdatePrompt ? (
+        <Suspense fallback={null}>
+          <DesktopUpdatePrompt />
+        </Suspense>
+      ) : null}
     </Fragment>
   );
 }
@@ -258,6 +287,91 @@ function WorkspaceBootFallback() {
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function scheduleDesktopIdleTask(
+  task: () => void,
+  options: { timeout: number },
+) {
+  const desktopWindow = window as Window & {
+    cancelIdleCallback?: (handle: number) => void;
+    requestIdleCallback?: (
+      callback: IdleRequestCallback,
+      options?: IdleRequestOptions,
+    ) => number;
+  };
+
+  if (desktopWindow.requestIdleCallback && desktopWindow.cancelIdleCallback) {
+    const handle = desktopWindow.requestIdleCallback(task, options);
+
+    return () => desktopWindow.cancelIdleCallback?.(handle);
+  }
+
+  const timeoutId = window.setTimeout(task, Math.min(options.timeout, 1000));
+
+  return () => window.clearTimeout(timeoutId);
+}
+
+function scheduleDesktopSessionRefresh(
+  session: DesktopSession,
+  onRefresh: (session: DesktopSession) => void,
+) {
+  let disposed = false;
+  let removeOnlineListener: (() => void) | undefined;
+
+  async function refreshSession() {
+    try {
+      const refreshedSession = await refreshDesktopSession(session);
+
+      if (!disposed) {
+        onRefresh(refreshedSession);
+      }
+    } catch {
+      // Keep a valid local session even if the identity refresh is offline.
+    }
+  }
+
+  function refreshWhenReady() {
+    if (disposed) {
+      return;
+    }
+
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const handleOnline = () => {
+        removeOnlineListener?.();
+        removeOnlineListener = undefined;
+        void refreshSession();
+      };
+
+      window.addEventListener("online", handleOnline, { once: true });
+      removeOnlineListener = () =>
+        window.removeEventListener("online", handleOnline);
+      return;
+    }
+
+    void refreshSession();
+  }
+
+  const cancelIdleRefresh = scheduleDesktopIdleTask(refreshWhenReady, {
+    timeout: 4000,
+  });
+
+  return () => {
+    disposed = true;
+    cancelIdleRefresh();
+    removeOnlineListener?.();
+  };
+}
+
+async function prepareCachedWorkspace(
+  queryClient: ReturnType<typeof useQueryClient>,
+  userId: string,
+) {
+  const restoreWorkspacePromise = restoreCachedWorkspace(queryClient, userId);
+  void loadDesktopWorkspaceModule().then((module) =>
+    module.preloadInitialDesktopWorkspaceRoute(),
+  );
+  await restoreWorkspacePromise;
 }
 
 async function restoreCachedWorkspace(

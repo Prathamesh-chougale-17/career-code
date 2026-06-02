@@ -33,12 +33,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "../ui/empty";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "../ui/field";
+import { Field, FieldDescription, FieldGroup, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -61,7 +56,8 @@ import {
 } from "@careeright/api/query-keys";
 import { cn } from "../../lib/utils";
 
-type DiaryDatePickerPopoverModule = typeof import("./diary-date-picker-popover.js");
+type DiaryDatePickerPopoverModule =
+  typeof import("./diary-date-picker-popover.js");
 
 let diaryDatePickerPopoverPromise: Promise<DiaryDatePickerPopoverModule> | null =
   null;
@@ -132,11 +128,19 @@ function addMinutesToTime(time: string, minutes: number) {
   return `${nextHours}:${nextMinutes}`;
 }
 
-function formatDate(value: string, dateStyle: Intl.DateTimeFormatOptions["dateStyle"]) {
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle,
+const diaryDateFormatters = {
+  medium: new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
     timeZone: "UTC",
-  }).format(dateFromKey(value));
+  }),
+  full: new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "full",
+    timeZone: "UTC",
+  }),
+} satisfies Record<"medium" | "full", Intl.DateTimeFormat>;
+
+function formatDate(value: string, dateStyle: "medium" | "full") {
+  return diaryDateFormatters[dateStyle].format(dateFromKey(value));
 }
 
 function emptyDayDraft(dateKey: string): DiaryDayDraft {
@@ -215,6 +219,7 @@ export function DiaryApp({
     queryKey: diaryRecentQueryKey,
     queryFn: () => rpcClient.diary.listRecent({ limit: 30 }),
     initialData: initialRecentDays,
+    notifyOnChangeProps: ["data", "isPending", "isError"],
     staleTime: 60_000,
   });
 
@@ -223,6 +228,7 @@ export function DiaryApp({
     queryFn: () => rpcClient.diary.getDay({ dateKey: selectedDate }),
     initialData:
       selectedDate === initialSelectedDate ? initialSelectedDay : undefined,
+    notifyOnChangeProps: ["data", "isPending", "isError"],
     staleTime: 60_000,
   });
 
@@ -368,7 +374,9 @@ function DiaryDayForm({
     setSavedMessage("");
     setDraft((current) => ({
       ...current,
-      intervals: current.intervals.filter((interval) => interval.id !== intervalId),
+      intervals: current.intervals.filter(
+        (interval) => interval.id !== intervalId,
+      ),
     }));
   }, []);
 
@@ -384,7 +392,9 @@ function DiaryDayForm({
         selectedDayExists={selectedDayExists}
         busy={busy}
         savedMessage={savedMessage}
-        saveError={saveMutation.isError ? mutationMessage(saveMutation.error) : ""}
+        saveError={
+          saveMutation.isError ? mutationMessage(saveMutation.error) : ""
+        }
         deleteError={
           deleteMutation.isError ? mutationMessage(deleteMutation.error) : ""
         }
@@ -790,8 +800,8 @@ function DiaryEditor({
             <CardTitle>Intervals</CardTitle>
             <CardDescription>
               {draft.intervals.length} block
-              {draft.intervals.length === 1 ? "" : "s"},{" "}
-              {intervalSummaryCount} summarized
+              {draft.intervals.length === 1 ? "" : "s"}, {intervalSummaryCount}{" "}
+              summarized
             </CardDescription>
           </div>
           <CardAction>
@@ -1014,6 +1024,3 @@ function DiaryFieldSkeleton({ className }: { className?: string }) {
     </div>
   );
 }
-
-
-

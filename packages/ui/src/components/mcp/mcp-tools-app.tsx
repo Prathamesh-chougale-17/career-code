@@ -367,6 +367,7 @@ export function McpToolsApp({
     queryKey: mcpTokensQueryKey,
     queryFn: () => rpcClient.mcpToken.list(),
     initialData: initialTokens,
+    notifyOnChangeProps: ["data", "isPending"],
     staleTime: 60_000,
   });
   const createTokenMutation = useMutation({

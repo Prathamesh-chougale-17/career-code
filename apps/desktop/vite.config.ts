@@ -41,10 +41,14 @@ export default defineConfig(async () => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          charts: ["recharts"],
-          drag: ["@dnd-kit/core", "@dnd-kit/sortable", "@dnd-kit/utilities"],
           query: ["@tanstack/react-query"],
-          vendor: ["react", "react-dom", "lucide-react"],
+          vendor: [
+            "react",
+            "react-dom",
+            "react-dom/client",
+            "scheduler",
+            "lucide-react",
+          ],
         },
       },
     },

@@ -10,7 +10,7 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
-import { Suspense, lazy, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useState, type ReactNode } from "react";
 
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -32,9 +32,16 @@ import {
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
-import type { DashboardAnalytics, DashboardCount } from "@careeright/domain/dashboard/schema";
-import { UiLink as Link, useCareerightUi } from "../../providers/careeright-ui-provider";
+import type {
+  DashboardAnalytics,
+  DashboardCount,
+} from "@careeright/domain/dashboard/schema";
+import {
+  UiLink as Link,
+  useCareerightUi,
+} from "../../providers/careeright-ui-provider";
 import { dashboardAnalyticsQueryKey } from "@careeright/api/query-keys";
+import { scheduleIdleTask } from "../../lib/schedule-idle-task";
 
 type CountWithMeta = DashboardCount & {
   color?: string;
@@ -46,15 +53,22 @@ const DashboardAnalyticsCharts = lazy(() =>
   })),
 );
 
+const dashboardDateFormatter = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+  timeZone: "UTC",
+});
+
+const dashboardDateTimeFormatter = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
 function formatDate(value: string | null) {
   if (!value) {
     return "None yet";
   }
 
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-    timeZone: "UTC",
-  }).format(new Date(`${value}T00:00:00.000Z`));
+  return dashboardDateFormatter.format(new Date(`${value}T00:00:00.000Z`));
 }
 
 function formatDateTime(value: string | null) {
@@ -62,10 +76,7 @@ function formatDateTime(value: string | null) {
     return "Never used";
   }
 
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return dashboardDateTimeFormatter.format(new Date(value));
 }
 
 function clampPercent(value: number) {
@@ -100,14 +111,24 @@ export function DashboardAnalyticsApp({
   initialAnalytics?: DashboardAnalytics;
 }) {
   const { rpcClient } = useCareerightUi();
+  const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
   const analyticsQuery = useQuery({
     queryKey: dashboardAnalyticsQueryKey,
     queryFn: () => rpcClient.dashboard.analytics(),
     initialData: initialAnalytics,
+    notifyOnChangeProps: ["data", "isPending", "isError"],
     retry: false,
     staleTime: 60_000,
   });
   const data = analyticsQuery.data;
+
+  useEffect(() => {
+    if (!data || shouldLoadCharts) {
+      return;
+    }
+
+    return scheduleIdleTask(() => setShouldLoadCharts(true));
+  }, [data, shouldLoadCharts]);
 
   return (
     <>
@@ -147,9 +168,13 @@ export function DashboardAnalyticsApp({
                 />
               ) : null}
               <DashboardHero data={data} />
-              <Suspense fallback={<DashboardChartsFallback />}>
-                <DashboardAnalyticsCharts data={data} />
-              </Suspense>
+              {shouldLoadCharts ? (
+                <Suspense fallback={<DashboardChartsFallback />}>
+                  <DashboardAnalyticsCharts data={data} />
+                </Suspense>
+              ) : (
+                <DashboardChartsFallback />
+              )}
               <InsightCards data={data} />
               <div className="grid gap-4 xl:grid-cols-2">
                 <ExecutionPanel data={data} />
@@ -183,7 +208,10 @@ function DashboardHero({ data }: { data: DashboardAnalytics }) {
               <h1 className="font-heading text-2xl font-semibold tracking-normal sm:text-3xl">
                 Careeright at a glance
               </h1>
-              <Badge variant="outline" className="border-primary/30 bg-primary/10">
+              <Badge
+                variant="outline"
+                className="border-primary/30 bg-primary/10"
+              >
                 {readySignalCount(data)}/5 ready
               </Badge>
             </div>
@@ -692,6 +720,3 @@ function DashboardAnalyticsSkeleton() {
     </div>
   );
 }
-
-
-

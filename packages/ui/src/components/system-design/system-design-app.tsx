@@ -63,6 +63,7 @@ import {
 } from "@careeright/api/query-keys";
 import { useCareerightUi } from "../../providers/careeright-ui-provider";
 import { cn } from "../../lib/utils";
+import { scheduleIdleTask } from "../../lib/schedule-idle-task";
 
 const SYSTEM_DESIGN_SURFACE_TONES = [
   "border-primary/25 bg-primary/5",
@@ -159,6 +160,7 @@ export function SystemDesignApp({
     queryKey: systemDesignSnapshotQueryKey,
     queryFn: () => rpcClient.systemDesign.snapshot(),
     initialData: initialSnapshot,
+    notifyOnChangeProps: ["data", "isPending", "isError"],
     staleTime: 60_000,
   });
   const snapshot = systemDesignQuery.data ?? initialSnapshot;
@@ -378,6 +380,16 @@ function SystemDesignSummaryCard({
 }: {
   snapshot: SystemDesignSnapshot;
 }) {
+  const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
+
+  useEffect(() => {
+    if (shouldLoadCharts) {
+      return;
+    }
+
+    return scheduleIdleTask(() => setShouldLoadCharts(true));
+  }, [shouldLoadCharts]);
+
   return (
     <Card
       size="sm"
@@ -393,19 +405,23 @@ function SystemDesignSummaryCard({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Suspense fallback={<SystemDesignSummaryChartsFallback />}>
-          <SystemDesignSummaryCharts
-            completedItems={snapshot.summary.completedItems}
-            pendingLessons={Math.max(
-              snapshot.summary.totalLessons - snapshot.summary.watchedVideos,
-              0,
-            )}
-            remainingItems={
-              snapshot.summary.totalItems - snapshot.summary.completedItems
-            }
-            watchedVideos={snapshot.summary.watchedVideos}
-          />
-        </Suspense>
+        {shouldLoadCharts ? (
+          <Suspense fallback={<SystemDesignSummaryChartsFallback />}>
+            <SystemDesignSummaryCharts
+              completedItems={snapshot.summary.completedItems}
+              pendingLessons={Math.max(
+                snapshot.summary.totalLessons - snapshot.summary.watchedVideos,
+                0,
+              )}
+              remainingItems={
+                snapshot.summary.totalItems - snapshot.summary.completedItems
+              }
+              watchedVideos={snapshot.summary.watchedVideos}
+            />
+          </Suspense>
+        ) : (
+          <SystemDesignSummaryChartsFallback />
+        )}
       </CardContent>
     </Card>
   );

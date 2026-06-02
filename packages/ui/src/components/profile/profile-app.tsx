@@ -22,7 +22,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 
 import { Badge } from "../ui/badge";
@@ -80,6 +80,7 @@ import {
   profileImportsQueryKey,
   profileSnapshotQueryKey,
 } from "@careeright/api/query-keys";
+import { scheduleIdleTask } from "../../lib/schedule-idle-task";
 import { cn } from "../../lib/utils";
 
 type ProfileBasicsDraft = {
@@ -218,20 +219,37 @@ export function ProfileApp({
     useState<ProfileItemDialogState | null>(null);
   const [resumeImportMessage, setResumeImportMessage] =
     useState<ResumePdfImportMessage | null>(null);
+  const [shouldLoadImports, setShouldLoadImports] = useState(
+    initialImports !== undefined,
+  );
 
   const snapshotQuery = useQuery({
     queryKey: profileSnapshotQueryKey,
     queryFn: () => rpcClient.profile.snapshot(),
     initialData: initialSnapshot,
+    notifyOnChangeProps: ["data", "isPending", "isError", "error"],
     staleTime: 60_000,
   });
 
   const importsQuery = useQuery({
     queryKey: profileImportsQueryKey,
     queryFn: () => rpcClient.profileImport.list(),
+    enabled: shouldLoadImports,
     initialData: initialImports,
+    notifyOnChangeProps: ["data", "isPending"],
     staleTime: 60_000,
   });
+
+  useEffect(() => {
+    if (shouldLoadImports) {
+      return;
+    }
+
+    return scheduleIdleTask(() => setShouldLoadImports(true), {
+      fallbackDelay: 500,
+      timeout: 1500,
+    });
+  }, [shouldLoadImports]);
 
   const invalidateProfile = () =>
     Promise.all([

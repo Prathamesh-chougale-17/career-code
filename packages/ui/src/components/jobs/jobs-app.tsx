@@ -10,7 +10,15 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import {
   AlertDialog,
@@ -68,6 +76,7 @@ import {
   jobSearchProfileQueryKey,
   jobsQueryKey,
 } from "@careeright/api/query-keys";
+import { scheduleIdleTask } from "../../lib/schedule-idle-task";
 import { cn } from "../../lib/utils";
 
 type JobDateSection = {
@@ -135,17 +144,33 @@ const jobFitBandBadgeVariants = {
   strong: "secondary",
   needs_review: "outline",
   rejected: "destructive",
-} satisfies Record<JobFitBand, "default" | "secondary" | "outline" | "destructive">;
+} satisfies Record<
+  JobFitBand,
+  "default" | "secondary" | "outline" | "destructive"
+>;
+
+const seededDateFormatter = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "full",
+  timeZone: "UTC",
+});
+
+const jobDigestDateTimeFormatter = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+const jobSearchTextCache = new WeakMap<JobRecord, string>();
 
 function seededDateKey(seededAt: string) {
   return seededAt.slice(0, 10);
 }
 
 function formatSeededDate(dateKey: string) {
-  return new Intl.DateTimeFormat("en-IN", {
-    dateStyle: "full",
-    timeZone: "UTC",
-  }).format(new Date(`${dateKey}T00:00:00.000Z`));
+  return seededDateFormatter.format(new Date(`${dateKey}T00:00:00.000Z`));
+}
+
+function formatDigestDateTime(value: string) {
+  return jobDigestDateTimeFormatter.format(new Date(value));
 }
 
 function optionalText(value: string, fallback = "Not listed") {
@@ -303,13 +328,7 @@ function jobMetadata(job: JobRecord): JobMetadata {
         : false;
 
   return {
-    jobUrl: firstRawUrl(raw, [
-      "jobUrl",
-      "job_url",
-      "link",
-      "url",
-      "inputUrl",
-    ]),
+    jobUrl: firstRawUrl(raw, ["jobUrl", "job_url", "link", "url", "inputUrl"]),
     companyUrl: firstRawUrl(raw, [
       "companyUrl",
       "company_url",
@@ -338,8 +357,7 @@ function jobMetadata(job: JobRecord): JobMetadata {
       "jobType",
       "job_type",
     ]),
-    workMode:
-      workMode || (remoteAllowed ? "Remote allowed" : ""),
+    workMode: workMode || (remoteAllowed ? "Remote allowed" : ""),
     industry: firstRawList(raw, [
       "industries",
       "industry",
@@ -444,9 +462,15 @@ function searchValue(value: unknown): string {
 }
 
 function jobSearchText(job: JobRecord) {
+  const cachedText = jobSearchTextCache.get(job);
+
+  if (cachedText !== undefined) {
+    return cachedText;
+  }
+
   const metadata = jobMetadata(job);
 
-  return [
+  const searchableText = [
     job.title,
     job.company,
     job.location,
@@ -463,6 +487,9 @@ function jobSearchText(job: JobRecord) {
   ]
     .join(" ")
     .toLowerCase();
+
+  jobSearchTextCache.set(job, searchableText);
+  return searchableText;
 }
 
 function matchesJobSearch(job: JobRecord, query: string) {
@@ -497,9 +524,7 @@ function safeWorksheetName(value: string) {
   return (
     value
       .split("")
-      .map((character) =>
-        "[]*?:/\\".includes(character) ? " " : character,
-      )
+      .map((character) => ("[]*?:/\\".includes(character) ? " " : character))
       .join("")
       .replace(/\s+/g, " ")
       .trim()
@@ -602,7 +627,13 @@ function groupJobsBySeededDate(
 
   for (const job of jobs) {
     const dateKey = seededDateKey(job.seededAt);
-    grouped.set(dateKey, [...(grouped.get(dateKey) ?? []), job]);
+    const sectionJobs = grouped.get(dateKey);
+
+    if (sectionJobs) {
+      sectionJobs.push(job);
+    } else {
+      grouped.set(dateKey, [job]);
+    }
   }
 
   return Array.from(grouped, ([dateKey, sectionJobs]) => ({
@@ -674,34 +705,51 @@ export function JobsApp({
       draftFromSearchProfile(initialSearchProfile),
     );
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [shouldLoadDigests, setShouldLoadDigests] = useState(
+    initialDigests !== undefined,
+  );
   const [deleteJobTarget, setDeleteJobTarget] = useState<JobRecord | null>(
     null,
   );
-  const [exportingDateKey, setExportingDateKey] = useState<string | null>(
-    null,
-  );
+  const [exportingDateKey, setExportingDateKey] = useState<string | null>(null);
   const [pendingDeleteJobIds, setPendingDeleteJobIds] = useState<Set<string>>(
     () => new Set(),
   );
+  const deferredSearchQuery = useDeferredValue(searchQuery);
   const queryClient = useQueryClient();
   const jobsQuery = useQuery({
     queryKey: jobsQueryKey,
     queryFn: () => rpcClient.jobs.list(),
     initialData: initialJobs,
+    notifyOnChangeProps: ["data", "isPending", "isError"],
     staleTime: 60_000,
   });
   const searchProfileQuery = useQuery({
     queryKey: jobSearchProfileQueryKey,
     queryFn: () => rpcClient.jobs.searchProfile(),
     initialData: initialSearchProfile,
+    notifyOnChangeProps: ["data", "isPending"],
     staleTime: 60_000,
   });
   const digestsQuery = useQuery({
     queryKey: jobDigestsQueryKey,
     queryFn: () => rpcClient.jobs.digests(),
+    enabled: shouldLoadDigests,
     initialData: initialDigests,
+    notifyOnChangeProps: ["data", "isPending"],
     staleTime: 60_000,
   });
+
+  useEffect(() => {
+    if (shouldLoadDigests) {
+      return;
+    }
+
+    return scheduleIdleTask(() => setShouldLoadDigests(true), {
+      fallbackDelay: 500,
+      timeout: 1500,
+    });
+  }, [shouldLoadDigests]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => setNowMs(Date.now()), 60_000);
@@ -818,27 +866,21 @@ export function JobsApp({
     : false;
 
   const jobs = useMemo(() => jobsQuery.data ?? [], [jobsQuery.data]);
-  const digests = useMemo(
-    () => digestsQuery.data ?? [],
-    [digestsQuery.data],
-  );
-  const filteredJobs = useMemo(
-    () => {
-      const statusJobs =
-        statusFilter === "all"
-          ? jobs
-          : jobs.filter((job) => job.status === statusFilter);
-      const fitJobs =
-        fitBandFilter === "all"
-          ? statusJobs
-          : statusJobs.filter((job) => job.fitBand === fitBandFilter);
+  const digests = useMemo(() => digestsQuery.data ?? [], [digestsQuery.data]);
+  const filteredJobs = useMemo(() => {
+    const statusJobs =
+      statusFilter === "all"
+        ? jobs
+        : jobs.filter((job) => job.status === statusFilter);
+    const fitJobs =
+      fitBandFilter === "all"
+        ? statusJobs
+        : statusJobs.filter((job) => job.fitBand === fitBandFilter);
 
-      return searchQuery.trim()
-        ? fitJobs.filter((job) => matchesJobSearch(job, searchQuery))
-        : fitJobs;
-    },
-    [fitBandFilter, jobs, searchQuery, statusFilter],
-  );
+    return deferredSearchQuery.trim()
+      ? fitJobs.filter((job) => matchesJobSearch(job, deferredSearchQuery))
+      : fitJobs;
+  }, [deferredSearchQuery, fitBandFilter, jobs, statusFilter]);
   const sections = useMemo(
     () => groupJobsBySeededDate(filteredJobs, sortMode),
     [filteredJobs, sortMode],
@@ -920,18 +962,18 @@ export function JobsApp({
                     onSortModeChange={setSortMode}
                   />
                   {sections.length === 0 ? (
-                <Empty className="min-h-[280px] border border-border bg-background">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <Briefcase aria-hidden="true" />
-                    </EmptyMedia>
-                    <EmptyTitle>No jobs match these filters</EmptyTitle>
-                    <EmptyDescription>
-                      Try another search or change the status filter to show
-                      more seeded jobs.
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
+                    <Empty className="min-h-[280px] border border-border bg-background">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                          <Briefcase aria-hidden="true" />
+                        </EmptyMedia>
+                        <EmptyTitle>No jobs match these filters</EmptyTitle>
+                        <EmptyDescription>
+                          Try another search or change the status filter to show
+                          more seeded jobs.
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
                   ) : (
                     sections.map((section) => (
                       <Suspense
@@ -970,8 +1012,8 @@ export function JobsApp({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete job?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove &quot;{deleteJobTitle}&quot; from your jobs
-              list. The record is soft deleted and kept in storage.
+              This will remove &quot;{deleteJobTitle}&quot; from your jobs list.
+              The record is soft deleted and kept in storage.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1072,9 +1114,7 @@ function JobsTableControls({
           </Select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">
-            Fit
-          </span>
+          <span className="text-sm font-medium text-muted-foreground">Fit</span>
           <Select
             value={fitBandFilter}
             onValueChange={(value) =>
@@ -1285,14 +1325,13 @@ function JobDigestSummary({
         </CardTitle>
         <CardDescription>
           Latest run from {latestDigest.source} at{" "}
-          {new Intl.DateTimeFormat("en-IN", {
-            dateStyle: "medium",
-            timeStyle: "short",
-          }).format(new Date(latestDigest.createdAt))}
+          {formatDigestDateTime(latestDigest.createdAt)}
         </CardDescription>
         <CardAction className="flex flex-wrap justify-end gap-2">
           <Badge variant="secondary">Seeded {latestDigest.seededCount}</Badge>
-          <Badge variant="outline">Duplicates {latestDigest.duplicateCount}</Badge>
+          <Badge variant="outline">
+            Duplicates {latestDigest.duplicateCount}
+          </Badge>
           <Badge variant="outline">Rejected {latestDigest.rejectedCount}</Badge>
         </CardAction>
       </CardHeader>
@@ -1301,7 +1340,11 @@ function JobDigestSummary({
           {latestDigest.topMatches.slice(0, 5).map((match) => (
             <Badge
               key={`${match.title}-${match.company}-${match.applyUrl}`}
-              variant={match.fitBand ? jobFitBandBadgeVariants[match.fitBand] : "outline"}
+              variant={
+                match.fitBand
+                  ? jobFitBandBadgeVariants[match.fitBand]
+                  : "outline"
+              }
               className="max-w-full"
             >
               {match.fitScore ?? "Unscored"} · {match.title} · {match.company}
@@ -1413,6 +1456,3 @@ function JobsSkeleton() {
     </div>
   );
 }
-
-
-

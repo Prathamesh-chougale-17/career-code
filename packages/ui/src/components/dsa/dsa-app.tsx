@@ -84,6 +84,7 @@ import {
   historySnapshotQueryKey,
 } from "@careeright/api/query-keys";
 import { cn } from "../../lib/utils";
+import { scheduleIdleTask } from "../../lib/schedule-idle-task";
 
 const DSA_SURFACE_TONES = [
   "border-primary/25 bg-primary/5",
@@ -166,6 +167,7 @@ export function DsaApp({ initialSnapshot }: { initialSnapshot?: DsaSnapshot }) {
     queryKey: dsaSnapshotQueryKey,
     queryFn: () => rpcClient.dsa.snapshot(),
     initialData: initialSnapshot,
+    notifyOnChangeProps: ["data", "isPending", "isError"],
     staleTime: 60_000,
   });
   const snapshot = dsaQuery.data ?? initialSnapshot;
@@ -412,6 +414,7 @@ export function DsaApp({ initialSnapshot }: { initialSnapshot?: DsaSnapshot }) {
 }
 
 function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
+  const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
   const questions = snapshot.catalog.tracks.flatMap((track) =>
     track.subtopics.flatMap((subtopic) => subtopic.questions),
   );
@@ -432,6 +435,15 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
   const completedPracticeQuestions = leetcodeQuestions.filter((question) =>
     completedQuestionIds.has(question.id),
   ).length;
+
+  useEffect(() => {
+    if (shouldLoadCharts) {
+      return;
+    }
+
+    return scheduleIdleTask(() => setShouldLoadCharts(true));
+  }, [shouldLoadCharts]);
+
   return (
     <Card
       size="sm"
@@ -447,21 +459,26 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Suspense fallback={<DsaSummaryChartsFallback />}>
-          <DsaSummaryCharts
-            completedPracticeQuestions={completedPracticeQuestions}
-            completedQuestions={snapshot.summary.completedQuestions}
-            pendingLessons={Math.max(lessonQuestions.length - watchedVideos, 0)}
-            pendingPracticeQuestions={Math.max(
-              leetcodeQuestions.length - completedPracticeQuestions,
-              0,
-            )}
-            remainingQuestions={
-              snapshot.summary.totalQuestions - snapshot.summary.completedQuestions
-            }
-            watchedVideos={watchedVideos}
-          />
-        </Suspense>
+        {shouldLoadCharts ? (
+          <Suspense fallback={<DsaSummaryChartsFallback />}>
+            <DsaSummaryCharts
+              completedPracticeQuestions={completedPracticeQuestions}
+              completedQuestions={snapshot.summary.completedQuestions}
+              pendingLessons={Math.max(lessonQuestions.length - watchedVideos, 0)}
+              pendingPracticeQuestions={Math.max(
+                leetcodeQuestions.length - completedPracticeQuestions,
+                0,
+              )}
+              remainingQuestions={
+                snapshot.summary.totalQuestions -
+                snapshot.summary.completedQuestions
+              }
+              watchedVideos={watchedVideos}
+            />
+          </Suspense>
+        ) : (
+          <DsaSummaryChartsFallback />
+        )}
       </CardContent>
     </Card>
   );
