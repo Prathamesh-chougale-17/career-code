@@ -46,7 +46,6 @@ export default defineConfig(async () => ({
             "react",
             "react-dom",
             "react-dom/client",
-            "scheduler",
             "lucide-react",
           ],
         },
