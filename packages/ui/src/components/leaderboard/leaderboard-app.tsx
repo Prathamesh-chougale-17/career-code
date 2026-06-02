@@ -47,7 +47,7 @@ import {
 } from "../ui/table";
 
 const LeaderboardCharts = lazy(() =>
-  import("./leaderboard-charts.js").then((module) => ({
+  import("./leaderboard-charts").then((module) => ({
     default: module.LeaderboardCharts,
   })),
 );

@@ -160,7 +160,7 @@ const attributeTypeOptions = Object.keys(
 ) as ProjectAttributeType[];
 
 const MarkdownPreview = lazy(() =>
-  import("./projects-markdown-preview.js").then((module) => ({
+  import("./projects-markdown-preview").then((module) => ({
     default: module.ProjectsMarkdownPreview,
   })),
 );

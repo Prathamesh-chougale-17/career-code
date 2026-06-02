@@ -107,7 +107,7 @@ const DSA_BADGE_TONES = [
 const DSA_VIDEO_PLAYBACK_RATE = 1.5;
 
 const DsaSummaryCharts = lazy(() =>
-  import("./dsa-summary-charts.js").then((module) => ({
+  import("./dsa-summary-charts").then((module) => ({
     default: module.DsaSummaryCharts,
   })),
 );

@@ -114,7 +114,7 @@ type JobMetadata = {
 };
 
 const JobDateTable = lazy(() =>
-  import("./jobs-date-table.js").then((module) => ({
+  import("./jobs-date-table").then((module) => ({
     default: module.JobDateTable,
   })),
 );

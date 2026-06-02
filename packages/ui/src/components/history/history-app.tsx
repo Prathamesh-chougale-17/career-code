@@ -35,7 +35,7 @@ import { historySnapshotQueryKey } from "@careeright/api/query-keys";
 import { scheduleIdleTask } from "../../lib/schedule-idle-task";
 
 const HistoryCharts = lazy(() =>
-  import("./history-charts.js").then((module) => ({
+  import("./history-charts").then((module) => ({
     default: module.HistoryCharts,
   })),
 );

@@ -48,7 +48,7 @@ type CountWithMeta = DashboardCount & {
 };
 
 const DashboardAnalyticsCharts = lazy(() =>
-  import("./dashboard-analytics-charts.js").then((module) => ({
+  import("./dashboard-analytics-charts").then((module) => ({
     default: module.DashboardAnalyticsCharts,
   })),
 );

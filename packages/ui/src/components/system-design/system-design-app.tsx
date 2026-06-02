@@ -86,7 +86,7 @@ const SYSTEM_DESIGN_BADGE_TONES = [
 const SYSTEM_DESIGN_VIDEO_PLAYBACK_RATE = 1.25;
 
 const SystemDesignSummaryCharts = lazy(() =>
-  import("./system-design-summary-charts.js").then((module) => ({
+  import("./system-design-summary-charts").then((module) => ({
     default: module.SystemDesignSummaryCharts,
   })),
 );

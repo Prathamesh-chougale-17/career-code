@@ -57,13 +57,13 @@ import {
 import { cn } from "../../lib/utils";
 
 type DiaryDatePickerPopoverModule =
-  typeof import("./diary-date-picker-popover.js");
+  typeof import("./diary-date-picker-popover");
 
 let diaryDatePickerPopoverPromise: Promise<DiaryDatePickerPopoverModule> | null =
   null;
 
 function loadDiaryDatePickerPopover() {
-  diaryDatePickerPopoverPromise ??= import("./diary-date-picker-popover.js");
+  diaryDatePickerPopoverPromise ??= import("./diary-date-picker-popover");
   return diaryDatePickerPopoverPromise;
 }
 

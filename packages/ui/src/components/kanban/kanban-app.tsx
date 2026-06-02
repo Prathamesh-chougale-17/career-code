@@ -62,12 +62,12 @@ import {
 import { cn } from "../../lib/utils";
 import type { DraftTask } from "./kanban-task-dialogs.js";
 
-type KanbanTaskDialogsModule = typeof import("./kanban-task-dialogs.js");
+type KanbanTaskDialogsModule = typeof import("./kanban-task-dialogs");
 
 let kanbanTaskDialogsPromise: Promise<KanbanTaskDialogsModule> | null = null;
 
 function loadKanbanTaskDialogs() {
-  kanbanTaskDialogsPromise ??= import("./kanban-task-dialogs.js");
+  kanbanTaskDialogsPromise ??= import("./kanban-task-dialogs");
   return kanbanTaskDialogsPromise;
 }
 
