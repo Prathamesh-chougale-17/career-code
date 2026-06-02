@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Cell, Pie, PieChart } from "recharts";
 import {
   BookOpenCheck,
   CheckCircle2,
@@ -14,7 +13,15 @@ import {
   Sparkles,
   Trophy,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import {
   Accordion,
@@ -32,12 +39,6 @@ import {
   CardTitle,
 } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "../ui/chart";
 import {
   Dialog,
   DialogContent,
@@ -62,6 +63,7 @@ import {
   TableHeader,
   TableRow,
 } from "../ui/table";
+import { Skeleton } from "../ui/skeleton";
 import type {
   DsaCatalog,
   DsaQuestion,
@@ -103,28 +105,11 @@ const DSA_BADGE_TONES = [
 
 const DSA_VIDEO_PLAYBACK_RATE = 1.5;
 
-const DSA_RATIO_CHART_CONFIG = {
-  done: {
-    label: "Done",
-    color: "var(--chart-1)",
-  },
-  remaining: {
-    label: "Remaining",
-    color: "var(--muted)",
-  },
-  watched: {
-    label: "Watched",
-    color: "var(--chart-2)",
-  },
-  pending: {
-    label: "Pending",
-    color: "var(--muted)",
-  },
-  practice: {
-    label: "Practice done",
-    color: "var(--chart-3)",
-  },
-} satisfies ChartConfig;
+const DsaSummaryCharts = lazy(() =>
+  import("./dsa-summary-charts.js").then((module) => ({
+    default: module.DsaSummaryCharts,
+  })),
+);
 
 type YouTubePlayer = {
   destroy?: () => void;
@@ -461,128 +446,33 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
           Completion ratios for the whole roadmap, lesson videos, and practice.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4 lg:grid-cols-3">
-        <DsaRatioDonut
-          title="Roadmap completion"
-          description="Solved vs waiting"
-          primaryKey="done"
-          remainderKey="remaining"
-          primaryValue={snapshot.summary.completedQuestions}
-          remainderValue={
-            snapshot.summary.totalQuestions - snapshot.summary.completedQuestions
-          }
-        />
-        <DsaRatioDonut
-          title="Video coverage"
-          description="Watched vs queued"
-          primaryKey="watched"
-          remainderKey="pending"
-          primaryValue={watchedVideos}
-          remainderValue={Math.max(lessonQuestions.length - watchedVideos, 0)}
-        />
-        <DsaRatioDonut
-          title="Practice completion"
-          description="LeetCode solved vs waiting"
-          primaryKey="practice"
-          remainderKey="remaining"
-          primaryValue={completedPracticeQuestions}
-          remainderValue={Math.max(
-            leetcodeQuestions.length - completedPracticeQuestions,
-            0,
-          )}
-        />
+      <CardContent>
+        <Suspense fallback={<DsaSummaryChartsFallback />}>
+          <DsaSummaryCharts
+            completedPracticeQuestions={completedPracticeQuestions}
+            completedQuestions={snapshot.summary.completedQuestions}
+            pendingLessons={Math.max(lessonQuestions.length - watchedVideos, 0)}
+            pendingPracticeQuestions={Math.max(
+              leetcodeQuestions.length - completedPracticeQuestions,
+              0,
+            )}
+            remainingQuestions={
+              snapshot.summary.totalQuestions - snapshot.summary.completedQuestions
+            }
+            watchedVideos={watchedVideos}
+          />
+        </Suspense>
       </CardContent>
     </Card>
   );
 }
 
-function DsaRatioDonut({
-  title,
-  description,
-  primaryKey,
-  remainderKey,
-  primaryValue,
-  remainderValue,
-}: {
-  title: string;
-  description: string;
-  primaryKey: keyof typeof DSA_RATIO_CHART_CONFIG;
-  remainderKey: keyof typeof DSA_RATIO_CHART_CONFIG;
-  primaryValue: number;
-  remainderValue: number;
-}) {
-  const total = primaryValue + remainderValue;
-  const percentage = percent(primaryValue, total);
-  const chartData = [
-    {
-      key: primaryKey,
-      value: primaryValue,
-      fill: `var(--color-${primaryKey})`,
-    },
-    {
-      key: remainderKey,
-      value: remainderValue,
-      fill: `var(--color-${remainderKey})`,
-    },
-  ];
-
+function DsaSummaryChartsFallback() {
   return (
-    <div className="min-w-0">
-      <div className="mb-2">
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-      <div className="relative">
-        <ChartContainer
-          config={DSA_RATIO_CHART_CONFIG}
-          className="mx-auto h-[150px] w-full max-w-[220px]"
-        >
-          <PieChart accessibilityLayer>
-            <ChartTooltip
-              cursor={false}
-              position={{ x: 8, y: 8 }}
-              content={
-                <ChartTooltipContent
-                  hideLabel
-                  nameKey="key"
-                  formatter={(value, name) => {
-                    const key = String(name) as keyof typeof DSA_RATIO_CHART_CONFIG;
-                    const label = DSA_RATIO_CHART_CONFIG[key]?.label ?? name;
-
-                    return (
-                      <div className="flex min-w-28 items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{label}</span>
-                        <span className="font-medium text-foreground">
-                          {Number(value).toLocaleString()}
-                        </span>
-                      </div>
-                    );
-                  }}
-                />
-              }
-            />
-            <Pie
-              data={chartData}
-              dataKey="value"
-              nameKey="key"
-              innerRadius={46}
-              outerRadius={68}
-              paddingAngle={2}
-              strokeWidth={0}
-            >
-              {chartData.map((entry) => (
-                <Cell key={entry.key} fill={entry.fill} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ChartContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-heading text-2xl font-semibold text-foreground">
-            {percentage}%
-          </span>
-          <span className="text-xs text-muted-foreground">complete</span>
-        </div>
-      </div>
+    <div className="grid gap-4 lg:grid-cols-3">
+      {[0, 1, 2].map((item) => (
+        <Skeleton key={item} className="h-[184px] rounded-xl" />
+      ))}
     </div>
   );
 }

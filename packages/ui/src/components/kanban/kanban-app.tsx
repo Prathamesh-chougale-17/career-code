@@ -28,13 +28,11 @@ import {
   Undo2,
   Check,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import type {
   CSSProperties,
-  Dispatch,
   FormEvent,
   ReactNode,
-  SetStateAction,
 } from "react";
 
 import { TaskReferenceLinks } from "../task-reference-links";
@@ -50,38 +48,14 @@ import {
   CardTitle,
 } from "../ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/dialog";
-import {
   Empty,
   EmptyDescription,
   EmptyHeader,
 } from "../ui/empty";
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-} from "../ui/field";
-import { Input } from "../ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { ScrollArea } from "../ui/scroll-area";
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
-import { Textarea } from "../ui/textarea";
 import type {
   BoardSnapshot,
   BoardColumn,
@@ -94,13 +68,28 @@ import {
   dashboardMetricsQueryKey,
 } from "@careeright/api/query-keys";
 import { cn } from "../../lib/utils";
+import type { DraftTask } from "./kanban-task-dialogs.js";
 
-type DraftTask = {
-  title: string;
-  description: string;
-  priority: KanbanTask["priority"];
-  columnId: KanbanTask["columnId"];
-};
+type KanbanTaskDialogsModule = typeof import("./kanban-task-dialogs.js");
+
+let kanbanTaskDialogsPromise: Promise<KanbanTaskDialogsModule> | null = null;
+
+function loadKanbanTaskDialogs() {
+  kanbanTaskDialogsPromise ??= import("./kanban-task-dialogs.js");
+  return kanbanTaskDialogsPromise;
+}
+
+const LazyCreateTaskDialog = lazy(() =>
+  loadKanbanTaskDialogs().then((module) => ({
+    default: module.CreateTaskDialog,
+  })),
+);
+
+const LazyEditTaskDialog = lazy(() =>
+  loadKanbanTaskDialogs().then((module) => ({
+    default: module.EditTaskDialog,
+  })),
+);
 
 const priorityStyles: Record<KanbanTask["priority"], string> = {
   low: "border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
@@ -325,6 +314,20 @@ export function KanbanApp({
     }
   }
 
+  const preloadTaskDialogs = useCallback(() => {
+    void loadKanbanTaskDialogs();
+  }, []);
+
+  const openCreateTaskDialog = useCallback(() => {
+    void loadKanbanTaskDialogs();
+    setIsCreateTaskDialogOpen(true);
+  }, []);
+
+  const openEditTaskDialog = useCallback((task: KanbanTask) => {
+    void loadKanbanTaskDialogs();
+    setEditingTask(task);
+  }, []);
+
   function handleDragStart(event: DragStartEvent) {
     setActiveTaskId(String(event.active.id));
   }
@@ -419,7 +422,9 @@ export function KanbanApp({
                   size="icon-sm"
                   aria-label="Add custom task"
                   title="Add custom task"
-                  onClick={() => setIsCreateTaskDialogOpen(true)}
+                  onClick={openCreateTaskDialog}
+                  onFocus={preloadTaskDialogs}
+                  onPointerEnter={preloadTaskDialogs}
                 >
                   <Plus aria-hidden="true" />
                 </Button>
@@ -440,7 +445,7 @@ export function KanbanApp({
                         key={column.id}
                         column={column}
                         tasks={tasksByColumn.get(column.id) ?? []}
-                        onEdit={setEditingTask}
+                        onEdit={openEditTaskDialog}
                         onDelete={(taskId) =>
                           deleteTaskMutation.mutate(taskId)
                         }
@@ -485,24 +490,30 @@ export function KanbanApp({
         </div>
       </main>
 
-      <CreateTaskDialog
-        open={isCreateTaskDialogOpen}
-        columns={snapshot.columns}
-        draft={draft}
-        onDraftChange={setDraft}
-        onClose={() => setIsCreateTaskDialogOpen(false)}
-        onSubmit={handleCreateTask}
-        isPending={createTaskMutation.isPending}
-      />
+      {isCreateTaskDialogOpen ? (
+        <Suspense fallback={null}>
+          <LazyCreateTaskDialog
+            open={isCreateTaskDialogOpen}
+            columns={snapshot.columns}
+            draft={draft}
+            onDraftChange={setDraft}
+            onClose={() => setIsCreateTaskDialogOpen(false)}
+            onSubmit={handleCreateTask}
+            isPending={createTaskMutation.isPending}
+          />
+        </Suspense>
+      ) : null}
 
       {editingTask ? (
-        <EditTaskDialog
-          task={editingTask}
-          columns={snapshot.columns}
-          onClose={() => setEditingTask(null)}
-          onSave={(task) => updateTaskMutation.mutate(task)}
-          isSaving={updateTaskMutation.isPending}
-        />
+        <Suspense fallback={null}>
+          <LazyEditTaskDialog
+            task={editingTask}
+            columns={snapshot.columns}
+            onClose={() => setEditingTask(null)}
+            onSave={(task) => updateTaskMutation.mutate(task)}
+            isSaving={updateTaskMutation.isPending}
+          />
+        </Suspense>
       ) : null}
     </>
   );
@@ -582,126 +593,6 @@ function KanbanInitialSkeleton() {
         </div>
       </main>
     </>
-  );
-}
-
-function CreateTaskDialog({
-  open,
-  columns,
-  draft,
-  onDraftChange,
-  onClose,
-  onSubmit,
-  isPending,
-}: {
-  open: boolean;
-  columns: BoardColumn[];
-  draft: DraftTask;
-  onDraftChange: Dispatch<SetStateAction<DraftTask>>;
-  onClose: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  isPending: boolean;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
-      <DialogContent className="sm:max-w-xl">
-        <form onSubmit={onSubmit} className="grid gap-5">
-          <DialogHeader>
-            <DialogTitle>Add custom task</DialogTitle>
-            <DialogDescription>
-              Manual tasks go directly to the board and skip AI proposal review.
-            </DialogDescription>
-          </DialogHeader>
-
-          <FieldGroup className="gap-4">
-            <Field>
-              <FieldLabel>Title</FieldLabel>
-              <Input
-                value={draft.title}
-                onChange={(event) =>
-                  onDraftChange((current) => ({
-                    ...current,
-                    title: event.target.value,
-                  }))
-                }
-                placeholder="Task title"
-              />
-            </Field>
-            <Field>
-              <FieldLabel>Description</FieldLabel>
-              <Textarea
-                value={draft.description}
-                onChange={(event) =>
-                  onDraftChange((current) => ({
-                    ...current,
-                    description: event.target.value,
-                  }))
-                }
-                rows={4}
-                placeholder="Optional note"
-              />
-            </Field>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field>
-                <FieldLabel>Column</FieldLabel>
-                <Select
-                  value={draft.columnId}
-                  onValueChange={(value) =>
-                    onDraftChange((current) => ({
-                      ...current,
-                      columnId: value as KanbanTask["columnId"],
-                    }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Column" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {columns.map((column) => (
-                        <SelectItem key={column.id} value={column.id}>
-                          {column.title}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>Priority</FieldLabel>
-                <PrioritySelect
-                  value={draft.priority}
-                  onChange={(priority) =>
-                    onDraftChange((current) => ({ ...current, priority }))
-                  }
-                />
-              </Field>
-            </div>
-          </FieldGroup>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isPending || !draft.title.trim()}
-            >
-              {isPending ? (
-                <Loader2
-                  data-icon="inline-start"
-                  className="animate-spin"
-                  aria-hidden="true"
-                />
-              ) : (
-                <Plus data-icon="inline-start" aria-hidden="true" />
-              )}
-              Add card
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }
 
@@ -1019,172 +910,6 @@ function TaskCardCollapseButton({
         aria-hidden="true"
       />
     </Button>
-  );
-}
-
-function EditTaskDialog({
-  task,
-  columns,
-  onClose,
-  onSave,
-  isSaving,
-}: {
-  task: KanbanTask;
-  columns: BoardColumn[];
-  onClose: () => void;
-  onSave: (task: KanbanTask) => void;
-  isSaving: boolean;
-}) {
-  const [draft, setDraft] = useState(task);
-  const [criteriaText, setCriteriaText] = useState(
-    task.acceptanceCriteria.join("\n"),
-  );
-
-  return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Edit task</DialogTitle>
-          <DialogDescription>
-            Update the card details and save them directly to the board.
-          </DialogDescription>
-        </DialogHeader>
-
-        <FieldGroup>
-          <Field>
-            <FieldLabel>Title</FieldLabel>
-            <Input
-              value={draft.title}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  title: event.target.value,
-                }))
-              }
-            />
-          </Field>
-          <Field>
-            <FieldLabel>Description</FieldLabel>
-            <Textarea
-              value={draft.description}
-              onChange={(event) =>
-                setDraft((current) => ({
-                  ...current,
-                  description: event.target.value,
-                }))
-              }
-              rows={4}
-            />
-          </Field>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field>
-              <FieldLabel>Column</FieldLabel>
-              <Select
-                value={draft.columnId}
-                onValueChange={(value) =>
-                  setDraft((current) => ({
-                    ...current,
-                    columnId: value as KanbanTask["columnId"],
-                  }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Column" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {columns.map((column) => (
-                      <SelectItem key={column.id} value={column.id}>
-                        {column.title}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field>
-              <FieldLabel>Priority</FieldLabel>
-              <PrioritySelect
-                value={draft.priority}
-                onChange={(priority) =>
-                  setDraft((current) => ({ ...current, priority }))
-                }
-              />
-            </Field>
-          </div>
-          <Field>
-            <FieldLabel>Acceptance criteria</FieldLabel>
-            <Textarea
-              value={criteriaText}
-              onChange={(event) => setCriteriaText(event.target.value)}
-              rows={5}
-            />
-            <FieldDescription>
-              One acceptance criterion per line.
-            </FieldDescription>
-          </Field>
-        </FieldGroup>
-
-        <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            type="button"
-            disabled={isSaving || !draft.title.trim()}
-            onClick={() =>
-              onSave({
-                ...draft,
-                acceptanceCriteria: criteriaText
-                  .split("\n")
-                  .map((item) => item.trim())
-                  .filter(Boolean),
-              })
-            }
-          >
-            {isSaving ? (
-              <Loader2
-                data-icon="inline-start"
-                className="animate-spin"
-                aria-hidden="true"
-              />
-            ) : (
-              <Check data-icon="inline-start" aria-hidden="true" />
-            )}
-            Save
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function PrioritySelect({
-  value,
-  onChange,
-}: {
-  value: KanbanTask["priority"];
-  onChange: (priority: KanbanTask["priority"]) => void;
-}) {
-  return (
-    <Select
-      value={value}
-      onValueChange={(nextValue) =>
-        onChange(nextValue as KanbanTask["priority"])
-      }
-    >
-      <SelectTrigger className="w-full">
-        <SelectValue placeholder="Priority" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectGroup>
-          <SelectItem value="low">Low</SelectItem>
-          <SelectItem value="medium">Medium</SelectItem>
-          <SelectItem value="high">High</SelectItem>
-          <SelectItem value="urgent">Urgent</SelectItem>
-        </SelectGroup>
-      </SelectContent>
-    </Select>
   );
 }
 

@@ -1,4 +1,12 @@
-import { Loader2, LogOut, Power, UserCircle } from "lucide-react";
+import {
+  CloudCheck,
+  CloudOff,
+  Loader2,
+  LogOut,
+  Power,
+  RefreshCw,
+  UserCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@repo/ui/components/ui/button";
@@ -8,12 +16,20 @@ import { cn } from "@repo/ui/lib/utils";
 import { getAutostartEnabled, setAutostartEnabled } from "../lib/autostart";
 import type { DesktopSession } from "../lib/auth";
 
+export type DesktopOfflineState = {
+  isOffline: boolean;
+  isReplayActive: boolean;
+  pendingCount: number;
+};
+
 export function UserAccountMenu({
   className,
+  offlineState,
   onSignOut,
   user,
 }: {
   className?: string;
+  offlineState?: DesktopOfflineState;
   onSignOut: () => void;
   user?: DesktopSession["user"] | null;
 }) {
@@ -93,6 +109,7 @@ export function UserAccountMenu({
           </p>
         </div>
       </div>
+      <OfflineSyncStatus offlineState={offlineState} />
       <div className="rounded-md border border-sidebar-border bg-muted/30 p-2">
         <div className="flex items-center gap-2">
           <Power className="size-4 shrink-0 text-primary" aria-hidden="true" />
@@ -133,6 +150,69 @@ export function UserAccountMenu({
         <LogOut data-icon="inline-start" aria-hidden="true" />
         Sign out
       </Button>
+    </div>
+  );
+}
+
+function OfflineSyncStatus({
+  offlineState,
+}: {
+  offlineState?: DesktopOfflineState;
+}) {
+  const isOffline = offlineState?.isOffline ?? false;
+  const isReplayActive = offlineState?.isReplayActive ?? false;
+  const pendingCount = offlineState?.pendingCount ?? 0;
+  const statusLabel = isOffline
+    ? "Offline mode"
+    : pendingCount > 0
+      ? isReplayActive
+        ? "Syncing changes"
+        : "Changes queued"
+      : "Online";
+  const statusDescription = isOffline
+    ? "Saved progress will sync when the network returns."
+    : pendingCount > 0
+      ? `${pendingCount} queued ${pendingCount === 1 ? "change" : "changes"} waiting to sync.`
+      : "Cached workspace is ready for quick reopen.";
+  const Icon = isOffline ? CloudOff : isReplayActive ? RefreshCw : CloudCheck;
+
+  return (
+    <div
+      className={cn(
+        "rounded-md border bg-muted/30 p-2",
+        isOffline
+          ? "border-amber-500/35 bg-amber-500/10"
+          : pendingCount > 0
+            ? "border-primary/30 bg-primary/10"
+            : "border-sidebar-border",
+      )}
+      aria-live="polite"
+    >
+      <div className="flex items-start gap-2">
+        <Icon
+          className={cn(
+            "mt-0.5 size-4 shrink-0",
+            isReplayActive ? "animate-spin" : "",
+            isOffline ? "text-amber-500" : "text-primary",
+          )}
+          aria-hidden="true"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="truncate text-xs font-medium text-foreground">
+              {statusLabel}
+            </p>
+            {pendingCount > 0 ? (
+              <span className="rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-foreground">
+                {pendingCount}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+            {statusDescription}
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

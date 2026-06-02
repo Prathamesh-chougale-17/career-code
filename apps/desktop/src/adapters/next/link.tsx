@@ -3,8 +3,22 @@ import { forwardRef, type AnchorHTMLAttributes, type MouseEvent } from "react";
 type LinkProps = AnchorHTMLAttributes<HTMLAnchorElement> & {
   href: string;
 };
+type Route =
+  | "analytics"
+  | "board"
+  | "jobs"
+  | "diary"
+  | "dsa"
+  | "system-design"
+  | "friends"
+  | "leaderboard"
+  | "projects"
+  | "history"
+  | "proposals"
+  | "mcp-tools"
+  | "profile";
 
-function routeFromHref(href: string) {
+function routeFromHref(href: string): Route | null {
   if (href === "/dashboard") return "analytics";
   if (href.startsWith("/dashboard/kanban")) return "board";
   if (href.startsWith("/dashboard/jobs")) return "jobs";
@@ -22,7 +36,7 @@ function routeFromHref(href: string) {
 }
 
 const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
-  { href, onClick, ...props },
+  { href, onClick, onFocus, onMouseEnter, ...props },
   ref,
 ) {
   function handleClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -42,7 +56,34 @@ const Link = forwardRef<HTMLAnchorElement, LinkProps>(function Link(
     }
   }
 
-  return <a ref={ref} href={href} onClick={handleClick} {...props} />;
+  return (
+    <a
+      ref={ref}
+      href={href}
+      onClick={handleClick}
+      onFocus={(event) => {
+        onFocus?.(event);
+        preloadRoute(href);
+      }}
+      onMouseEnter={(event) => {
+        onMouseEnter?.(event);
+        preloadRoute(href);
+      }}
+      {...props}
+    />
+  );
 });
+
+function preloadRoute(href: string) {
+  const route = routeFromHref(href);
+
+  if (!route) {
+    return;
+  }
+
+  window.dispatchEvent(
+    new CustomEvent("careeright:preload-route", { detail: { route } }),
+  );
+}
 
 export default Link;

@@ -13,7 +13,7 @@ import {
   Save,
   Trash2,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 
 import { Badge } from "../ui/badge";
@@ -39,13 +39,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from "../ui/field";
-import { Calendar } from "../ui/calendar";
 import { Input } from "../ui/input";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../ui/popover";
 import {
   Select,
   SelectContent,
@@ -66,6 +60,22 @@ import {
   diaryRecentQueryKey,
 } from "@careeright/api/query-keys";
 import { cn } from "../../lib/utils";
+
+type DiaryDatePickerPopoverModule = typeof import("./diary-date-picker-popover.js");
+
+let diaryDatePickerPopoverPromise: Promise<DiaryDatePickerPopoverModule> | null =
+  null;
+
+function loadDiaryDatePickerPopover() {
+  diaryDatePickerPopoverPromise ??= import("./diary-date-picker-popover.js");
+  return diaryDatePickerPopoverPromise;
+}
+
+const LazyDiaryDatePickerPopover = lazy(() =>
+  loadDiaryDatePickerPopover().then((module) => ({
+    default: module.DiaryDatePickerPopover,
+  })),
+);
 
 type DiaryIntervalDraft = {
   id: string;
@@ -619,39 +629,93 @@ function DiaryDatePicker({
   onDateChange: (dateKey: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const selectedDate = localDateFromKey(dateKey);
+  const [shouldLoadPicker, setShouldLoadPicker] = useState(false);
+  const selectedDate = useMemo(() => localDateFromKey(dateKey), [dateKey]);
+  const dateLabel = formatDate(dateKey, "medium");
+
+  const preloadPicker = useCallback(() => {
+    void loadDiaryDatePickerPopover();
+  }, []);
+
+  const openPicker = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+
+    void loadDiaryDatePickerPopover();
+    setShouldLoadPicker(true);
+    setOpen(true);
+  }, [disabled]);
+
+  const selectDate = useCallback(
+    (date: Date) => {
+      onDateChange(localDateKey(date));
+    },
+    [onDateChange],
+  );
+
+  if (!shouldLoadPicker) {
+    return (
+      <DiaryDatePickerButton
+        dateLabel={dateLabel}
+        disabled={disabled}
+        onOpen={openPicker}
+        onPreload={preloadPicker}
+      />
+    );
+  }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        render={
-          <Button
-            type="button"
-            variant="outline"
-            className="w-full justify-start"
-            disabled={disabled}
-          />
-        }
-      >
-        <CalendarDays data-icon="inline-start" aria-hidden="true" />
-        {formatDate(dateKey, "medium")}
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-auto p-0">
-        <Calendar
-          mode="single"
-          selected={selectedDate}
-          onSelect={(date) => {
-            if (!date) {
-              return;
-            }
-
-            onDateChange(localDateKey(date));
-            setOpen(false);
-          }}
-          captionLayout="dropdown"
+    <Suspense
+      fallback={
+        <DiaryDatePickerButton
+          dateLabel={dateLabel}
+          disabled={disabled || open}
+          loading={open}
+          onOpen={openPicker}
+          onPreload={preloadPicker}
         />
-      </PopoverContent>
-    </Popover>
+      }
+    >
+      <LazyDiaryDatePickerPopover
+        dateLabel={dateLabel}
+        disabled={disabled}
+        open={open}
+        selectedDate={selectedDate}
+        onOpenChange={setOpen}
+        onSelectDate={selectDate}
+      />
+    </Suspense>
+  );
+}
+
+function DiaryDatePickerButton({
+  dateLabel,
+  disabled,
+  loading = false,
+  onOpen,
+  onPreload,
+}: {
+  dateLabel: string;
+  disabled: boolean;
+  loading?: boolean;
+  onOpen: () => void;
+  onPreload: () => void;
+}) {
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      className="w-full justify-start"
+      disabled={disabled}
+      aria-busy={loading ? "true" : undefined}
+      onClick={onOpen}
+      onFocus={onPreload}
+      onPointerEnter={onPreload}
+    >
+      <CalendarDays data-icon="inline-start" aria-hidden="true" />
+      {dateLabel}
+    </Button>
   );
 }
 

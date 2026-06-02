@@ -1,10 +1,4 @@
-import {
-  getCurrent,
-  onOpenUrl,
-  register,
-} from "@tauri-apps/plugin-deep-link";
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { Store } from "@tauri-apps/plugin-store";
+import type { Store } from "@tauri-apps/plugin-store";
 
 import { desktopCallbackScheme, getCareerightOrigin } from "./config";
 
@@ -26,15 +20,21 @@ export type DesktopSession = {
 let storePromise: Promise<Store> | undefined;
 
 async function getStore() {
-  storePromise ??= Store.load(storePath, {
-    autoSave: 100,
-    defaults: {},
-  });
+  storePromise ??= import("@tauri-apps/plugin-store").then(({ Store }) =>
+    Store.load(storePath, {
+      autoSave: 100,
+      defaults: {},
+    }),
+  );
 
   return storePromise;
 }
 
 export async function loadDesktopSession() {
+  if (!isTauriRuntime()) {
+    return null;
+  }
+
   const store = await getStore();
   const session = await store.get<DesktopSession>(sessionKey);
 
@@ -78,6 +78,10 @@ export async function refreshDesktopSession(session: DesktopSession) {
 }
 
 export async function saveDesktopSession(session: DesktopSession) {
+  if (!isTauriRuntime()) {
+    return;
+  }
+
   const store = await getStore();
   await store.set(sessionKey, session);
   await store.delete(pendingStateKey);
@@ -85,6 +89,10 @@ export async function saveDesktopSession(session: DesktopSession) {
 }
 
 export async function clearDesktopSession() {
+  if (!isTauriRuntime()) {
+    return;
+  }
+
   const store = await getStore();
   await store.delete(sessionKey);
   await store.delete(pendingStateKey);
@@ -93,13 +101,20 @@ export async function clearDesktopSession() {
 
 export async function beginDesktopSignIn() {
   const state = createState();
-  const store = await getStore();
   const authUrl = new URL("/desktop-auth/start", getCareerightOrigin());
 
   authUrl.searchParams.set("state", state);
+
+  if (!isTauriRuntime()) {
+    window.location.assign(authUrl.toString());
+    return state;
+  }
+
+  const store = await getStore();
   await store.set(pendingStateKey, state);
   await store.save();
   await ensureDeepLinkRegistration();
+  const { openUrl } = await import("@tauri-apps/plugin-opener");
   await openUrl(authUrl.toString());
 
   return state;
@@ -199,7 +214,14 @@ export async function revokeDesktopSession(token: string) {
 export async function listenForDesktopCallbacks(
   onCallback: (url: URL) => void,
 ) {
+  if (!isTauriRuntime()) {
+    return () => undefined;
+  }
+
   await ensureDeepLinkRegistration();
+  const { getCurrent, onOpenUrl } = await import(
+    "@tauri-apps/plugin-deep-link"
+  );
   const currentUrls = await getCurrent().catch(() => null);
 
   currentUrls?.forEach((value) => dispatchCallback(value, onCallback));
@@ -226,6 +248,11 @@ function dispatchCallback(value: string, onCallback: (url: URL) => void) {
 }
 
 async function ensureDeepLinkRegistration() {
+  if (!isTauriRuntime()) {
+    return;
+  }
+
+  const { register } = await import("@tauri-apps/plugin-deep-link");
   await register(desktopCallbackScheme).catch(() => undefined);
 }
 
@@ -246,4 +273,8 @@ async function readErrorMessage(response: Response) {
   } catch {
     return "";
   }
+}
+
+function isTauriRuntime() {
+  return "__TAURI_INTERNALS__" in window;
 }

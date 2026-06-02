@@ -1,7 +1,6 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Cell, Pie, PieChart } from "recharts";
 import {
   BookOpenCheck,
   CheckCircle2,
@@ -13,7 +12,7 @@ import {
   PlayCircle,
   Target,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Accordion,
@@ -32,12 +31,6 @@ import {
 } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "../ui/chart";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -53,6 +46,7 @@ import {
 } from "../ui/empty";
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
+import { Skeleton } from "../ui/skeleton";
 import type {
   SystemDesignCatalog,
   SystemDesignItem,
@@ -90,24 +84,11 @@ const SYSTEM_DESIGN_BADGE_TONES = [
 
 const SYSTEM_DESIGN_VIDEO_PLAYBACK_RATE = 1.25;
 
-const SYSTEM_DESIGN_RATIO_CHART_CONFIG = {
-  done: {
-    label: "Done",
-    color: "var(--chart-3)",
-  },
-  remaining: {
-    label: "Remaining",
-    color: "var(--muted)",
-  },
-  watched: {
-    label: "Watched",
-    color: "var(--chart-1)",
-  },
-  pending: {
-    label: "Pending",
-    color: "var(--muted)",
-  },
-} satisfies ChartConfig;
+const SystemDesignSummaryCharts = lazy(() =>
+  import("./system-design-summary-charts.js").then((module) => ({
+    default: module.SystemDesignSummaryCharts,
+  })),
+);
 
 type YouTubePlayer = {
   destroy?: () => void;
@@ -411,122 +392,31 @@ function SystemDesignSummaryCard({
           Completion ratios for the whole roadmap and watched videos.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4 md:grid-cols-2">
-        <SystemDesignRatioDonut
-          title="Roadmap completion"
-          description="Done vs waiting"
-          primaryKey="done"
-          remainderKey="remaining"
-          primaryValue={snapshot.summary.completedItems}
-          remainderValue={
-            snapshot.summary.totalItems - snapshot.summary.completedItems
-          }
-        />
-        <SystemDesignRatioDonut
-          title="Video coverage"
-          description="Watched vs queued"
-          primaryKey="watched"
-          remainderKey="pending"
-          primaryValue={snapshot.summary.watchedVideos}
-          remainderValue={Math.max(
-            snapshot.summary.totalLessons - snapshot.summary.watchedVideos,
-            0,
-          )}
-        />
+      <CardContent>
+        <Suspense fallback={<SystemDesignSummaryChartsFallback />}>
+          <SystemDesignSummaryCharts
+            completedItems={snapshot.summary.completedItems}
+            pendingLessons={Math.max(
+              snapshot.summary.totalLessons - snapshot.summary.watchedVideos,
+              0,
+            )}
+            remainingItems={
+              snapshot.summary.totalItems - snapshot.summary.completedItems
+            }
+            watchedVideos={snapshot.summary.watchedVideos}
+          />
+        </Suspense>
       </CardContent>
     </Card>
   );
 }
 
-function SystemDesignRatioDonut({
-  title,
-  description,
-  primaryKey,
-  remainderKey,
-  primaryValue,
-  remainderValue,
-}: {
-  title: string;
-  description: string;
-  primaryKey: keyof typeof SYSTEM_DESIGN_RATIO_CHART_CONFIG;
-  remainderKey: keyof typeof SYSTEM_DESIGN_RATIO_CHART_CONFIG;
-  primaryValue: number;
-  remainderValue: number;
-}) {
-  const total = primaryValue + remainderValue;
-  const percentage = percent(primaryValue, total);
-  const chartData = [
-    {
-      key: primaryKey,
-      value: primaryValue,
-      fill: `var(--color-${primaryKey})`,
-    },
-    {
-      key: remainderKey,
-      value: remainderValue,
-      fill: `var(--color-${remainderKey})`,
-    },
-  ];
-
+function SystemDesignSummaryChartsFallback() {
   return (
-    <div className="min-w-0">
-      <div className="mb-2">
-        <p className="text-sm font-semibold text-foreground">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
-      </div>
-      <div className="relative">
-        <ChartContainer
-          config={SYSTEM_DESIGN_RATIO_CHART_CONFIG}
-          className="mx-auto h-[165px] w-full max-w-[240px]"
-        >
-          <PieChart accessibilityLayer>
-            <ChartTooltip
-              cursor={false}
-              position={{ x: 8, y: 8 }}
-              content={
-                <ChartTooltipContent
-                  hideLabel
-                  nameKey="key"
-                  formatter={(value, name) => {
-                    const key =
-                      String(name) as keyof typeof SYSTEM_DESIGN_RATIO_CHART_CONFIG;
-                    const label =
-                      SYSTEM_DESIGN_RATIO_CHART_CONFIG[key]?.label ?? name;
-
-                    return (
-                      <div className="flex min-w-28 items-center justify-between gap-3">
-                        <span className="text-muted-foreground">{label}</span>
-                        <span className="font-medium text-foreground">
-                          {Number(value).toLocaleString()}
-                        </span>
-                      </div>
-                    );
-                  }}
-                />
-              }
-            />
-            <Pie
-              data={chartData}
-              dataKey="value"
-              nameKey="key"
-              innerRadius={50}
-              outerRadius={74}
-              paddingAngle={2}
-              strokeWidth={0}
-            >
-              {chartData.map((entry) => (
-                <Cell key={entry.key} fill={entry.fill} />
-              ))}
-            </Pie>
-          </PieChart>
-        </ChartContainer>
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-heading text-2xl font-semibold text-foreground">
-            {percentage}%
-          </span>
-          <span className="text-xs text-muted-foreground">complete</span>
-        </div>
-      </div>
+    <div className="grid gap-4 md:grid-cols-2">
+      {[0, 1].map((item) => (
+        <Skeleton key={item} className="h-[199px] rounded-xl" />
+      ))}
     </div>
   );
 }

@@ -1,20 +1,11 @@
 import { createCareerightRpcClient } from "@careeright/api/client";
-import { QueryClient } from "@repo/ui/providers/query-provider";
 
 import { loadDesktopSession } from "./auth";
 import { getCareerightOrigin } from "./config";
+import { createOfflineCapableRpcClient } from "./offline-mutations";
+import { queryClient } from "./query-client";
 
-export const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-export const rpcClient = createCareerightRpcClient({
+export const remoteRpcClient = createCareerightRpcClient({
   origin: getCareerightOrigin,
   credentials: "omit",
   headers: async () => {
@@ -27,6 +18,11 @@ export const rpcClient = createCareerightRpcClient({
       : undefined;
   },
 });
+
+export const rpcClient = createOfflineCapableRpcClient(
+  remoteRpcClient,
+  queryClient,
+);
 
 export async function createAuthenticatedHeaders(): Promise<Record<string, string>> {
   const session = await loadDesktopSession();

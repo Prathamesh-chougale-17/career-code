@@ -261,6 +261,116 @@ code {
   animation: spin 1s linear infinite;
 }
 
+.desktop-route-loading-header {
+  display: flex;
+  height: 56px;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+}
+
+.desktop-route-loading-icon,
+.desktop-route-loading-line,
+.desktop-route-loading-tile {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in oklch, var(--muted) 82%, var(--foreground) 6%);
+}
+
+.desktop-route-loading-icon,
+.desktop-route-loading-line {
+  border-radius: 8px;
+}
+
+.desktop-route-loading-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.desktop-route-loading-copy {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+  gap: 8px;
+}
+
+.desktop-route-loading-line {
+  display: block;
+  height: 12px;
+}
+
+.desktop-route-loading-line.title {
+  width: min(9rem, 42vw);
+}
+
+.desktop-route-loading-line.subtitle {
+  width: min(24rem, 68vw);
+}
+
+.desktop-route-loading {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding: 20px 16px;
+}
+
+.desktop-route-loading-panel {
+  display: grid;
+  width: min(100%, 1280px);
+  min-width: 0;
+  gap: 18px;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in oklch, var(--card) 88%, transparent);
+  padding: 18px;
+}
+
+.desktop-route-loading-line.wide {
+  width: min(32rem, 82vw);
+  height: 18px;
+}
+
+.desktop-route-loading-line.medium {
+  width: min(20rem, 64vw);
+}
+
+.desktop-route-loading-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.desktop-route-loading-tile {
+  height: clamp(96px, 18vw, 150px);
+  border-radius: 12px;
+}
+
+.desktop-route-loading-icon::after,
+.desktop-route-loading-line::after,
+.desktop-route-loading-tile::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--foreground) 8%, transparent),
+    transparent
+  );
+  animation: desktop-route-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes desktop-route-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -304,6 +414,10 @@ code {
   }
 
   .preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .desktop-route-loading-grid {
     grid-template-columns: 1fr;
   }
 }

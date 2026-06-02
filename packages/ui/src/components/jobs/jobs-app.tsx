@@ -1,16 +1,8 @@
 "use client";
 
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-} from "@tanstack/react-table";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase,
-  Download,
-  ExternalLink,
   Loader2,
   Search,
   Settings2,
@@ -18,7 +10,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   AlertDialog,
@@ -31,7 +23,7 @@ import {
   AlertDialogTitle,
 } from "../ui/alert-dialog";
 import { Badge } from "../ui/badge";
-import { Button, buttonVariants } from "../ui/button";
+import { Button } from "../ui/button";
 import {
   Card,
   CardAction,
@@ -59,19 +51,6 @@ import {
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "../ui/tooltip";
 import {
   jobFitBandOptions,
   jobStatusOptions,
@@ -125,6 +104,12 @@ type JobMetadata = {
   posterUrl: string;
 };
 
+const JobDateTable = lazy(() =>
+  import("./jobs-date-table.js").then((module) => ({
+    default: module.JobDateTable,
+  })),
+);
+
 const jobStatusLabels = {
   not_applied: "Not applied",
   applied: "Applied",
@@ -132,15 +117,6 @@ const jobStatusLabels = {
   rejected: "Rejected",
   offer: "Offer",
   expired: "Expired",
-} satisfies Record<JobStatus, string>;
-
-const jobStatusRowClasses = {
-  not_applied: "",
-  applied: "bg-sky-500/10 hover:bg-sky-500/15",
-  interviewing: "bg-amber-500/15 hover:bg-amber-500/20",
-  rejected: "bg-rose-500/10 hover:bg-rose-500/15",
-  offer: "bg-emerald-500/10 hover:bg-emerald-500/15",
-  expired: "bg-zinc-500/10 text-muted-foreground hover:bg-zinc-500/15",
 } satisfies Record<JobStatus, string>;
 
 const jobStatusRank = new Map<JobStatus, number>(
@@ -618,30 +594,6 @@ async function downloadJobsExcel(section: JobDateSection, nowMs: number) {
   );
 }
 
-function ExternalCellLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: string;
-}) {
-  if (!href) {
-    return <span className="text-sm text-muted-foreground">Missing</span>;
-  }
-
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      className={buttonVariants({ variant: "outline", size: "sm" })}
-    >
-      <ExternalLink data-icon="inline-start" aria-hidden="true" />
-      {children}
-    </a>
-  );
-}
-
 function groupJobsBySeededDate(
   jobs: JobRecord[],
   sortMode: JobsSortMode,
@@ -982,21 +934,25 @@ export function JobsApp({
                 </Empty>
                   ) : (
                     sections.map((section) => (
-                  <JobDateTable
-                    key={section.dateKey}
-                    section={section}
-                    updatingJobId={
-                      updateStatusMutation.isPending
-                        ? updateStatusMutation.variables?.jobId
-                        : undefined
-                    }
-                    deletingJobIds={pendingDeleteJobIds}
-                    nowMs={nowMs}
-                    exportingDateKey={exportingDateKey}
-                    onStatusChange={onStatusChange}
-                    onDeleteJob={onRequestDeleteJob}
-                    onDownloadJobs={onDownloadJobs}
-                  />
+                      <Suspense
+                        key={section.dateKey}
+                        fallback={<JobDateTableFallback />}
+                      >
+                        <JobDateTable
+                          section={section}
+                          updatingJobId={
+                            updateStatusMutation.isPending
+                              ? updateStatusMutation.variables?.jobId
+                              : undefined
+                          }
+                          deletingJobIds={pendingDeleteJobIds}
+                          nowMs={nowMs}
+                          exportingDateKey={exportingDateKey}
+                          onStatusChange={onStatusChange}
+                          onDeleteJob={onRequestDeleteJob}
+                          onDownloadJobs={onDownloadJobs}
+                        />
+                      </Suspense>
                     ))
                   )}
                 </>
@@ -1357,361 +1313,46 @@ function JobDigestSummary({
   );
 }
 
-function JobDateTable({
-  section,
-  updatingJobId,
-  deletingJobIds,
-  nowMs,
-  exportingDateKey,
-  onStatusChange,
-  onDeleteJob,
-  onDownloadJobs,
-}: {
-  section: JobDateSection;
-  updatingJobId?: string;
-  deletingJobIds: Set<string>;
-  nowMs: number;
-  exportingDateKey: string | null;
-  onStatusChange: (jobId: string, status: JobStatus) => void;
-  onDeleteJob: (job: JobRecord) => void;
-  onDownloadJobs: (section: JobDateSection) => Promise<void>;
-}) {
-  const isExporting = exportingDateKey === section.dateKey;
-  const isExportBlocked = isExporting || section.jobs.length === 0;
-  const appliedCount = section.jobs.filter(
-    (job) => job.status === "applied",
-  ).length;
-  const columns = useMemo<ColumnDef<JobRecord>[]>(
-    () => [
-      {
-        id: "delete",
-        header: () => <span className="sr-only">Delete</span>,
-        cell: ({ row }) => {
-          const job = row.original;
-          const isDeleting = deletingJobIds.has(job.id);
-
-          return (
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon-sm"
-                    aria-label={`Delete ${job.title}`}
-                    disabled={isDeleting}
-                    onClick={() => onDeleteJob(job)}
-                  >
-                    {isDeleting ? (
-                      <Loader2 className="animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Trash2 aria-hidden="true" />
-                    )}
-                  </Button>
-                }
-              />
-              <TooltipContent>Delete job</TooltipContent>
-            </Tooltip>
-          );
-        },
-      },
-      {
-        accessorKey: "applyUrl",
-        header: "Apply",
-        cell: ({ row }) => {
-          const applyUrl = row.original.applyUrl;
-
-          return <ExternalCellLink href={applyUrl}>Apply</ExternalCellLink>;
-        },
-      },
-      {
-        id: "jobUrl",
-        header: "Job",
-        cell: ({ row }) => {
-          const metadata = jobMetadata(row.original);
-
-          return <ExternalCellLink href={metadata.jobUrl}>Open</ExternalCellLink>;
-        },
-      },
-      {
-        accessorKey: "status",
-        header: "Status",
-        cell: ({ row }) => {
-          const job = row.original;
-
-          return (
-            <Select
-              value={job.status}
-              disabled={updatingJobId === job.id}
-              onValueChange={(value) =>
-                onStatusChange(job.id, value as JobStatus)
-              }
-            >
-              <SelectTrigger size="sm" className="min-w-36">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {jobStatusOptions.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {jobStatusLabels[status]}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          );
-        },
-      },
-      {
-        accessorKey: "title",
-        header: "Role",
-        cell: ({ row }) => {
-          const job = row.original;
-
-          return (
-            <div className="flex min-w-64 max-w-96 flex-col gap-1.5">
-              <span className="truncate font-medium">{job.title}</span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {job.fitScore === null ? null : (
-                  <Badge variant="outline">Fit {job.fitScore}</Badge>
-                )}
-                {job.fitBand ? (
-                  <Badge variant={jobFitBandBadgeVariants[job.fitBand]}>
-                    {jobFitBandLabels[job.fitBand]}
-                  </Badge>
-                ) : null}
-              </div>
-              {job.fitReasons.length > 0 || job.riskFlags.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {job.fitReasons.slice(0, 2).map((reason) => (
-                    <Badge key={reason} variant="secondary">
-                      {reason}
-                    </Badge>
-                  ))}
-                  {job.riskFlags.slice(0, 1).map((flag) => (
-                    <Badge key={flag} variant="destructive">
-                      {flag}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          );
-        },
-      },
-      {
-        accessorKey: "company",
-        header: "Company",
-        cell: ({ row }) => (
-          <span className="block max-w-48 truncate">
-            {optionalText(row.original.company)}
-          </span>
-        ),
-      },
-      {
-        id: "companyUrl",
-        header: "Company link",
-        cell: ({ row }) => {
-          const metadata = jobMetadata(row.original);
-
-          return (
-            <ExternalCellLink href={metadata.companyUrl}>Open</ExternalCellLink>
-          );
-        },
-      },
-      {
-        accessorKey: "location",
-        header: "Location",
-        cell: ({ row }) => (
-          <span className="block max-w-56 truncate">
-            {optionalText(row.original.location)}
-          </span>
-        ),
-      },
-      {
-        id: "applicants",
-        header: "Applicants",
-        cell: ({ row }) => {
-          const metadata = jobMetadata(row.original);
-
-          return optionalText(metadata.applicants);
-        },
-      },
-      {
-        id: "seniority",
-        header: "Seniority",
-        cell: ({ row }) => {
-          const metadata = jobMetadata(row.original);
-
-          return (
-            <span className="block max-w-40 truncate">
-              {optionalText(metadata.seniority)}
-            </span>
-          );
-        },
-      },
-      {
-        id: "employmentType",
-        header: "Type",
-        cell: ({ row }) => {
-          const metadata = jobMetadata(row.original);
-
-          return (
-            <span className="block max-w-40 truncate">
-              {optionalText(metadata.employmentType)}
-            </span>
-          );
-        },
-      },
-      {
-        id: "workMode",
-        header: "Work",
-        cell: ({ row }) => {
-          const metadata = jobMetadata(row.original);
-
-          return (
-            <span className="block max-w-40 truncate">
-              {optionalText(metadata.workMode)}
-            </span>
-          );
-        },
-      },
-      {
-        id: "industry",
-        header: "Industry",
-        cell: ({ row }) => {
-          const metadata = jobMetadata(row.original);
-
-          return (
-            <span className="block max-w-56 truncate">
-              {optionalText(metadata.industry)}
-            </span>
-          );
-        },
-      },
-      {
-        id: "poster",
-        header: "Poster",
-        cell: ({ row }) => {
-          const metadata = jobMetadata(row.original);
-
-          if (metadata.posterUrl) {
-            return (
-              <ExternalCellLink href={metadata.posterUrl}>
-                {metadata.posterName || "Profile"}
-              </ExternalCellLink>
-            );
-          }
-
-          return (
-            <span className="block max-w-44 truncate">
-              {optionalText(metadata.posterName)}
-            </span>
-          );
-        },
-      },
-      {
-        accessorKey: "source",
-        header: "Source",
-        cell: ({ row }) => (
-          <Badge variant="outline">{row.original.source}</Badge>
-        ),
-      },
-      {
-        accessorKey: "postedAt",
-        header: "Posted",
-        cell: ({ row }) => (
-          <span title={optionalText(row.original.postedAt)}>
-            {formatRelativePostedAt(row.original.postedAt, nowMs)}
-          </span>
-        ),
-      },
-      {
-        accessorKey: "salary",
-        header: "Salary",
-        cell: ({ row }) => (
-          <span className="block max-w-48 truncate">
-            {optionalText(row.original.salary)}
-          </span>
-        ),
-      },
-    ],
-    [deletingJobIds, nowMs, onDeleteJob, onStatusChange, updatingJobId],
-  );
-
-  const table = useReactTable({
-    data: section.jobs,
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
-
+function JobDateTableFallback() {
   return (
     <Card size="sm" className="lg:h-[calc(100svh-13rem)]">
       <CardHeader>
-        <CardTitle>{section.label}</CardTitle>
-        <CardDescription>
-          Jobs seeded into Careeright on this date.
-        </CardDescription>
+        <div className="space-y-2">
+          <Skeleton className="h-6 w-56 rounded-md" />
+          <Skeleton className="h-4 w-72 max-w-full rounded-md" />
+        </div>
         <CardAction className="flex flex-wrap items-center justify-end gap-2">
-          <Badge variant="secondary">
-            Applied {appliedCount}/{section.jobs.length}
-          </Badge>
-          <Badge variant="outline">
-            {section.jobs.length} {section.jobs.length === 1 ? "job" : "jobs"}
-          </Badge>
-          <Button
-            type="button"
-            size="sm"
-            disabled={isExportBlocked}
-            onClick={() => void onDownloadJobs(section)}
-          >
-            {isExporting ? (
-              <Loader2
-                data-icon="inline-start"
-                className="animate-spin"
-                aria-hidden="true"
-              />
-            ) : (
-              <Download data-icon="inline-start" aria-hidden="true" />
-            )}
-            Excel
-          </Button>
+          <Skeleton className="h-6 w-24 rounded-full" />
+          <Skeleton className="h-6 w-16 rounded-full" />
+          <Skeleton className="h-9 w-20 rounded-md" />
         </CardAction>
       </CardHeader>
       <CardContent className="min-h-0 flex-1 overflow-hidden">
-        <Table containerClassName="h-full overflow-auto">
-          <TableHeader className="sticky top-0 bg-card">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={cn(jobStatusRowClasses[row.original.status])}
+        <div className="h-full overflow-auto rounded-lg border border-border">
+          <div className="min-w-[1180px]">
+            <div className="grid grid-cols-[3rem_4rem_4rem_9rem_minmax(15rem,1.4fr)_repeat(7,minmax(7rem,1fr))] gap-4 border-b border-border bg-card px-4 py-3">
+              {Array.from({ length: 12 }, (_, index) => (
+                <Skeleton key={index} className="h-4 rounded-md" />
+              ))}
+            </div>
+            {Array.from({ length: 9 }, (_, rowIndex) => (
+              <div
+                key={rowIndex}
+                className="grid grid-cols-[3rem_4rem_4rem_9rem_minmax(15rem,1.4fr)_repeat(7,minmax(7rem,1fr))] gap-4 border-b border-border/70 px-4 py-3 last:border-b-0"
               >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
+                {Array.from({ length: 12 }, (_, cellIndex) => (
+                  <Skeleton
+                    key={cellIndex}
+                    className={cn(
+                      "h-5 rounded-md",
+                      cellIndex === 4 ? "w-full" : "w-4/5",
+                    )}
+                  />
                 ))}
-              </TableRow>
+              </div>
             ))}
-          </TableBody>
-        </Table>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

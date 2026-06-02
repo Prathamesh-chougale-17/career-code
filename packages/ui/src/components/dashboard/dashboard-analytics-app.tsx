@@ -10,17 +10,7 @@ import {
   Sparkles,
   UserRound,
 } from "lucide-react";
-import type { ReactNode } from "react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Suspense, lazy, type ReactNode } from "react";
 
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -32,12 +22,6 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "../ui/chart";
 import {
   Empty,
   EmptyDescription,
@@ -56,64 +40,11 @@ type CountWithMeta = DashboardCount & {
   color?: string;
 };
 
-const workspaceChartConfig = {
-  count: {
-    label: "Total",
-    color: "var(--chart-1)",
-  },
-} satisfies ChartConfig;
-
-const jobStatusChartConfig = {
-  count: {
-    label: "Jobs",
-  },
-  not_applied: {
-    label: "Not applied",
-    color: "var(--muted-foreground)",
-  },
-  applied: {
-    label: "Applied",
-    color: "var(--primary)",
-  },
-  interviewing: {
-    label: "Interviewing",
-    color: "var(--chart-1)",
-  },
-  rejected: {
-    label: "Rejected",
-    color: "var(--destructive)",
-  },
-  offer: {
-    label: "Offer",
-    color: "var(--chart-2)",
-  },
-  expired: {
-    label: "Expired",
-    color: "var(--muted-foreground)",
-  },
-  empty: {
-    label: "No jobs",
-    color: "var(--muted)",
-  },
-} satisfies ChartConfig;
-
-const FOOTPRINT_COLORS = [
-  "var(--primary)",
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-];
-
-const JOB_STATUS_COLORS: Record<string, string> = {
-  not_applied: "var(--muted-foreground)",
-  applied: "var(--primary)",
-  interviewing: "var(--chart-1)",
-  rejected: "var(--destructive)",
-  offer: "var(--chart-2)",
-  expired: "var(--muted-foreground)",
-};
+const DashboardAnalyticsCharts = lazy(() =>
+  import("./dashboard-analytics-charts.js").then((module) => ({
+    default: module.DashboardAnalyticsCharts,
+  })),
+);
 
 function formatDate(value: string | null) {
   if (!value) {
@@ -216,10 +147,9 @@ export function DashboardAnalyticsApp({
                 />
               ) : null}
               <DashboardHero data={data} />
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
-                <WorkspaceFootprintChart data={data} />
-                <JobsStatusDonut data={data} />
-              </div>
+              <Suspense fallback={<DashboardChartsFallback />}>
+                <DashboardAnalyticsCharts data={data} />
+              </Suspense>
               <InsightCards data={data} />
               <div className="grid gap-4 xl:grid-cols-2">
                 <ExecutionPanel data={data} />
@@ -320,137 +250,12 @@ function ReadinessDial({ label, value }: { label: string; value: number }) {
   );
 }
 
-function WorkspaceFootprintChart({ data }: { data: DashboardAnalytics }) {
-  const chartData = [
-    { area: "Tasks", count: data.board.taskCount },
-    { area: "Jobs", count: data.jobs.totalCount },
-    { area: "Diary", count: data.diary.totalCount },
-    { area: "Proposals", count: data.proposals.totalCount },
-    { area: "Profile", count: data.profile.itemCount },
-    { area: "MCP", count: data.mcp.totalTokenCount },
-  ].map((item, index) => ({
-    ...item,
-    fill: FOOTPRINT_COLORS[index % FOOTPRINT_COLORS.length],
-  }));
-  const topArea = [...chartData].sort((a, b) => b.count - a.count)[0] ?? {
-    area: "None",
-    count: 0,
-  };
-
+function DashboardChartsFallback() {
   return (
-    <Card size="sm">
-      <CardHeader>
-        <div>
-          <CardTitle>Workspace footprint</CardTitle>
-          <CardDescription>
-            See where the most activity lives without reading every table.
-          </CardDescription>
-        </div>
-        <CardAction>
-          <Badge variant="outline">
-            Top: {topArea.area} {topArea.count}
-          </Badge>
-        </CardAction>
-      </CardHeader>
-      <CardContent>
-        <ChartContainer
-          config={workspaceChartConfig}
-          className="h-[210px] w-full"
-          initialDimension={{ width: 640, height: 210 }}
-        >
-          <BarChart accessibilityLayer data={chartData} barCategoryGap={12}>
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="area"
-              tickLine={false}
-              tickMargin={10}
-              axisLine={false}
-            />
-            <YAxis
-              tickLine={false}
-              axisLine={false}
-              width={34}
-              allowDecimals={false}
-            />
-            <ChartTooltip
-              cursor={false}
-              content={<ChartTooltipContent hideLabel />}
-            />
-            <Bar dataKey="count" radius={[6, 6, 2, 2]}>
-              {chartData.map((entry) => (
-                <Cell key={entry.area} fill={entry.fill} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
-  );
-}
-
-function JobsStatusDonut({ data }: { data: DashboardAnalytics }) {
-  const visibleStatuses = data.jobs.statusCounts
-    .filter((item) => item.count > 0)
-    .map((item) => ({
-      ...item,
-      fill: JOB_STATUS_COLORS[item.status] ?? "var(--chart-5)",
-    }));
-  const chartData =
-    visibleStatuses.length === 0
-      ? [{ label: "No jobs", status: "empty", count: 1, fill: "var(--muted)" }]
-      : visibleStatuses;
-
-  return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle>Jobs pipeline</CardTitle>
-        <CardDescription>Status split for quick application context.</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-3 sm:grid-cols-[190px_minmax(0,1fr)] xl:grid-cols-1">
-        <div className="relative mx-auto w-full max-w-[220px]">
-          <ChartContainer
-            config={jobStatusChartConfig}
-            className="h-[190px] w-full"
-            initialDimension={{ width: 220, height: 190 }}
-          >
-            <PieChart accessibilityLayer>
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel nameKey="label" />}
-              />
-              <Pie
-                data={chartData}
-                dataKey="count"
-                nameKey="label"
-                innerRadius={54}
-                outerRadius={78}
-                paddingAngle={2}
-                strokeWidth={0}
-              >
-                {chartData.map((entry) => (
-                  <Cell key={entry.status} fill={entry.fill} />
-                ))}
-              </Pie>
-            </PieChart>
-          </ChartContainer>
-          <div className="pointer-events-none absolute inset-0 grid place-items-center">
-            <div className="text-center">
-              <p className="font-heading text-2xl font-semibold">
-                {data.jobs.totalCount}
-              </p>
-              <p className="text-xs text-muted-foreground">jobs</p>
-            </div>
-          </div>
-        </div>
-        <DistributionList
-          title="Status"
-          total={data.jobs.totalCount}
-          items={data.jobs.statusCounts}
-          emptyLabel="No job statuses yet"
-          compact
-        />
-      </CardContent>
-    </Card>
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+      <Skeleton className="h-[302px] rounded-2xl" />
+      <Skeleton className="h-[302px] rounded-2xl" />
+    </div>
   );
 }
 
