@@ -411,6 +411,10 @@ export const DSA_QUESTIONS = DSA_CATALOG.tracks.flatMap((track) =>
   track.subtopics.flatMap((subtopic) => subtopic.questions),
 );
 
+const STATIC_DSA_QUESTION_BY_ID = new Map(
+  DSA_QUESTIONS.map((question) => [question.id, question]),
+);
+
 export const DSA_QUESTION_IDS = new Set(
   DSA_QUESTIONS.map((question) => question.id),
 );
@@ -489,8 +493,11 @@ export function buildDsaCatalogFromTrackMetadata(
   const questionsBySubtopic = new Map<string, DsaQuestion[]>();
 
   for (const questionInput of questions) {
+    const staticQuestion = STATIC_DSA_QUESTION_BY_ID.get(questionInput.id);
     const questionItem = {
       ...questionInput,
+      durationSeconds:
+        questionInput.durationSeconds ?? staticQuestion?.durationSeconds,
       affiliatedLessonLabel:
         questionInput.affiliatedLessonLabel ??
         lessonLabelByQuestionId.get(questionInput.affiliatedLessonId ?? ""),

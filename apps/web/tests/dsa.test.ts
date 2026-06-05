@@ -181,6 +181,32 @@ describe("DSA catalog", () => {
     );
   });
 
+  test("hydrates video durations when rebuilding persisted DSA catalog rows", () => {
+    const persistedQuestions = DSA_QUESTIONS.map((question) => ({
+      ...question,
+      durationSeconds: undefined,
+    }));
+    const catalog = buildDsaCatalogFromTrackMetadata(
+      STATIC_DSA_TRACKS,
+      persistedQuestions,
+    );
+    const rebuiltLessons = catalog.tracks.flatMap((track) =>
+      track.subtopics.flatMap((subtopic) =>
+        subtopic.questions.filter(
+          (question) => question.sourceType === "lesson",
+        ),
+      ),
+    );
+    const totalDurationSeconds = rebuiltLessons.reduce(
+      (totalSeconds, question) =>
+        totalSeconds + (question.durationSeconds ?? 0),
+      0,
+    );
+
+    expect(rebuiltLessons[0]?.durationSeconds).toBeGreaterThan(0);
+    expect(totalDurationSeconds).toBeGreaterThan(0);
+  });
+
   test("builds heap playlist data for DB import with affiliated LeetCode questions", () => {
     const seed = buildHeapDsaSeed(QUESTION_DOCUMENTS);
     const catalog = buildDsaCatalogFromTrackMetadata(
