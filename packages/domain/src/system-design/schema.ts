@@ -47,6 +47,7 @@ export const systemDesignItemSchema = z.object({
   playlistUrl: systemDesignYoutubeUrlSchema.optional(),
   videoId: systemDesignTextSchema(40).optional(),
   videoUrl: systemDesignYoutubeUrlSchema.optional(),
+  durationSeconds: z.number().int().positive().optional(),
 });
 
 export const systemDesignModuleSchema = z.object({
@@ -143,15 +144,11 @@ export type SystemDesignTrackMetadata = z.infer<
   typeof systemDesignTrackMetadataSchema
 >;
 export type SystemDesignCatalog = z.infer<typeof systemDesignCatalogSchema>;
-export type SystemDesignProgress = z.infer<
-  typeof systemDesignProgressSchema
->;
+export type SystemDesignProgress = z.infer<typeof systemDesignProgressSchema>;
 export type SystemDesignVideoWatchEvent = z.infer<
   typeof systemDesignVideoWatchEventSchema
 >;
-export type SystemDesignSnapshot = z.infer<
-  typeof systemDesignSnapshotSchema
->;
+export type SystemDesignSnapshot = z.infer<typeof systemDesignSnapshotSchema>;
 export type UpdateSystemDesignItemProgressInput = z.input<
   typeof updateSystemDesignItemProgressInputSchema
 >;

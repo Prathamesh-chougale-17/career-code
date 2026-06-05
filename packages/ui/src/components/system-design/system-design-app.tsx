@@ -173,7 +173,9 @@ export function SystemDesignApp({
         nextIds.add(input.itemId);
         return nextIds;
       });
-      await queryClient.cancelQueries({ queryKey: systemDesignSnapshotQueryKey });
+      await queryClient.cancelQueries({
+        queryKey: systemDesignSnapshotQueryKey,
+      });
       const previousSnapshot = queryClient.getQueryData<SystemDesignSnapshot>(
         systemDesignSnapshotQueryKey,
       );
@@ -236,8 +238,7 @@ export function SystemDesignApp({
     [snapshot?.progress],
   );
   const watchedVideoItemIds = useMemo(
-    () =>
-      new Set(snapshot?.videoWatches.map((event) => event.itemId) ?? []),
+    () => new Set(snapshot?.videoWatches.map((event) => event.itemId) ?? []),
     [snapshot?.videoWatches],
   );
 
@@ -381,6 +382,21 @@ function SystemDesignSummaryCard({
   snapshot: SystemDesignSnapshot;
 }) {
   const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
+  const lessonItems = snapshot.catalog.tracks.flatMap((track) =>
+    track.modules.flatMap((module) =>
+      module.items.filter(
+        (item) => item.sourceType === "lesson" && item.videoUrl,
+      ),
+    ),
+  );
+  const watchedVideoItemIds = new Set(
+    snapshot.videoWatches.map((event) => event.itemId),
+  );
+  const totalVideoSeconds = sumVideoDurationSeconds(lessonItems);
+  const watchedVideoSeconds = sumWatchedVideoDurationSeconds(
+    lessonItems,
+    watchedVideoItemIds,
+  );
 
   useEffect(() => {
     if (shouldLoadCharts) {
@@ -409,14 +425,14 @@ function SystemDesignSummaryCard({
           <Suspense fallback={<SystemDesignSummaryChartsFallback />}>
             <SystemDesignSummaryCharts
               completedItems={snapshot.summary.completedItems}
-              pendingLessons={Math.max(
-                snapshot.summary.totalLessons - snapshot.summary.watchedVideos,
+              remainingVideoSeconds={Math.max(
+                totalVideoSeconds - watchedVideoSeconds,
                 0,
               )}
               remainingItems={
                 snapshot.summary.totalItems - snapshot.summary.completedItems
               }
-              watchedVideos={snapshot.summary.watchedVideos}
+              watchedVideoSeconds={watchedVideoSeconds}
             />
           </Suspense>
         ) : (
@@ -555,7 +571,8 @@ function SystemDesignItemAccordion({
         const completed = completedItemIds.has(item.id);
         const pending = pendingItemIds.has(item.id);
         const videoWatched = watchedVideoItemIds.has(item.id);
-        const itemToneIndex = (toneIndex + index) % SYSTEM_DESIGN_SURFACE_TONES.length;
+        const itemToneIndex =
+          (toneIndex + index) % SYSTEM_DESIGN_SURFACE_TONES.length;
 
         return (
           <AccordionItem
@@ -594,12 +611,15 @@ function SystemDesignItemAccordion({
                   {item.sourceType === "lesson" && item.videoUrl ? (
                     <Badge variant={videoWatched ? "secondary" : "outline"}>
                       <PlayCircle data-icon="inline-start" aria-hidden="true" />
-                      {videoWatched ? "Watched" : "Video"}
+                      {formatVideoTimeBadge(item.durationSeconds, videoWatched)}
                     </Badge>
                   ) : null}
                   {completed ? (
                     <Badge>
-                      <CheckCircle2 data-icon="inline-start" aria-hidden="true" />
+                      <CheckCircle2
+                        data-icon="inline-start"
+                        aria-hidden="true"
+                      />
                       Done
                     </Badge>
                   ) : (
@@ -629,7 +649,9 @@ function SystemDesignItemAccordion({
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <label className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2 text-sm">
                     <Checkbox
-                      checked={progressByItemId.get(item.id)?.completed ?? false}
+                      checked={
+                        progressByItemId.get(item.id)?.completed ?? false
+                      }
                       disabled={pending}
                       aria-label={`Mark ${item.title} as completed`}
                       onCheckedChange={(checked) =>
@@ -825,6 +847,11 @@ function getSystemDesignStats(
   const watchedVideos = videoItems.filter((item) =>
     watchedVideoItemIds.has(item.id),
   ).length;
+  const totalVideoSeconds = sumVideoDurationSeconds(videoItems);
+  const watchedVideoSeconds = sumWatchedVideoDurationSeconds(
+    videoItems,
+    watchedVideoItemIds,
+  );
   const totalItems = items.length;
 
   return {
@@ -834,9 +861,65 @@ function getSystemDesignStats(
     totalVideos: videoItems.length,
     watchedVideos,
     completionPercentage: percent(completedItems, totalItems),
-    videoPercentage: percent(watchedVideos, videoItems.length),
+    videoPercentage:
+      totalVideoSeconds > 0
+        ? percent(watchedVideoSeconds, totalVideoSeconds)
+        : percent(watchedVideos, videoItems.length),
     isComplete: totalItems > 0 && completedItems === totalItems,
   };
+}
+
+function sumVideoDurationSeconds(items: SystemDesignItem[]) {
+  return items.reduce(
+    (totalSeconds, item) => totalSeconds + (item.durationSeconds ?? 0),
+    0,
+  );
+}
+
+function sumWatchedVideoDurationSeconds(
+  items: SystemDesignItem[],
+  watchedVideoItemIds: Set<string>,
+) {
+  return items.reduce(
+    (totalSeconds, item) =>
+      watchedVideoItemIds.has(item.id)
+        ? totalSeconds + (item.durationSeconds ?? 0)
+        : totalSeconds,
+    0,
+  );
+}
+
+function formatVideoTimeBadge(
+  durationSeconds: number | undefined,
+  watched: boolean,
+) {
+  const duration = formatCompactDuration(durationSeconds);
+
+  if (!duration) {
+    return watched ? "Watched" : "Video";
+  }
+
+  return watched ? `${duration} watched` : `${duration} left`;
+}
+
+function formatCompactDuration(durationSeconds: number | undefined) {
+  if (!durationSeconds || durationSeconds <= 0) {
+    return undefined;
+  }
+
+  const totalMinutes = Math.max(1, Math.round(durationSeconds / 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h`;
+  }
+
+  return `${minutes}m`;
 }
 
 function percent(value: number, total: number) {

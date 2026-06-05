@@ -429,9 +429,14 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
       .filter((item) => item.completed)
       .map((item) => item.questionId),
   );
-  const watchedVideos = new Set(
+  const watchedVideoQuestionIds = new Set(
     snapshot.videoWatches.map((event) => event.questionId),
-  ).size;
+  );
+  const totalVideoSeconds = sumVideoDurationSeconds(lessonQuestions);
+  const watchedVideoSeconds = sumWatchedVideoDurationSeconds(
+    lessonQuestions,
+    watchedVideoQuestionIds,
+  );
   const completedPracticeQuestions = leetcodeQuestions.filter((question) =>
     completedQuestionIds.has(question.id),
   ).length;
@@ -464,7 +469,10 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
             <DsaSummaryCharts
               completedPracticeQuestions={completedPracticeQuestions}
               completedQuestions={snapshot.summary.completedQuestions}
-              pendingLessons={Math.max(lessonQuestions.length - watchedVideos, 0)}
+              remainingVideoSeconds={Math.max(
+                totalVideoSeconds - watchedVideoSeconds,
+                0,
+              )}
               pendingPracticeQuestions={Math.max(
                 leetcodeQuestions.length - completedPracticeQuestions,
                 0,
@@ -473,7 +481,7 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
                 snapshot.summary.totalQuestions -
                 snapshot.summary.completedQuestions
               }
-              watchedVideos={watchedVideos}
+              watchedVideoSeconds={watchedVideoSeconds}
             />
           </Suspense>
         ) : (
@@ -1008,6 +1016,11 @@ function getDsaProgressStats(
   const watchedVideos = videoQuestions.filter((question) =>
     watchedVideoQuestionIds.has(question.id),
   ).length;
+  const totalVideoSeconds = sumVideoDurationSeconds(videoQuestions);
+  const watchedVideoSeconds = sumWatchedVideoDurationSeconds(
+    videoQuestions,
+    watchedVideoQuestionIds,
+  );
   const completedPracticeQuestions = practiceQuestions.filter((question) =>
     completedQuestionIds.has(question.id),
   ).length;
@@ -1026,11 +1039,67 @@ function getDsaProgressStats(
     totalPracticeQuestions,
     completedPracticeQuestions,
     completionPercentage: percent(completedQuestions, totalQuestions),
-    videoPercentage: percent(watchedVideos, totalVideos),
+    videoPercentage:
+      totalVideoSeconds > 0
+        ? percent(watchedVideoSeconds, totalVideoSeconds)
+        : percent(watchedVideos, totalVideos),
     isQuestionsComplete,
     isVideosComplete,
     isComplete: isQuestionsComplete && isVideosComplete,
   };
+}
+
+function sumVideoDurationSeconds(questions: DsaQuestion[]) {
+  return questions.reduce(
+    (totalSeconds, question) => totalSeconds + (question.durationSeconds ?? 0),
+    0,
+  );
+}
+
+function sumWatchedVideoDurationSeconds(
+  questions: DsaQuestion[],
+  watchedVideoQuestionIds: Set<string>,
+) {
+  return questions.reduce(
+    (totalSeconds, question) =>
+      watchedVideoQuestionIds.has(question.id)
+        ? totalSeconds + (question.durationSeconds ?? 0)
+        : totalSeconds,
+    0,
+  );
+}
+
+function formatVideoTimeBadge(
+  durationSeconds: number | undefined,
+  watched: boolean,
+) {
+  const duration = formatCompactDuration(durationSeconds);
+
+  if (!duration) {
+    return watched ? "Watched" : "Watch next";
+  }
+
+  return watched ? `${duration} watched` : `${duration} left`;
+}
+
+function formatCompactDuration(durationSeconds: number | undefined) {
+  if (!durationSeconds || durationSeconds <= 0) {
+    return undefined;
+  }
+
+  const totalMinutes = Math.max(1, Math.round(durationSeconds / 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h`;
+  }
+
+  return `${minutes}m`;
 }
 
 function percent(value: number, total: number) {
@@ -1062,7 +1131,7 @@ function DsaQuestionTable({
           <TableHead className="w-24">Type</TableHead>
           <TableHead>Question</TableHead>
           <TableHead className="w-28">Resource</TableHead>
-          <TableHead className="w-28">Status</TableHead>
+          <TableHead className="w-36">Status</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -1139,7 +1208,10 @@ function DsaQuestionTable({
                           data-icon="inline-start"
                           aria-hidden="true"
                         />
-                        {videoWatched ? "Video watched" : "Video pending"}
+                        {formatVideoTimeBadge(
+                          question.durationSeconds,
+                          videoWatched,
+                        )}
                       </Badge>
                     </div>
                   ) : null}
@@ -1199,7 +1271,10 @@ function DsaQuestionTable({
                   {question.sourceType === "lesson" && question.videoUrl ? (
                     <Badge variant={videoWatched ? "outline" : "secondary"}>
                       <CirclePlay data-icon="inline-start" aria-hidden="true" />
-                      {videoWatched ? "Watched" : "Watch next"}
+                      {formatVideoTimeBadge(
+                        question.durationSeconds,
+                        videoWatched,
+                      )}
                     </Badge>
                   ) : null}
                 </div>

@@ -49,6 +49,7 @@ export const dsaQuestionSchema = z.object({
   title: dsaTextSchema(220),
   videoId: dsaTextSchema(40).optional(),
   videoUrl: dsaYoutubeUrlSchema.optional(),
+  durationSeconds: z.number().int().positive().optional(),
   leetcodeSlug: dsaTextSchema(160).optional(),
   leetcodeUrl: dsaLeetcodeUrlSchema.optional(),
   difficulty: dsaDifficultySchema.optional(),

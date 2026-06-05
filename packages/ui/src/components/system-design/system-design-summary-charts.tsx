@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Cell, Pie, PieChart } from "recharts";
 
 import {
@@ -19,11 +20,11 @@ const SYSTEM_DESIGN_RATIO_CHART_CONFIG = {
     color: "var(--muted)",
   },
   watched: {
-    label: "Watched",
+    label: "Watched time",
     color: "var(--chart-1)",
   },
   pending: {
-    label: "Pending",
+    label: "Remaining time",
     color: "var(--muted)",
   },
 } satisfies ChartConfig;
@@ -33,13 +34,13 @@ type SystemDesignRatioChartKey = keyof typeof SYSTEM_DESIGN_RATIO_CHART_CONFIG;
 export function SystemDesignSummaryCharts({
   completedItems,
   remainingItems,
-  watchedVideos,
-  pendingLessons,
+  watchedVideoSeconds,
+  remainingVideoSeconds,
 }: {
   completedItems: number;
   remainingItems: number;
-  watchedVideos: number;
-  pendingLessons: number;
+  watchedVideoSeconds: number;
+  remainingVideoSeconds: number;
 }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -52,12 +53,13 @@ export function SystemDesignSummaryCharts({
         remainderValue={remainingItems}
       />
       <SystemDesignRatioDonut
-        title="Video coverage"
-        description="Watched vs queued"
+        title="Video time"
+        description="Watched vs remaining"
         primaryKey="watched"
         remainderKey="pending"
-        primaryValue={watchedVideos}
-        remainderValue={pendingLessons}
+        primaryValue={watchedVideoSeconds}
+        remainderValue={remainingVideoSeconds}
+        valueFormatter={formatVideoDuration}
       />
     </div>
   );
@@ -70,6 +72,7 @@ function SystemDesignRatioDonut({
   remainderKey,
   primaryValue,
   remainderValue,
+  valueFormatter,
 }: {
   title: string;
   description: string;
@@ -77,9 +80,11 @@ function SystemDesignRatioDonut({
   remainderKey: SystemDesignRatioChartKey;
   primaryValue: number;
   remainderValue: number;
+  valueFormatter?: (value: number) => string;
 }) {
   const total = primaryValue + remainderValue;
   const percentage = percent(primaryValue, total);
+  const formatValue = valueFormatter ?? formatNumber;
   const chartData = [
     {
       key: primaryKey,
@@ -121,7 +126,7 @@ function SystemDesignRatioDonut({
                       <div className="flex min-w-28 items-center justify-between gap-3">
                         <span className="text-muted-foreground">{label}</span>
                         <span className="font-medium text-foreground">
-                          {Number(value).toLocaleString()}
+                          {formatValue(Number(value))}
                         </span>
                       </div>
                     );
@@ -151,8 +156,62 @@ function SystemDesignRatioDonut({
           <span className="text-xs text-muted-foreground">complete</span>
         </div>
       </div>
+      <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+        <SystemDesignDonutMetric
+          label={
+            SYSTEM_DESIGN_RATIO_CHART_CONFIG[primaryKey]?.label ?? primaryKey
+          }
+          value={formatValue(primaryValue)}
+        />
+        <SystemDesignDonutMetric
+          label={
+            SYSTEM_DESIGN_RATIO_CHART_CONFIG[remainderKey]?.label ??
+            remainderKey
+          }
+          value={formatValue(remainderValue)}
+        />
+      </div>
     </div>
   );
+}
+
+function SystemDesignDonutMetric({
+  label,
+  value,
+}: {
+  label: ReactNode;
+  value: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-lg border border-border/70 bg-background/60 px-2 py-1.5">
+      <p className="truncate text-muted-foreground">{label}</p>
+      <p className="truncate font-semibold text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function formatNumber(value: number) {
+  return value.toLocaleString();
+}
+
+function formatVideoDuration(value: number) {
+  if (value <= 0) {
+    return "0m";
+  }
+
+  const totalMinutes = Math.max(1, Math.round(value / 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 0 && minutes > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h`;
+  }
+
+  return `${minutes}m`;
 }
 
 function percent(value: number, total: number) {

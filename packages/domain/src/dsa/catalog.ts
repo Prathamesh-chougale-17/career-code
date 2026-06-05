@@ -11,6 +11,37 @@ const LINKED_LIST_TRACK_ID = "linked-list";
 const LINKED_LIST_PLAYLIST_ID = "PLgUwDviBIf0rAuz8tVcM0AymmhTRsfaLU";
 const LINKED_LIST_PLAYLIST_URL = `https://www.youtube.com/playlist?list=${LINKED_LIST_PLAYLIST_ID}`;
 
+const LINKED_LIST_VIDEO_DURATIONS_SECONDS: Partial<Record<string, number>> = {
+  "Nq7ok-OyEpg": 2716,
+  "VaECK03Dz-g": 3390,
+  "0eKMU10uEDI": 3846,
+  u3WUW2qe6ww: 1110,
+  XmRrGzR6udg: 888,
+  qf6qp7GzD5Q: 1445,
+  gRII7LhdJWc: 1402,
+  "3kMKYQ2wNIU": 983,
+  D2vI2DNJGd8: 1961,
+  "lRY_G-u_8jk": 1201,
+  aXQWhbvT3w0: 1527,
+  "0DYoPz2Tpt4": 1925,
+  "7LjQ57RqgEc": 877,
+  wiOo4DC5GGA: 1225,
+  I4g1qbkTPus: 840,
+  "ePpV-_pfOeI": 995,
+  "2Kd0KKmmHFc": 1361,
+  Mh0NH_SD92k: 672,
+  YitR4dQsddE: 853,
+  YJKVTnOJXSY: 773,
+  lIar1skcQYI: 1471,
+  uT7YI7XbTY8: 729,
+  "jXu-H7XuClE": 1134,
+  ykelywHJWLg: 1978,
+  "1zktEppsdig": 1801,
+  "8ocB7a_c-Cc": 1330,
+  q570bKdrnlw: 1980,
+  mG3KLugbOdc: 877,
+};
+
 type LessonInput = {
   id: string;
   lessonNumber: number;
@@ -48,6 +79,7 @@ function lessonQuestion(
     title,
     videoId,
     videoUrl: videoUrl(videoId, playlistId),
+    durationSeconds: LINKED_LIST_VIDEO_DURATIONS_SECONDS[videoId],
   };
 }
 
@@ -64,7 +96,8 @@ const linkedListSubtopics = [
       {
         id: "linked-list-l01-introduction",
         lessonNumber: 1,
-        title: "Introduction to LinkedList | Traversal | Length | Search an Element",
+        title:
+          "Introduction to LinkedList | Traversal | Length | Search an Element",
         videoId: "Nq7ok-OyEpg",
       },
       {
@@ -120,7 +153,8 @@ const linkedListSubtopics = [
       {
         id: "linked-list-l08-remove-nth-from-end",
         lessonNumber: 8,
-        title: "Remove Nth Node from the end of the LinkedList | Multiple Approaches",
+        title:
+          "Remove Nth Node from the end of the LinkedList | Multiple Approaches",
         videoId: "3kMKYQ2wNIU",
       },
       {
@@ -132,7 +166,8 @@ const linkedListSubtopics = [
       {
         id: "linked-list-l10-palindrome",
         lessonNumber: 10,
-        title: "Check if a LinkedList is Palindrome or Not | Multiple Approaches",
+        title:
+          "Check if a LinkedList is Palindrome or Not | Multiple Approaches",
         videoId: "lRY_G-u_8jk",
       },
       {
@@ -150,7 +185,8 @@ const linkedListSubtopics = [
       {
         id: "linked-list-l13-middle",
         lessonNumber: 13,
-        title: "Find the middle element of the LinkedList | Multiple Approaches",
+        title:
+          "Find the middle element of the LinkedList | Multiple Approaches",
         videoId: "7LjQ57RqgEc",
       },
     ],
@@ -163,7 +199,8 @@ const linkedListSubtopics = [
       {
         id: "linked-list-l14-detect-cycle",
         lessonNumber: 14,
-        title: "Detect a loop or cycle in LinkedList | With proof and Intuition",
+        title:
+          "Detect a loop or cycle in LinkedList | With proof and Intuition",
         videoId: "wiOo4DC5GGA",
       },
       {
@@ -181,7 +218,8 @@ const linkedListSubtopics = [
       {
         id: "linked-list-l17-cycle-start",
         lessonNumber: 17,
-        title: "Find the starting point of the Loop/Cycle in LinkedList | Multiple Approaches",
+        title:
+          "Find the starting point of the Loop/Cycle in LinkedList | Multiple Approaches",
         videoId: "2Kd0KKmmHFc",
       },
     ],
@@ -214,7 +252,8 @@ const linkedListSubtopics = [
   {
     id: "advanced-patterns",
     title: "Advanced Patterns",
-    description: "Reversal groups, merging, flattening, sorting, cloning, and design.",
+    description:
+      "Reversal groups, merging, flattening, sorting, cloning, and design.",
     lessons: [
       {
         id: "linked-list-l21-reverse-k-group",
@@ -255,7 +294,8 @@ const linkedListSubtopics = [
       {
         id: "linked-list-l27-clone-random",
         lessonNumber: 27,
-        title: "Clone a LinkedList with Next and Random Pointers | Copy List with Random Pointers",
+        title:
+          "Clone a LinkedList with Next and Random Pointers | Copy List with Random Pointers",
         videoId: "q570bKdrnlw",
       },
       {
@@ -311,7 +351,9 @@ function leetcodeQuestion(
     leetcodeUrl: leetcodeUrl(leetcodeSlug),
     difficulty: questionInput.difficulty,
     affiliatedLessonId: questionInput.affiliatedLessonId,
-    affiliatedLessonLabel: lessonLabelById.get(questionInput.affiliatedLessonId),
+    affiliatedLessonLabel: lessonLabelById.get(
+      questionInput.affiliatedLessonId,
+    ),
   };
 }
 
@@ -352,7 +394,8 @@ export const DSA_CATALOG: DsaCatalog = dsaCatalogSchema.parse({
       id: LINKED_LIST_TRACK_ID,
       title: "Linked List",
       sourceName: "take U forward",
-      playlistTitle: "Linked List | Beginner to Advanced for FAANG and PBC Interview Rounds",
+      playlistTitle:
+        "Linked List | Beginner to Advanced for FAANG and PBC Interview Rounds",
       playlistUrl: LINKED_LIST_PLAYLIST_URL,
       subtopics: linkedListSubtopics.map((subtopic) => ({
         id: subtopic.id,
@@ -410,11 +453,13 @@ export function dsaCatalogQuestionIds(catalog: DsaCatalog) {
 
 export function dsaCatalogQuestionOrder(catalog: DsaCatalog) {
   return new Map(
-    catalog.tracks.flatMap((track) =>
-      track.subtopics.flatMap((subtopic) =>
-        subtopic.questions.map((question) => question.id),
-      ),
-    ).map((questionId, index) => [questionId, index]),
+    catalog.tracks
+      .flatMap((track) =>
+        track.subtopics.flatMap((subtopic) =>
+          subtopic.questions.map((question) => question.id),
+        ),
+      )
+      .map((questionId, index) => [questionId, index]),
   );
 }
 
@@ -450,9 +495,11 @@ export function buildDsaCatalogFromTrackMetadata(
         questionInput.affiliatedLessonLabel ??
         lessonLabelByQuestionId.get(questionInput.affiliatedLessonId ?? ""),
     };
-    const key = dsaCatalogBucketKey(questionItem.trackId, questionItem.subtopicId);
-    const currentQuestions =
-      questionsBySubtopic.get(key) ?? [];
+    const key = dsaCatalogBucketKey(
+      questionItem.trackId,
+      questionItem.subtopicId,
+    );
+    const currentQuestions = questionsBySubtopic.get(key) ?? [];
 
     questionsBySubtopic.set(key, [...currentQuestions, questionItem]);
   }
