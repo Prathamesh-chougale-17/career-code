@@ -19,8 +19,8 @@ const DSA_RATIO_CHART_CONFIG = {
     label: "Remaining",
     color: "var(--muted)",
   },
-  watched: {
-    label: "Watched time",
+  completedTime: {
+    label: "Completed time",
     color: "var(--chart-2)",
   },
   pending: {
@@ -38,18 +38,20 @@ type DsaRatioChartKey = keyof typeof DSA_RATIO_CHART_CONFIG;
 export function DsaSummaryCharts({
   completedPracticeQuestions,
   completedQuestions,
+  completedVideoSeconds,
   remainingVideoSeconds,
   pendingPracticeQuestions,
   remainingQuestions,
-  watchedVideoSeconds,
 }: {
   completedPracticeQuestions: number;
   completedQuestions: number;
+  completedVideoSeconds: number;
   remainingVideoSeconds: number;
   pendingPracticeQuestions: number;
   remainingQuestions: number;
-  watchedVideoSeconds: number;
 }) {
+  const totalVideoSeconds = completedVideoSeconds + remainingVideoSeconds;
+
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <DsaRatioDonut
@@ -61,11 +63,11 @@ export function DsaSummaryCharts({
         remainderValue={remainingQuestions}
       />
       <DsaRatioDonut
-        title="Video time"
-        description="Watched vs remaining"
-        primaryKey="watched"
+        title="DSA sheet time"
+        description={`Total ${formatVideoDuration(totalVideoSeconds)}`}
+        primaryKey="completedTime"
         remainderKey="pending"
-        primaryValue={watchedVideoSeconds}
+        primaryValue={completedVideoSeconds}
         remainderValue={remainingVideoSeconds}
         valueFormatter={formatVideoDuration}
       />

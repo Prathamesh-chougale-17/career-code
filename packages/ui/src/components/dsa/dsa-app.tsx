@@ -429,13 +429,10 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
       .filter((item) => item.completed)
       .map((item) => item.questionId),
   );
-  const watchedVideoQuestionIds = new Set(
-    snapshot.videoWatches.map((event) => event.questionId),
-  );
   const totalVideoSeconds = sumVideoDurationSeconds(lessonQuestions);
-  const watchedVideoSeconds = sumWatchedVideoDurationSeconds(
+  const completedVideoSeconds = sumCompletedVideoDurationSeconds(
     lessonQuestions,
-    watchedVideoQuestionIds,
+    completedQuestionIds,
   );
   const completedPracticeQuestions = leetcodeQuestions.filter((question) =>
     completedQuestionIds.has(question.id),
@@ -469,8 +466,9 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
             <DsaSummaryCharts
               completedPracticeQuestions={completedPracticeQuestions}
               completedQuestions={snapshot.summary.completedQuestions}
+              completedVideoSeconds={completedVideoSeconds}
               remainingVideoSeconds={Math.max(
-                totalVideoSeconds - watchedVideoSeconds,
+                totalVideoSeconds - completedVideoSeconds,
                 0,
               )}
               pendingPracticeQuestions={Math.max(
@@ -481,7 +479,6 @@ function DsaSummaryCard({ snapshot }: { snapshot: DsaSnapshot }) {
                 snapshot.summary.totalQuestions -
                 snapshot.summary.completedQuestions
               }
-              watchedVideoSeconds={watchedVideoSeconds}
             />
           </Suspense>
         ) : (
@@ -1063,6 +1060,19 @@ function sumWatchedVideoDurationSeconds(
   return questions.reduce(
     (totalSeconds, question) =>
       watchedVideoQuestionIds.has(question.id)
+        ? totalSeconds + (question.durationSeconds ?? 0)
+        : totalSeconds,
+    0,
+  );
+}
+
+function sumCompletedVideoDurationSeconds(
+  questions: DsaQuestion[],
+  completedQuestionIds: Set<string>,
+) {
+  return questions.reduce(
+    (totalSeconds, question) =>
+      completedQuestionIds.has(question.id)
         ? totalSeconds + (question.durationSeconds ?? 0)
         : totalSeconds,
     0,
