@@ -3,6 +3,7 @@ import {
   dsaTrackMetadataSchema,
   type DsaQuestion,
 } from "./schema";
+import { DSA_VIDEO_DURATIONS_SECONDS } from "./video-durations";
 
 const HEAP_TRACK_ID = "heap";
 const HEAP_PLAYLIST_ID = "PL_z_8CaSLPWdtY9W22VjnPxG30CXNZpI9";
@@ -34,27 +35,32 @@ const heapSubtopics = [
   {
     id: "heap-foundations",
     title: "Foundations",
-    description: "Heap identification, priority queue basics, and heap-backed design.",
+    description:
+      "Heap identification, priority queue basics, and heap-backed design.",
   },
   {
     id: "heap-kth-selection",
     title: "Kth Selection",
-    description: "Kth smallest, k largest, and bounded top-k selection patterns.",
+    description:
+      "Kth smallest, k largest, and bounded top-k selection patterns.",
   },
   {
     id: "heap-sorted-and-closest",
     title: "Sorted and Closest",
-    description: "Nearly sorted arrays, closest values, closest points, and sorted merges.",
+    description:
+      "Nearly sorted arrays, closest values, closest points, and sorted merges.",
   },
   {
     id: "heap-frequency-patterns",
     title: "Frequency Patterns",
-    description: "Top-k frequency, frequency sorting, and heap-driven string construction.",
+    description:
+      "Top-k frequency, frequency sorting, and heap-driven string construction.",
   },
   {
     id: "heap-applications",
     title: "Heap Applications",
-    description: "Greedy cost, scheduling, graph, stream, and design problems using priority queues.",
+    description:
+      "Greedy cost, scheduling, graph, stream, and design problems using priority queues.",
   },
 ] as const;
 
@@ -131,7 +137,9 @@ const heapLessons = [
   },
 ] as const satisfies readonly HeapLessonSeed[];
 
-const heapLessonById = new Map(heapLessons.map((lesson) => [lesson.id, lesson]));
+const heapLessonById = new Map(
+  heapLessons.map((lesson) => [lesson.id, lesson]),
+);
 
 const curatedHeapLeetcodeQuestions = [
   {
@@ -293,6 +301,7 @@ function heapLessonQuestion(lesson: HeapLessonSeed): DsaQuestion {
     title: lesson.title,
     videoId: lesson.videoId,
     videoUrl: `https://www.youtube.com/watch?v=${lesson.videoId}&list=${HEAP_PLAYLIST_ID}`,
+    durationSeconds: DSA_VIDEO_DURATIONS_SECONDS[lesson.videoId],
   });
 }
 
@@ -327,7 +336,9 @@ function heapQuestionSlug(document: HeapQuestionDocument) {
   const slug = document.question?.slug?.trim();
 
   if (!slug) {
-    throw new Error(`Heap question is missing slug: ${heapQuestionTitle(document)}`);
+    throw new Error(
+      `Heap question is missing slug: ${heapQuestionTitle(document)}`,
+    );
   }
 
   return slug;
@@ -336,8 +347,14 @@ function heapQuestionSlug(document: HeapQuestionDocument) {
 function heapQuestionDifficulty(document: HeapQuestionDocument) {
   const difficulty = document.question?.difficulty?.toUpperCase();
 
-  if (difficulty !== "EASY" && difficulty !== "MEDIUM" && difficulty !== "HARD") {
-    throw new Error(`Heap question has invalid difficulty: ${heapQuestionTitle(document)}`);
+  if (
+    difficulty !== "EASY" &&
+    difficulty !== "MEDIUM" &&
+    difficulty !== "HARD"
+  ) {
+    throw new Error(
+      `Heap question has invalid difficulty: ${heapQuestionTitle(document)}`,
+    );
   }
 
   return difficulty;
@@ -358,7 +375,6 @@ function heapCleanTitle(title: string) {
 }
 
 export type { HeapQuestionDocument };
-
 
 const GRAPH_TRACK_ID = "graph";
 const GRAPH_PLAYLIST_ID = "PLgUwDviBIf0oE3gA41TKO2H5bHpPd7fzn";
@@ -385,32 +401,38 @@ const graphSubtopics = [
   {
     id: "graph-foundations",
     title: "Foundations",
-    description: "Graph conventions, representations, connected components, BFS, and DFS.",
+    description:
+      "Graph conventions, representations, connected components, BFS, and DFS.",
   },
   {
     id: "graph-bfs-dfs-matrix",
     title: "BFS, DFS, and Grids",
-    description: "Traversal-driven graph and matrix problems, cycle detection, and bipartite checks.",
+    description:
+      "Traversal-driven graph and matrix problems, cycle detection, and bipartite checks.",
   },
   {
     id: "graph-directed-topo",
     title: "Directed Graphs and Topological Sort",
-    description: "Directed cycles, safe states, Kahn's algorithm, prerequisites, and alien dictionary.",
+    description:
+      "Directed cycles, safe states, Kahn's algorithm, prerequisites, and alien dictionary.",
   },
   {
     id: "graph-shortest-paths",
     title: "Shortest Paths",
-    description: "DAG shortest paths, word ladder, Dijkstra, Bellman-Ford, and Floyd-Warshall.",
+    description:
+      "DAG shortest paths, word ladder, Dijkstra, Bellman-Ford, and Floyd-Warshall.",
   },
   {
     id: "graph-mst-dsu",
     title: "MST and DSU",
-    description: "Minimum spanning trees, disjoint set union, Kruskal, and DSU applications.",
+    description:
+      "Minimum spanning trees, disjoint set union, Kruskal, and DSU applications.",
   },
   {
     id: "graph-advanced-connectivity",
     title: "Advanced Connectivity",
-    description: "Strongly connected components, bridges, and articulation points.",
+    description:
+      "Strongly connected components, bridges, and articulation points.",
   },
 ] as const;
 
@@ -809,10 +831,15 @@ const graphLessons = [
   },
 ] as const satisfies readonly GraphLessonSeed[];
 
-const graphLessonById = new Map(graphLessons.map((lesson) => [lesson.id, lesson]));
+const graphLessonById = new Map(
+  graphLessons.map((lesson) => [lesson.id, lesson]),
+);
 
 const curatedGraphLeetcodeQuestions = [
-  { slug: "find-if-path-exists-in-graph", lessonId: "graph-g04-connected-components" },
+  {
+    slug: "find-if-path-exists-in-graph",
+    lessonId: "graph-g04-connected-components",
+  },
   { slug: "clone-graph", lessonId: "graph-g06-dfs" },
   { slug: "graph-valid-tree", lessonId: "graph-g11-cycle-undirected-bfs" },
   { slug: "number-of-provinces", lessonId: "graph-g07-number-of-provinces" },
@@ -824,22 +851,46 @@ const curatedGraphLeetcodeQuestions = [
   { slug: "surrounded-regions", lessonId: "graph-g14-surrounded-regions" },
   { slug: "number-of-enclaves", lessonId: "graph-g15-number-of-enclaves" },
   { slug: "shortest-bridge", lessonId: "graph-g15-number-of-enclaves" },
-  { slug: "number-of-distinct-islands", lessonId: "graph-g16-distinct-islands" },
-  { slug: "pacific-atlantic-water-flow", lessonId: "graph-g16-distinct-islands" },
+  {
+    slug: "number-of-distinct-islands",
+    lessonId: "graph-g16-distinct-islands",
+  },
+  {
+    slug: "pacific-atlantic-water-flow",
+    lessonId: "graph-g16-distinct-islands",
+  },
   { slug: "is-graph-bipartite", lessonId: "graph-g17-bipartite-bfs" },
   { slug: "possible-bipartition", lessonId: "graph-g17-bipartite-bfs" },
   { slug: "redundant-connection", lessonId: "graph-g11-cycle-undirected-bfs" },
-  { slug: "find-eventual-safe-states", lessonId: "graph-g20-eventual-safe-states-dfs" },
+  {
+    slug: "find-eventual-safe-states",
+    lessonId: "graph-g20-eventual-safe-states-dfs",
+  },
   { slug: "course-schedule", lessonId: "graph-g24-course-schedule" },
   { slug: "course-schedule-ii", lessonId: "graph-g24-course-schedule" },
   { slug: "parallel-courses", lessonId: "graph-g24-course-schedule" },
   { slug: "alien-dictionary", lessonId: "graph-g26-alien-dictionary" },
-  { slug: "minimum-number-of-vertices-to-reach-all-nodes", lessonId: "graph-g21-topological-sort-dfs" },
-  { slug: "all-paths-from-source-to-target", lessonId: "graph-g27-shortest-path-dag" },
-  { slug: "largest-color-value-in-a-directed-graph", lessonId: "graph-g21-topological-sort-dfs" },
-  { slug: "shortest-path-with-alternating-colors", lessonId: "graph-g28-shortest-path-unit" },
+  {
+    slug: "minimum-number-of-vertices-to-reach-all-nodes",
+    lessonId: "graph-g21-topological-sort-dfs",
+  },
+  {
+    slug: "all-paths-from-source-to-target",
+    lessonId: "graph-g27-shortest-path-dag",
+  },
+  {
+    slug: "largest-color-value-in-a-directed-graph",
+    lessonId: "graph-g21-topological-sort-dfs",
+  },
+  {
+    slug: "shortest-path-with-alternating-colors",
+    lessonId: "graph-g28-shortest-path-unit",
+  },
   { slug: "open-the-lock", lessonId: "graph-g28-shortest-path-unit" },
-  { slug: "minimum-genetic-mutation", lessonId: "graph-g28-shortest-path-unit" },
+  {
+    slug: "minimum-genetic-mutation",
+    lessonId: "graph-g28-shortest-path-unit",
+  },
   { slug: "bus-routes", lessonId: "graph-g28-shortest-path-unit" },
   { slug: "word-ladder", lessonId: "graph-g29-word-ladder" },
   { slug: "word-ladder-ii", lessonId: "graph-g30-word-ladder-ii" },
@@ -847,23 +898,62 @@ const curatedGraphLeetcodeQuestions = [
   { slug: "the-maze", lessonId: "graph-g36-shortest-distance-binary-maze" },
   { slug: "the-maze-ii", lessonId: "graph-g36-shortest-distance-binary-maze" },
   { slug: "the-maze-iii", lessonId: "graph-g36-shortest-distance-binary-maze" },
-  { slug: "shortest-path-in-binary-matrix", lessonId: "graph-g36-shortest-distance-binary-maze" },
-  { slug: "path-with-minimum-effort", lessonId: "graph-g37-path-with-minimum-effort" },
-  { slug: "swim-in-rising-water", lessonId: "graph-g37-path-with-minimum-effort" },
-  { slug: "cheapest-flights-within-k-stops", lessonId: "graph-g38-cheapest-flights" },
-  { slug: "number-of-ways-to-arrive-at-destination", lessonId: "graph-g40-number-of-ways" },
-  { slug: "find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance", lessonId: "graph-g43-find-city-threshold" },
-  { slug: "min-cost-to-connect-all-points", lessonId: "graph-g45-prims-algorithm" },
-  { slug: "connecting-cities-with-minimum-cost", lessonId: "graph-g47-kruskals-algorithm" },
-  { slug: "find-critical-and-pseudo-critical-edges-in-minimum-spanning-tree", lessonId: "graph-g47-kruskals-algorithm" },
-  { slug: "optimize-water-distribution-in-a-village", lessonId: "graph-g47-kruskals-algorithm" },
-  { slug: "number-of-operations-to-make-network-connected", lessonId: "graph-g49-network-connected-dsu" },
+  {
+    slug: "shortest-path-in-binary-matrix",
+    lessonId: "graph-g36-shortest-distance-binary-maze",
+  },
+  {
+    slug: "path-with-minimum-effort",
+    lessonId: "graph-g37-path-with-minimum-effort",
+  },
+  {
+    slug: "swim-in-rising-water",
+    lessonId: "graph-g37-path-with-minimum-effort",
+  },
+  {
+    slug: "cheapest-flights-within-k-stops",
+    lessonId: "graph-g38-cheapest-flights",
+  },
+  {
+    slug: "number-of-ways-to-arrive-at-destination",
+    lessonId: "graph-g40-number-of-ways",
+  },
+  {
+    slug: "find-the-city-with-the-smallest-number-of-neighbors-at-a-threshold-distance",
+    lessonId: "graph-g43-find-city-threshold",
+  },
+  {
+    slug: "min-cost-to-connect-all-points",
+    lessonId: "graph-g45-prims-algorithm",
+  },
+  {
+    slug: "connecting-cities-with-minimum-cost",
+    lessonId: "graph-g47-kruskals-algorithm",
+  },
+  {
+    slug: "find-critical-and-pseudo-critical-edges-in-minimum-spanning-tree",
+    lessonId: "graph-g47-kruskals-algorithm",
+  },
+  {
+    slug: "optimize-water-distribution-in-a-village",
+    lessonId: "graph-g47-kruskals-algorithm",
+  },
+  {
+    slug: "number-of-operations-to-make-network-connected",
+    lessonId: "graph-g49-network-connected-dsu",
+  },
   { slug: "accounts-merge", lessonId: "graph-g50-accounts-merge" },
   { slug: "number-of-islands-ii", lessonId: "graph-g51-number-of-islands-ii" },
   { slug: "making-a-large-island", lessonId: "graph-g52-making-large-island" },
-  { slug: "most-stones-removed-with-same-row-or-column", lessonId: "graph-g53-most-stones-removed" },
+  {
+    slug: "most-stones-removed-with-same-row-or-column",
+    lessonId: "graph-g53-most-stones-removed",
+  },
   { slug: "redundant-connection-ii", lessonId: "graph-g46-disjoint-set" },
-  { slug: "satisfiability-of-equality-equations", lessonId: "graph-g46-disjoint-set" },
+  {
+    slug: "satisfiability-of-equality-equations",
+    lessonId: "graph-g46-disjoint-set",
+  },
   { slug: "regions-cut-by-slashes", lessonId: "graph-g46-disjoint-set" },
   { slug: "critical-connections-in-a-network", lessonId: "graph-g55-bridges" },
 ] as const;
@@ -902,7 +992,9 @@ export function buildGraphDsaSeed(documents: GraphQuestionDocument[]) {
 
     const offset = (lessonOffsets.get(lesson.id) ?? 0) + 1;
     lessonOffsets.set(lesson.id, offset);
-    graphLeetcodeQuestions.push(graphLeetcodeQuestion(document, lesson, offset));
+    graphLeetcodeQuestions.push(
+      graphLeetcodeQuestion(document, lesson, offset),
+    );
   }
 
   return {
@@ -925,6 +1017,7 @@ function graphLessonQuestion(lesson: GraphLessonSeed): DsaQuestion {
     title: lesson.title,
     videoId: lesson.videoId,
     videoUrl: `https://www.youtube.com/watch?v=${lesson.videoId}&list=${GRAPH_PLAYLIST_ID}`,
+    durationSeconds: DSA_VIDEO_DURATIONS_SECONDS[lesson.videoId],
   });
 }
 
@@ -959,7 +1052,9 @@ function graphQuestionSlug(document: GraphQuestionDocument) {
   const slug = document.question?.slug?.trim();
 
   if (!slug) {
-    throw new Error(`Graph question is missing slug: ${graphQuestionTitle(document)}`);
+    throw new Error(
+      `Graph question is missing slug: ${graphQuestionTitle(document)}`,
+    );
   }
 
   return slug;
@@ -968,8 +1063,14 @@ function graphQuestionSlug(document: GraphQuestionDocument) {
 function graphQuestionDifficulty(document: GraphQuestionDocument) {
   const difficulty = document.question?.difficulty?.toUpperCase();
 
-  if (difficulty !== "EASY" && difficulty !== "MEDIUM" && difficulty !== "HARD") {
-    throw new Error(`Graph question has invalid difficulty: ${graphQuestionTitle(document)}`);
+  if (
+    difficulty !== "EASY" &&
+    difficulty !== "MEDIUM" &&
+    difficulty !== "HARD"
+  ) {
+    throw new Error(
+      `Graph question has invalid difficulty: ${graphQuestionTitle(document)}`,
+    );
   }
 
   return difficulty;
@@ -1015,4 +1116,3 @@ function titleFromSlug(slug: string) {
     .map((part) => (part ? part[0].toUpperCase() + part.slice(1) : part))
     .join(" ");
 }
-

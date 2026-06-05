@@ -5,42 +5,12 @@ import {
   type DsaQuestion,
   type DsaTrackMetadata,
 } from "@careeright/domain/dsa/schema";
+import { DSA_VIDEO_DURATIONS_SECONDS } from "@careeright/domain/dsa/video-durations";
 import { LINKED_LIST_LEETCODE_QUESTIONS } from "@careeright/domain/dsa/linked-list-leetcode";
 
 const LINKED_LIST_TRACK_ID = "linked-list";
 const LINKED_LIST_PLAYLIST_ID = "PLgUwDviBIf0rAuz8tVcM0AymmhTRsfaLU";
 const LINKED_LIST_PLAYLIST_URL = `https://www.youtube.com/playlist?list=${LINKED_LIST_PLAYLIST_ID}`;
-
-const LINKED_LIST_VIDEO_DURATIONS_SECONDS: Partial<Record<string, number>> = {
-  "Nq7ok-OyEpg": 2716,
-  "VaECK03Dz-g": 3390,
-  "0eKMU10uEDI": 3846,
-  u3WUW2qe6ww: 1110,
-  XmRrGzR6udg: 888,
-  qf6qp7GzD5Q: 1445,
-  gRII7LhdJWc: 1402,
-  "3kMKYQ2wNIU": 983,
-  D2vI2DNJGd8: 1961,
-  "lRY_G-u_8jk": 1201,
-  aXQWhbvT3w0: 1527,
-  "0DYoPz2Tpt4": 1925,
-  "7LjQ57RqgEc": 877,
-  wiOo4DC5GGA: 1225,
-  I4g1qbkTPus: 840,
-  "ePpV-_pfOeI": 995,
-  "2Kd0KKmmHFc": 1361,
-  Mh0NH_SD92k: 672,
-  YitR4dQsddE: 853,
-  YJKVTnOJXSY: 773,
-  lIar1skcQYI: 1471,
-  uT7YI7XbTY8: 729,
-  "jXu-H7XuClE": 1134,
-  ykelywHJWLg: 1978,
-  "1zktEppsdig": 1801,
-  "8ocB7a_c-Cc": 1330,
-  q570bKdrnlw: 1980,
-  mG3KLugbOdc: 877,
-};
 
 type LessonInput = {
   id: string;
@@ -79,7 +49,7 @@ function lessonQuestion(
     title,
     videoId,
     videoUrl: videoUrl(videoId, playlistId),
-    durationSeconds: LINKED_LIST_VIDEO_DURATIONS_SECONDS[videoId],
+    durationSeconds: DSA_VIDEO_DURATIONS_SECONDS[videoId],
   };
 }
 
@@ -494,10 +464,15 @@ export function buildDsaCatalogFromTrackMetadata(
 
   for (const questionInput of questions) {
     const staticQuestion = STATIC_DSA_QUESTION_BY_ID.get(questionInput.id);
+    const staticVideoDurationSeconds = questionInput.videoId
+      ? DSA_VIDEO_DURATIONS_SECONDS[questionInput.videoId]
+      : undefined;
     const questionItem = {
       ...questionInput,
       durationSeconds:
-        questionInput.durationSeconds ?? staticQuestion?.durationSeconds,
+        questionInput.durationSeconds ??
+        staticQuestion?.durationSeconds ??
+        staticVideoDurationSeconds,
       affiliatedLessonLabel:
         questionInput.affiliatedLessonLabel ??
         lessonLabelByQuestionId.get(questionInput.affiliatedLessonId ?? ""),

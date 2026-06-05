@@ -107,6 +107,7 @@ describe("DSA catalog", () => {
     );
 
     for (const question of lessons) {
+      expect(question.durationSeconds).toBeGreaterThan(0);
       expect(question.videoUrl).toBeDefined();
       const url = new URL(question.videoUrl ?? "");
       expect(url.hostname).toBe("www.youtube.com");
@@ -204,14 +205,28 @@ describe("DSA catalog", () => {
     );
 
     expect(rebuiltLessons[0]?.durationSeconds).toBeGreaterThan(0);
+    expect(
+      rebuiltLessons
+        .filter((question) => !question.durationSeconds)
+        .map((question) => question.id),
+    ).toEqual([]);
     expect(totalDurationSeconds).toBeGreaterThan(0);
   });
 
   test("builds heap playlist data for DB import with affiliated LeetCode questions", () => {
     const seed = buildHeapDsaSeed(QUESTION_DOCUMENTS);
+    expect(
+      seed.lessons
+        .filter((question) => !question.durationSeconds)
+        .map((question) => question.id),
+    ).toEqual([]);
+    const persistedQuestions = seed.questions.map((question) => ({
+      ...question,
+      durationSeconds: undefined,
+    }));
     const catalog = buildDsaCatalogFromTrackMetadata(
       [...STATIC_DSA_TRACKS, seed.track],
-      [...DSA_QUESTIONS, ...seed.questions],
+      [...DSA_QUESTIONS, ...persistedQuestions],
     );
     const track = catalog.tracks.find((item) => item.id === "heap");
 
@@ -279,6 +294,7 @@ describe("DSA catalog", () => {
     );
 
     for (const question of lessons) {
+      expect(question.durationSeconds).toBeGreaterThan(0);
       expect(question.videoUrl).toBeDefined();
       const url = new URL(question.videoUrl ?? "");
       expect(url.hostname).toBe("www.youtube.com");
@@ -302,9 +318,18 @@ describe("DSA catalog", () => {
 
   test("builds graph playlist data for DB import with affiliated LeetCode questions", () => {
     const seed = buildGraphDsaSeed(QUESTION_DOCUMENTS);
+    expect(
+      seed.lessons
+        .filter((question) => !question.durationSeconds)
+        .map((question) => question.id),
+    ).toEqual([]);
+    const persistedQuestions = seed.questions.map((question) => ({
+      ...question,
+      durationSeconds: undefined,
+    }));
     const catalog = buildDsaCatalogFromTrackMetadata(
       [...STATIC_DSA_TRACKS, seed.track],
-      [...DSA_QUESTIONS, ...seed.questions],
+      [...DSA_QUESTIONS, ...persistedQuestions],
     );
     const track = catalog.tracks.find((item) => item.id === "graph");
 
@@ -359,6 +384,7 @@ describe("DSA catalog", () => {
     );
 
     for (const question of lessons) {
+      expect(question.durationSeconds).toBeGreaterThan(0);
       expect(question.videoUrl).toBeDefined();
       const url = new URL(question.videoUrl ?? "");
       expect(url.hostname).toBe("www.youtube.com");
