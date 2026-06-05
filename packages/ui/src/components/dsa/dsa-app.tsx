@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Circle,
   CirclePlay,
+  Clock3,
   ExternalLink,
   ListChecks,
   Loader2,
@@ -908,6 +909,9 @@ function DsaLessonAccordion({
           watchedVideoQuestionIds,
         );
         const lessonToneIndex = (toneIndex + index) % DSA_SURFACE_TONES.length;
+        const videoDuration = formatCompactDuration(
+          group.lesson.durationSeconds,
+        );
 
         return (
           <AccordionItem
@@ -932,6 +936,15 @@ function DsaLessonAccordion({
                       >
                         {group.lesson.lessonLabel}
                       </Badge>
+                      {videoDuration ? (
+                        <Badge
+                          variant="outline"
+                          className="border-chart-2/35 bg-chart-2/10 text-foreground"
+                        >
+                          <Clock3 data-icon="inline-start" aria-hidden="true" />
+                          {videoDuration}
+                        </Badge>
+                      ) : null}
                       <span className="truncate">{group.lesson.title}</span>
                     </span>
                     <span className="block text-sm font-normal text-muted-foreground">
