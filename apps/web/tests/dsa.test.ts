@@ -22,6 +22,7 @@ import {
 import { appRouter } from "@careeright/api/router";
 import {
   buildCuratedDsaQuestionDocuments,
+  buildDynamicProgrammingDsaSeed,
   buildGraphDsaSeed,
   buildHeapDsaSeed,
   type GraphQuestionDocument,
@@ -312,6 +313,75 @@ describe("DSA catalog", () => {
       expect(lessonIds.has(question.affiliatedLessonId ?? "")).toBe(true);
       expect(lessonSubtopicById.get(question.affiliatedLessonId ?? "")).toBe(
         question.subtopicId,
+      );
+    }
+  });
+
+  test("builds Striver dynamic programming playlist data for DB import", () => {
+    const seed = buildDynamicProgrammingDsaSeed();
+    expect(
+      seed.lessons
+        .filter((question) => !question.durationSeconds)
+        .map((question) => question.id),
+    ).toEqual([]);
+    const persistedQuestions = seed.questions.map((question) => ({
+      ...question,
+      durationSeconds: undefined,
+    }));
+    const catalog = buildDsaCatalogFromTrackMetadata(
+      [...STATIC_DSA_TRACKS, seed.track],
+      [...DSA_QUESTIONS, ...persistedQuestions],
+    );
+    const track = catalog.tracks.find(
+      (item) => item.id === "dynamic-programming",
+    );
+
+    if (!track) {
+      throw new Error("Missing imported Dynamic Programming DSA track");
+    }
+
+    const questions = track.subtopics.flatMap((subtopic) => subtopic.questions);
+    const lessons = questions.filter(
+      (question) => question.sourceType === "lesson",
+    );
+    const videoIds = lessons.map((question) => question.videoId);
+
+    expect(track.title).toBe("Dynamic Programming");
+    expect(track.sourceName).toBe("Striver");
+    expect(track.playlistUrl).toBe(
+      "https://www.youtube.com/playlist?list=PLgUwDviBIf0qUlt5H_kiKYaNSqJ81PMMY",
+    );
+    expect(track.subtopics.map((subtopic) => subtopic.id)).toEqual([
+      "dp-1d-foundations",
+      "dp-grids",
+      "dp-subsequences",
+      "dp-strings",
+      "dp-stocks",
+      "dp-lis",
+      "dp-partition-rectangles",
+    ]);
+    expect(lessons).toHaveLength(56);
+    expect(lessons.map((question) => question.lessonNumber)).toEqual(
+      Array.from({ length: 56 }, (_, index) => index + 1),
+    );
+    expect(new Set(lessons.map((question) => question.id)).size).toBe(56);
+    expect(videoIds).toEqual(
+      expect.arrayContaining([
+        "tyB0ztf0DNY",
+        "GS_OqZb2CWc",
+        "NPZn9jBrX8U",
+        "auS1fynpnjo",
+      ]),
+    );
+
+    for (const question of lessons) {
+      expect(question.durationSeconds).toBeGreaterThan(0);
+      expect(question.videoUrl).toBeDefined();
+      const url = new URL(question.videoUrl ?? "");
+      expect(url.hostname).toBe("www.youtube.com");
+      expect(url.searchParams.get("v")).toBe(question.videoId);
+      expect(url.searchParams.get("list")).toBe(
+        "PLgUwDviBIf0qUlt5H_kiKYaNSqJ81PMMY",
       );
     }
   });

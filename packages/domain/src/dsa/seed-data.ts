@@ -376,6 +376,524 @@ function heapCleanTitle(title: string) {
 
 export type { HeapQuestionDocument };
 
+const DYNAMIC_PROGRAMMING_TRACK_ID = "dynamic-programming";
+const DYNAMIC_PROGRAMMING_PLAYLIST_ID = "PLgUwDviBIf0qUlt5H_kiKYaNSqJ81PMMY";
+const DYNAMIC_PROGRAMMING_PLAYLIST_URL = `https://www.youtube.com/playlist?list=${DYNAMIC_PROGRAMMING_PLAYLIST_ID}`;
+
+type DynamicProgrammingLessonSeed = {
+  subtopicId: string;
+  lessonNumber: number;
+  title: string;
+  videoId: string;
+};
+
+const dynamicProgrammingSubtopics = [
+  {
+    id: "dp-1d-foundations",
+    title: "1D DP Foundations",
+    description:
+      "Memoization, tabulation, space optimization, stairs, frog jump, house robber, and Ninja training.",
+  },
+  {
+    id: "dp-grids",
+    title: "DP on Grids",
+    description:
+      "Unique paths, obstacle grids, minimum path sums, triangle paths, falling paths, and cherry pickup.",
+  },
+  {
+    id: "dp-subsequences",
+    title: "DP on Subsequences",
+    description:
+      "Subset sum, partitions, knapsack, target sum, coin change, unbounded knapsack, and rod cutting.",
+  },
+  {
+    id: "dp-strings",
+    title: "DP on Strings",
+    description:
+      "LCS, common substrings, palindromic subsequences, supersequences, distinct subsequences, edit distance, and wildcard matching.",
+  },
+  {
+    id: "dp-stocks",
+    title: "DP on Stocks",
+    description:
+      "Buy and sell stock variants with multiple transactions, cooldown, and transaction fees.",
+  },
+  {
+    id: "dp-lis",
+    title: "LIS Patterns",
+    description:
+      "Longest increasing subsequence, binary search optimization, divisible subsets, string chains, bitonic subsequences, and LIS counts.",
+  },
+  {
+    id: "dp-partition-rectangles",
+    title: "Partition DP and Rectangles",
+    description:
+      "Matrix chain multiplication, stick cutting, burst balloons, boolean expressions, palindrome partitioning, array partitioning, and rectangle DP.",
+  },
+] as const;
+
+const dynamicProgrammingLessons = [
+  {
+    subtopicId: "dp-1d-foundations",
+    lessonNumber: 1,
+    title:
+      "Introduction to Dynamic Programming | Memoization | Tabulation | Space Optimization Techniques",
+    videoId: "tyB0ztf0DNY",
+  },
+  {
+    subtopicId: "dp-1d-foundations",
+    lessonNumber: 2,
+    title: "Climbing Stairs | Learn How to Write 1D Recurrence Relations",
+    videoId: "mLfjzJsN8us",
+  },
+  {
+    subtopicId: "dp-1d-foundations",
+    lessonNumber: 3,
+    title: "Frog Jump | Dynamic Programming | Learn to write 1D DP",
+    videoId: "EgG3jsGoPvQ",
+  },
+  {
+    subtopicId: "dp-1d-foundations",
+    lessonNumber: 4,
+    title: "Frog Jump with K Distance | Lecture 3 Follow Up Question",
+    videoId: "Kmh3rhyEtB8",
+  },
+  {
+    subtopicId: "dp-1d-foundations",
+    lessonNumber: 5,
+    title:
+      "Maximum Sum of Non-Adjacent Elements | House Robber | 1-D | DP on Subsequences",
+    videoId: "GrMBfJNk_NY",
+  },
+  {
+    subtopicId: "dp-1d-foundations",
+    lessonNumber: 6,
+    title: "House Robber 2 | 1D DP | DP on Subsequences",
+    videoId: "3WaxQMELSkw",
+  },
+  {
+    subtopicId: "dp-1d-foundations",
+    lessonNumber: 7,
+    title:
+      "Ninja's Training | MUST WATCH for 2D CONCEPTS | Vacation | Atcoder | 2D DP",
+    videoId: "AE39gJYuRog",
+  },
+  {
+    subtopicId: "dp-grids",
+    lessonNumber: 8,
+    title: "Grid Unique Paths | Learn Everything about DP on Grids",
+    videoId: "sdE0A2Oxofw",
+  },
+  {
+    subtopicId: "dp-grids",
+    lessonNumber: 9,
+    title: "Unique Paths 2 | DP on Grid with Maze Obstacles",
+    videoId: "TmhpgXScLyY",
+  },
+  {
+    subtopicId: "dp-grids",
+    lessonNumber: 10,
+    title:
+      "Minimum Path Sum in Grid | Asked in Microsoft Internship Interview | DP on Grids",
+    videoId: "_rgTlyky1uQ",
+  },
+  {
+    subtopicId: "dp-grids",
+    lessonNumber: 11,
+    title:
+      "Triangle | Fixed Starting Point and Variable Ending Point | DP on Grids",
+    videoId: "SrP-PiLSYC0",
+  },
+  {
+    subtopicId: "dp-grids",
+    lessonNumber: 12,
+    title:
+      "Minimum/Maximum Falling Path Sum | Variable Starting and Ending Points | DP on Grids",
+    videoId: "N_aJ5qQbYA0",
+  },
+  {
+    subtopicId: "dp-grids",
+    lessonNumber: 13,
+    title: "Cherry Pickup II | 3D DP Made Easy | DP on Grids",
+    videoId: "QGfn7JeXK54",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 14,
+    title:
+      "Subset Sum Equals to Target | Identify DP on Subsequences and Ways to Solve them",
+    videoId: "fWX9xDmIzRI",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 15,
+    title: "Partition Equal Subset Sum | DP on Subsequences",
+    videoId: "7win3dcgo3k",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 16,
+    title:
+      "Partition A Set Into Two Subsets With Minimum Absolute Sum Difference | DP on Subsequences",
+    videoId: "GS_OqZb2CWc",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 17,
+    title: "Count Subsets with Sum K | DP on Subsequences",
+    videoId: "ZHyb-A2Mte4",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 18,
+    title: "Count Partitions With Given Difference | DP on Subsequences",
+    videoId: "zoilQD1kYSg",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 19,
+    title:
+      "0/1 Knapsack | Recursion to Single Array Space Optimised Approach | DP on Subsequences",
+    videoId: "GqOmJHQZivw",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 20,
+    title: "Minimum Coins | DP on Subsequences | Infinite Supplies Pattern",
+    videoId: "myPeWb3Y68A",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 21,
+    title: "Target Sum | DP on Subsequences",
+    videoId: "b3GD8263-PQ",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 22,
+    title: "Coin Change 2 | Infinite Supply Problems | DP on Subsequences",
+    videoId: "HgyouUi11zk",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 23,
+    title: "Unbounded Knapsack | 1-D Array Space Optimised Approach",
+    videoId: "OgvOZ6OrJoY",
+  },
+  {
+    subtopicId: "dp-subsequences",
+    lessonNumber: 24,
+    title: "Rod Cutting Problem | 1D Array Space Optimised Approach",
+    videoId: "mO8XpGoJwuo",
+  },
+  {
+    subtopicId: "dp-strings",
+    lessonNumber: 25,
+    title:
+      "Longest Common Subsequence | Top Down | Bottom-Up | Space Optimised | DP on Strings",
+    videoId: "NPZn9jBrX8U",
+  },
+  {
+    subtopicId: "dp-strings",
+    lessonNumber: 26,
+    title: "Print Longest Common Subsequence | DP on Strings",
+    videoId: "-zI4mrF2Pb4",
+  },
+  {
+    subtopicId: "dp-strings",
+    lessonNumber: 27,
+    title: "Longest Common Substring | DP on Strings",
+    videoId: "_wP9mWNPL5w",
+  },
+  {
+    subtopicId: "dp-strings",
+    lessonNumber: 28,
+    title: "Longest Palindromic Subsequence",
+    videoId: "6i_T5kkfv4A",
+  },
+  {
+    subtopicId: "dp-strings",
+    lessonNumber: 29,
+    title: "Minimum Insertions to Make String Palindrome",
+    videoId: "xPBLEj41rFU",
+  },
+  {
+    subtopicId: "dp-strings",
+    lessonNumber: 30,
+    title: "Minimum Insertions/Deletions to Convert String A to String B",
+    videoId: "yMnH0jrir0Q",
+  },
+  {
+    subtopicId: "dp-strings",
+    lessonNumber: 31,
+    title: "Shortest Common Supersequence | DP on Strings",
+    videoId: "xElxAuBcvsU",
+  },
+  {
+    subtopicId: "dp-strings",
+    lessonNumber: 32,
+    title: "Distinct Subsequences | 1D Array Optimisation Technique",
+    videoId: "nVG7eTiD2bY",
+  },
+  {
+    subtopicId: "dp-strings",
+    lessonNumber: 33,
+    title: "Edit Distance | Recursive to 1D Array Optimised Solution",
+    videoId: "fJaKO8FbDdo",
+  },
+  {
+    subtopicId: "dp-strings",
+    lessonNumber: 34,
+    title: "Wildcard Matching | Recursive to 1D Array Optimisation",
+    videoId: "ZmlQ3vgAOMo",
+  },
+  {
+    subtopicId: "dp-stocks",
+    lessonNumber: 35,
+    title: "Best Time to Buy and Sell Stock | DP on Stocks",
+    videoId: "excAOvwF_Wk",
+  },
+  {
+    subtopicId: "dp-stocks",
+    lessonNumber: 36,
+    title: "Buy and Sell Stock - II | Recursion to Space Optimisation",
+    videoId: "nGJmxkUJQGs",
+  },
+  {
+    subtopicId: "dp-stocks",
+    lessonNumber: 37,
+    title: "Buy and Sell Stocks III | Recursion to Space Optimisation",
+    videoId: "-uQGzhYj8BQ",
+  },
+  {
+    subtopicId: "dp-stocks",
+    lessonNumber: 38,
+    title: "Buy and Stock Sell IV | Recursion to Space Optimisation",
+    videoId: "IV1dHbk5CDc",
+  },
+  {
+    subtopicId: "dp-stocks",
+    lessonNumber: 39,
+    title:
+      "Buy and Sell Stocks With Cooldown | Recursion to Space Optimisation",
+    videoId: "IGIe46xw3YY",
+  },
+  {
+    subtopicId: "dp-stocks",
+    lessonNumber: 40,
+    title:
+      "Buy and Sell Stocks With Transaction Fee | Recursion to Space Optimisation",
+    videoId: "k4eK-vEmnKg",
+  },
+  {
+    subtopicId: "dp-lis",
+    lessonNumber: 41,
+    title: "Longest Increasing Subsequence | Memoization",
+    videoId: "ekcwMsSIzVc",
+  },
+  {
+    subtopicId: "dp-lis",
+    lessonNumber: 42,
+    title: "Printing Longest Increasing Subsequence | Tabulation | Algorithm",
+    videoId: "IFfYfonAFGc",
+  },
+  {
+    subtopicId: "dp-lis",
+    lessonNumber: 43,
+    title: "Longest Increasing Subsequence | Binary Search | Intuition",
+    videoId: "on2hvxBXJH4",
+  },
+  {
+    subtopicId: "dp-lis",
+    lessonNumber: 44,
+    title: "Largest Divisible Subset | Longest Increasing Subsequence",
+    videoId: "gDuZwBW9VvM",
+  },
+  {
+    subtopicId: "dp-lis",
+    lessonNumber: 45,
+    title: "Longest String Chain | Longest Increasing Subsequence | LIS",
+    videoId: "YY8iBaYcc4g",
+  },
+  {
+    subtopicId: "dp-lis",
+    lessonNumber: 46,
+    title: "Longest Bitonic Subsequence | LIS",
+    videoId: "y4vN0WNdrlg",
+  },
+  {
+    subtopicId: "dp-lis",
+    lessonNumber: 47,
+    title: "Number of Longest Increasing Subsequences",
+    videoId: "cKVl1TFdNXg",
+  },
+  {
+    subtopicId: "dp-partition-rectangles",
+    lessonNumber: 48,
+    title: "Matrix Chain Multiplication | MCM | Partition DP Starts",
+    videoId: "vRVfmbCFW7Y",
+  },
+  {
+    subtopicId: "dp-partition-rectangles",
+    lessonNumber: 49,
+    title: "Matrix Chain Multiplication | Bottom-Up | Tabulation",
+    videoId: "pDCXsbAw5Cg",
+  },
+  {
+    subtopicId: "dp-partition-rectangles",
+    lessonNumber: 50,
+    title: "Minimum Cost to Cut the Stick",
+    videoId: "xwomavsC86c",
+  },
+  {
+    subtopicId: "dp-partition-rectangles",
+    lessonNumber: 51,
+    title: "Burst Balloons | Partition DP | Interactive G-Meet Session Update",
+    videoId: "Yz4LlDSlkns",
+  },
+  {
+    subtopicId: "dp-partition-rectangles",
+    lessonNumber: 52,
+    title: "Evaluate Boolean Expression to True | Partition DP",
+    videoId: "MM7fXopgyjw",
+  },
+  {
+    subtopicId: "dp-partition-rectangles",
+    lessonNumber: 53,
+    title: "Palindrome Partitioning - II | Front Partition",
+    videoId: "_H8V5hJUGd0",
+  },
+  {
+    subtopicId: "dp-partition-rectangles",
+    lessonNumber: 54,
+    title: "Partition Array for Maximum Sum | Front Partition",
+    videoId: "PhWWJmaKfMc",
+  },
+  {
+    subtopicId: "dp-partition-rectangles",
+    lessonNumber: 55,
+    title: "Maximum Rectangle Area with all 1's | DP on Rectangles",
+    videoId: "tOylVCugy9k",
+  },
+  {
+    subtopicId: "dp-partition-rectangles",
+    lessonNumber: 56,
+    title: "Count Square Submatrices with All Ones | DP on Rectangles",
+    videoId: "auS1fynpnjo",
+  },
+] as const satisfies readonly DynamicProgrammingLessonSeed[];
+
+export function buildDynamicProgrammingDsaSeed(
+  practiceQuestions: DsaQuestion[] = [],
+) {
+  const track = dsaTrackMetadataSchema.parse({
+    id: DYNAMIC_PROGRAMMING_TRACK_ID,
+    title: "Dynamic Programming",
+    sourceName: "Striver",
+    playlistTitle: "Dynamic Programming Playlist",
+    playlistUrl: DYNAMIC_PROGRAMMING_PLAYLIST_URL,
+    order: 300,
+    subtopics: dynamicProgrammingSubtopics.map((subtopic, index) => ({
+      ...subtopic,
+      order: index * 100,
+    })),
+  });
+  const lessons = dynamicProgrammingLessons.map((lesson) =>
+    dynamicProgrammingLessonQuestion(lesson),
+  );
+  const leetcodeQuestions = normalizeDynamicProgrammingPracticeQuestions(
+    practiceQuestions,
+    lessons,
+  );
+
+  return {
+    track,
+    questions: [...lessons, ...leetcodeQuestions],
+    lessons,
+    leetcodeQuestions,
+  };
+}
+
+function dynamicProgrammingLessonQuestion(
+  lesson: DynamicProgrammingLessonSeed,
+): DsaQuestion {
+  return dsaQuestionSchema.parse({
+    id: dynamicProgrammingLessonId(lesson),
+    trackId: DYNAMIC_PROGRAMMING_TRACK_ID,
+    subtopicId: lesson.subtopicId,
+    sourceType: "lesson",
+    order: lesson.lessonNumber * 1000,
+    lessonNumber: lesson.lessonNumber,
+    lessonLabel: `DP${lesson.lessonNumber}`,
+    title: lesson.title,
+    videoId: lesson.videoId,
+    videoUrl: `https://www.youtube.com/watch?v=${lesson.videoId}&list=${DYNAMIC_PROGRAMMING_PLAYLIST_ID}`,
+    durationSeconds: DSA_VIDEO_DURATIONS_SECONDS[lesson.videoId],
+  });
+}
+
+function normalizeDynamicProgrammingPracticeQuestions(
+  practiceQuestions: DsaQuestion[],
+  lessons: DsaQuestion[],
+) {
+  const lessonByNumber = new Map(
+    lessons.map((lesson) => [lesson.lessonNumber ?? 0, lesson]),
+  );
+  const lessonOffsets = new Map<string, number>();
+  const normalizedQuestions: DsaQuestion[] = [];
+
+  for (const question of practiceQuestions) {
+    if (
+      question.trackId !== DYNAMIC_PROGRAMMING_TRACK_ID ||
+      question.sourceType !== "leetcode"
+    ) {
+      continue;
+    }
+
+    const lessonNumber =
+      dynamicProgrammingLessonNumberFromId(question.affiliatedLessonId) ??
+      Math.floor(question.order / 1000);
+    const lesson = lessonByNumber.get(lessonNumber);
+
+    if (!lesson) {
+      continue;
+    }
+
+    const offset = (lessonOffsets.get(lesson.id) ?? 0) + 1;
+    lessonOffsets.set(lesson.id, offset);
+    normalizedQuestions.push(
+      dsaQuestionSchema.parse({
+        ...question,
+        trackId: DYNAMIC_PROGRAMMING_TRACK_ID,
+        subtopicId: lesson.subtopicId,
+        order: lesson.order + offset,
+        lessonLabel: "LC",
+        affiliatedLessonId: lesson.id,
+        affiliatedLessonLabel: lesson.lessonLabel,
+      }),
+    );
+  }
+
+  return normalizedQuestions;
+}
+
+function dynamicProgrammingLessonId(lesson: DynamicProgrammingLessonSeed) {
+  const lessonNumber = String(lesson.lessonNumber).padStart(2, "0");
+  const titleSlug = lesson.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+
+  return `dp-l${lessonNumber}-${titleSlug || "lesson"}`;
+}
+
+function dynamicProgrammingLessonNumberFromId(lessonId: string | undefined) {
+  const match = lessonId?.match(/^dp-l(\d+)/);
+
+  return match ? Number.parseInt(match[1] ?? "", 10) : undefined;
+}
+
 const GRAPH_TRACK_ID = "graph";
 const GRAPH_PLAYLIST_ID = "PLgUwDviBIf0oE3gA41TKO2H5bHpPd7fzn";
 const GRAPH_PLAYLIST_URL = `https://www.youtube.com/playlist?list=${GRAPH_PLAYLIST_ID}`;
@@ -965,7 +1483,7 @@ export function buildGraphDsaSeed(documents: GraphQuestionDocument[]) {
     sourceName: "take U forward",
     playlistTitle: "Graph Series",
     playlistUrl: GRAPH_PLAYLIST_URL,
-    order: 300,
+    order: 400,
     subtopics: graphSubtopics.map((subtopic, index) => ({
       ...subtopic,
       order: index * 100,

@@ -1,5 +1,6 @@
 export {
   buildCuratedDsaQuestionDocuments,
+  buildDynamicProgrammingDsaSeed,
   buildGraphDsaSeed,
   buildHeapDsaSeed,
   type GraphQuestionDocument,
