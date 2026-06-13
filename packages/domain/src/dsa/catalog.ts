@@ -7,6 +7,10 @@ import {
 } from "@careeright/domain/dsa/schema";
 import { DSA_VIDEO_DURATIONS_SECONDS } from "@careeright/domain/dsa/video-durations";
 import { LINKED_LIST_LEETCODE_QUESTIONS } from "@careeright/domain/dsa/linked-list-leetcode";
+import {
+  buildBacktrackingDsaSeed,
+  buildRecursionDsaSeed,
+} from "@careeright/domain/dsa/seed-data";
 
 const LINKED_LIST_TRACK_ID = "linked-list";
 const LINKED_LIST_PLAYLIST_ID = "PLgUwDviBIf0rAuz8tVcM0AymmhTRsfaLU";
@@ -358,6 +362,39 @@ function linkedListQuestionsForSubtopic(
   });
 }
 
+function sortDsaQuestions(questions: DsaQuestion[]) {
+  return [...questions].sort((a, b) => {
+    if (a.order !== b.order) {
+      return a.order - b.order;
+    }
+
+    return a.title.localeCompare(b.title);
+  });
+}
+
+const recursionSeed = buildRecursionDsaSeed();
+const backtrackingSeed = buildBacktrackingDsaSeed();
+
+function trackFromSeed(seed: typeof recursionSeed | typeof backtrackingSeed) {
+  return {
+    id: seed.track.id,
+    title: seed.track.title,
+    sourceName: seed.track.sourceName,
+    playlistTitle: seed.track.playlistTitle,
+    playlistUrl: seed.track.playlistUrl,
+    subtopics: seed.track.subtopics.map((subtopic) => ({
+      id: subtopic.id,
+      title: subtopic.title,
+      description: subtopic.description,
+      questions: sortDsaQuestions(
+        seed.questions.filter(
+          (question) => question.subtopicId === subtopic.id,
+        ),
+      ),
+    })),
+  };
+}
+
 export const DSA_CATALOG: DsaCatalog = dsaCatalogSchema.parse({
   tracks: [
     {
@@ -374,6 +411,8 @@ export const DSA_CATALOG: DsaCatalog = dsaCatalogSchema.parse({
         questions: linkedListQuestionsForSubtopic(subtopic),
       })),
     },
+    trackFromSeed(recursionSeed),
+    trackFromSeed(backtrackingSeed),
   ],
 });
 
@@ -439,16 +478,6 @@ export function dsaCatalogQuestionOrder(catalog: DsaCatalog) {
 
 function dsaCatalogBucketKey(trackId: string, subtopicId: string) {
   return `${trackId}\u0000${subtopicId}`;
-}
-
-function sortDsaQuestions(questions: DsaQuestion[]) {
-  return [...questions].sort((a, b) => {
-    if (a.order !== b.order) {
-      return a.order - b.order;
-    }
-
-    return a.title.localeCompare(b.title);
-  });
 }
 
 export function buildDsaCatalogFromTrackMetadata(

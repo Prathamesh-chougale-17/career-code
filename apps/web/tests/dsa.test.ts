@@ -86,11 +86,15 @@ function readQuestionDocuments() {
 const QUESTION_DOCUMENTS = readQuestionDocuments();
 
 describe("DSA catalog", () => {
-  test("ships the linked list playlist as one stable track", () => {
+  test("ships the local DSA catalog tracks for offline and desktop use", () => {
     const track = trackById("linked-list");
     const lessons = lessonQuestions("linked-list");
 
-    expect(DSA_CATALOG.tracks.map((item) => item.id)).toEqual(["linked-list"]);
+    expect(DSA_CATALOG.tracks.map((item) => item.id)).toEqual([
+      "linked-list",
+      "recursion",
+      "backtracking",
+    ]);
     expect(track.title).toBe("Linked List");
     expect(track.playlistUrl).toBe(
       "https://www.youtube.com/playlist?list=PLgUwDviBIf0rAuz8tVcM0AymmhTRsfaLU",
@@ -122,6 +126,36 @@ describe("DSA catalog", () => {
         "PLgUwDviBIf0rAuz8tVcM0AymmhTRsfaLU",
       );
     }
+  });
+
+  test("ships split Striver recursion and backtracking tracks locally", () => {
+    const recursionTrack = trackById("recursion");
+    const backtrackingTrack = trackById("backtracking");
+    const recursionLessons = lessonQuestions("recursion");
+    const backtrackingLessons = lessonQuestions("backtracking");
+    const recursionLeetcode = leetcodeQuestions("recursion");
+    const backtrackingLeetcode = leetcodeQuestions("backtracking");
+
+    expect(recursionTrack.sourceName).toBe("Striver");
+    expect(backtrackingTrack.sourceName).toBe("Striver");
+    expect(recursionTrack.playlistUrl).toBe(
+      "https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9",
+    );
+    expect(backtrackingTrack.playlistUrl).toBe(recursionTrack.playlistUrl);
+    expect(recursionLessons).toHaveLength(18);
+    expect(recursionLeetcode).toHaveLength(22);
+    expect(backtrackingLessons.map((question) => question.title)).toEqual([
+      "Rat in a Maze",
+      "N-Queens",
+      "M-Coloring Problem",
+      "Sudoku Solver",
+    ]);
+    expect(backtrackingLeetcode).toHaveLength(10);
+    expect(
+      [...recursionLessons, ...backtrackingLessons]
+        .filter((question) => !question.durationSeconds)
+        .map((question) => question.id),
+    ).toEqual([]);
   });
 
   test("affiliates linked-list LeetCode questions with existing accordions", () => {
@@ -362,9 +396,16 @@ describe("DSA catalog", () => {
       ...question,
       durationSeconds: undefined,
     }));
+    const baseTracks = STATIC_DSA_TRACKS.filter(
+      (track) => track.id !== "recursion" && track.id !== "backtracking",
+    );
+    const baseQuestions = DSA_QUESTIONS.filter(
+      (question) =>
+        question.trackId !== "recursion" && question.trackId !== "backtracking",
+    );
     const catalog = buildDsaCatalogFromTrackMetadata(
-      [...STATIC_DSA_TRACKS, recursionSeed.track, backtrackingSeed.track],
-      [...DSA_QUESTIONS, ...persistedQuestions],
+      [...baseTracks, recursionSeed.track, backtrackingSeed.track],
+      [...baseQuestions, ...persistedQuestions],
     );
     const recursionTrack = catalog.tracks.find(
       (item) => item.id === "recursion",
@@ -620,7 +661,7 @@ describe("DSA progress store", () => {
     const initialSnapshot = await getDsaSnapshot(userA);
 
     expect(initialSnapshot.summary).toEqual({
-      totalQuestions: 102,
+      totalQuestions: 156,
       completedQuestions: 0,
       completionPercentage: 0,
     });
@@ -702,7 +743,7 @@ describe("DSA RPC", () => {
       context: { userId },
     });
 
-    expect(snapshot.summary.totalQuestions).toBe(102);
+    expect(snapshot.summary.totalQuestions).toBe(156);
 
     const result = await updateProgress({ questionId, completed: true });
 
