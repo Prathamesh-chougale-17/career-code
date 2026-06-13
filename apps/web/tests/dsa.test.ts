@@ -92,9 +92,9 @@ describe("DSA catalog", () => {
     const lessons = lessonQuestions("linked-list");
 
     expect(DSA_CATALOG.tracks.map((item) => item.id)).toEqual([
-      "linked-list",
       "recursion",
       "backtracking",
+      "linked-list",
     ]);
     expect(track.title).toBe("Linked List");
     expect(track.playlistUrl).toBe(
@@ -187,6 +187,30 @@ describe("DSA catalog", () => {
     expect(parsedLeetcode.videoId).toBeUndefined();
     expect(parsedLeetcode.videoUrl).toBeUndefined();
     expect(parsedLeetcode.durationSeconds).toBeUndefined();
+  });
+
+  test("keeps static track order when persisted metadata has stale order values", () => {
+    const staleTracks = STATIC_DSA_TRACKS.map((track) => {
+      if (track.id === "linked-list") {
+        return { ...track, order: 0 };
+      }
+
+      if (track.id === "recursion") {
+        return { ...track, order: 100 };
+      }
+
+      return { ...track, order: 200 };
+    });
+    const catalog = buildDsaCatalogFromTrackMetadata(
+      staleTracks,
+      DSA_QUESTIONS,
+    );
+
+    expect(catalog.tracks.map((track) => track.id)).toEqual([
+      "recursion",
+      "backtracking",
+      "linked-list",
+    ]);
   });
 
   test("affiliates linked-list LeetCode questions with existing accordions", () => {

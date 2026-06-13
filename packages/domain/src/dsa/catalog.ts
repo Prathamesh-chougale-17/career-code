@@ -397,6 +397,8 @@ function trackFromSeed(seed: typeof recursionSeed | typeof backtrackingSeed) {
 
 export const DSA_CATALOG: DsaCatalog = dsaCatalogSchema.parse({
   tracks: [
+    trackFromSeed(recursionSeed),
+    trackFromSeed(backtrackingSeed),
     {
       id: LINKED_LIST_TRACK_ID,
       title: "Linked List",
@@ -411,8 +413,6 @@ export const DSA_CATALOG: DsaCatalog = dsaCatalogSchema.parse({
         questions: linkedListQuestionsForSubtopic(subtopic),
       })),
     },
-    trackFromSeed(recursionSeed),
-    trackFromSeed(backtrackingSeed),
   ],
 });
 
@@ -450,6 +450,10 @@ export const STATIC_DSA_TRACKS: DsaTrackMetadata[] = DSA_CATALOG.tracks.map(
     }),
 );
 
+const STATIC_DSA_TRACK_BY_ID = new Map(
+  STATIC_DSA_TRACKS.map((track) => [track.id, track]),
+);
+
 export function isKnownDsaQuestionId(questionId: string) {
   return DSA_QUESTION_IDS.has(questionId);
 }
@@ -478,6 +482,10 @@ export function dsaCatalogQuestionOrder(catalog: DsaCatalog) {
 
 function dsaCatalogBucketKey(trackId: string, subtopicId: string) {
   return `${trackId}\u0000${subtopicId}`;
+}
+
+function dsaTrackSortOrder(track: DsaTrackMetadata) {
+  return STATIC_DSA_TRACK_BY_ID.get(track.id)?.order ?? track.order;
 }
 
 export function buildDsaCatalogFromTrackMetadata(
@@ -517,7 +525,11 @@ export function buildDsaCatalogFromTrackMetadata(
 
   return dsaCatalogSchema.parse({
     tracks: [...tracks]
-      .sort((a, b) => a.order - b.order || a.title.localeCompare(b.title))
+      .sort(
+        (a, b) =>
+          dsaTrackSortOrder(a) - dsaTrackSortOrder(b) ||
+          a.title.localeCompare(b.title),
+      )
       .map((track) => ({
         id: track.id,
         title: track.title,
