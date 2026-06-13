@@ -9,7 +9,10 @@ import {
   buildDsaCatalogFromTrackMetadata,
 } from "@careeright/domain/dsa/catalog";
 import { LINKED_LIST_LEETCODE_QUESTIONS } from "@careeright/domain/dsa/linked-list-leetcode";
-import { updateDsaQuestionProgressInputSchema } from "@careeright/domain/dsa/schema";
+import {
+  updateDsaQuestionProgressInputSchema,
+  type DsaQuestion,
+} from "@careeright/domain/dsa/schema";
 import {
   getDsaSnapshot,
   recordDsaVideoWatch,
@@ -21,10 +24,12 @@ import {
 } from "@careeright/domain/dsa/youtube";
 import { appRouter } from "@careeright/api/router";
 import {
+  buildBacktrackingDsaSeed,
   buildCuratedDsaQuestionDocuments,
   buildDynamicProgrammingDsaSeed,
   buildGraphDsaSeed,
   buildHeapDsaSeed,
+  buildRecursionDsaSeed,
   type GraphQuestionDocument,
   type HeapQuestionDocument,
 } from "@careeright/domain/dsa/seed-data";
@@ -313,6 +318,135 @@ describe("DSA catalog", () => {
       expect(lessonIds.has(question.affiliatedLessonId ?? "")).toBe(true);
       expect(lessonSubtopicById.get(question.affiliatedLessonId ?? "")).toBe(
         question.subtopicId,
+      );
+    }
+  });
+
+  test("builds split Striver recursion and backtracking playlist data for DB import", () => {
+    const practiceQuestions: DsaQuestion[] = [
+      {
+        id: "backtracking-leetcode-subsets",
+        trackId: "backtracking",
+        subtopicId: "old-backtracking-foundations",
+        sourceType: "leetcode",
+        order: 4001,
+        lessonLabel: "LC",
+        title: "Subsets",
+        leetcodeSlug: "subsets",
+        leetcodeUrl: "https://leetcode.com/problems/subsets",
+        difficulty: "MEDIUM",
+        affiliatedLessonId: "backtracking-l04-generalization",
+        affiliatedLessonLabel: "BT4",
+      },
+      {
+        id: "backtracking-leetcode-n-queens",
+        trackId: "backtracking",
+        subtopicId: "old-backtracking-constraint-solving",
+        sourceType: "leetcode",
+        order: 18001,
+        lessonLabel: "LC",
+        title: "N-Queens",
+        leetcodeSlug: "n-queens",
+        leetcodeUrl: "https://leetcode.com/problems/n-queens",
+        difficulty: "HARD",
+        affiliatedLessonId: "backtracking-l18-n-queens-part-1",
+        affiliatedLessonLabel: "BT18",
+      },
+    ];
+    const recursionSeed = buildRecursionDsaSeed(practiceQuestions);
+    const backtrackingSeed = buildBacktrackingDsaSeed(practiceQuestions);
+    const persistedQuestions = [
+      ...recursionSeed.questions,
+      ...backtrackingSeed.questions,
+    ].map((question) => ({
+      ...question,
+      durationSeconds: undefined,
+    }));
+    const catalog = buildDsaCatalogFromTrackMetadata(
+      [...STATIC_DSA_TRACKS, recursionSeed.track, backtrackingSeed.track],
+      [...DSA_QUESTIONS, ...persistedQuestions],
+    );
+    const recursionTrack = catalog.tracks.find(
+      (item) => item.id === "recursion",
+    );
+    const backtrackingTrack = catalog.tracks.find(
+      (item) => item.id === "backtracking",
+    );
+
+    if (!recursionTrack || !backtrackingTrack) {
+      throw new Error("Missing imported Recursion or Backtracking DSA track");
+    }
+
+    const recursionLessons = recursionTrack.subtopics
+      .flatMap((subtopic) => subtopic.questions)
+      .filter((question) => question.sourceType === "lesson");
+    const backtrackingLessons = backtrackingTrack.subtopics
+      .flatMap((subtopic) => subtopic.questions)
+      .filter((question) => question.sourceType === "lesson");
+    const recursionLeetcode = recursionTrack.subtopics
+      .flatMap((subtopic) => subtopic.questions)
+      .filter((question) => question.sourceType === "leetcode");
+    const backtrackingLeetcode = backtrackingTrack.subtopics
+      .flatMap((subtopic) => subtopic.questions)
+      .filter((question) => question.sourceType === "leetcode");
+
+    expect(recursionTrack.title).toBe("Recursion");
+    expect(recursionTrack.sourceName).toBe("Striver");
+    expect(backtrackingTrack.title).toBe("Backtracking");
+    expect(backtrackingTrack.sourceName).toBe("Striver");
+    expect(recursionTrack.playlistUrl).toBe(
+      "https://www.youtube.com/playlist?list=PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9",
+    );
+    expect(backtrackingTrack.playlistUrl).toBe(recursionTrack.playlistUrl);
+    expect(recursionLessons).toHaveLength(18);
+    expect(backtrackingLessons).toHaveLength(4);
+    expect(recursionLessons.map((question) => question.lessonNumber)).toEqual(
+      Array.from({ length: 18 }, (_, index) => index + 1),
+    );
+    expect(backtrackingLessons.map((question) => question.title)).toEqual([
+      "Rat in a Maze",
+      "N-Queens",
+      "M-Coloring Problem",
+      "Sudoku Solver",
+    ]);
+    expect(recursionLessons.map((question) => question.videoId)).toEqual(
+      expect.arrayContaining([
+        "yVdKa8dnKiE",
+        "ogjf7ORKfd8",
+        "AseUmwVNaoY",
+        "wT7gcXLYoao",
+      ]),
+    );
+    expect(backtrackingLessons.map((question) => question.videoId)).toEqual([
+      "bLGZhJlt4y0",
+      "i05Ju7AftcM",
+      "wuVwUK25Rfc",
+      "FWAIf_EVUKE",
+    ]);
+    expect(
+      [...recursionLessons, ...backtrackingLessons]
+        .filter((question) => !question.durationSeconds)
+        .map((question) => question.id),
+    ).toEqual([]);
+    expect(recursionLeetcode[0]).toMatchObject({
+      id: "backtracking-leetcode-subsets",
+      trackId: "recursion",
+      affiliatedLessonLabel: "R13",
+    });
+    expect(backtrackingLeetcode[0]).toMatchObject({
+      id: "backtracking-leetcode-n-queens",
+      trackId: "backtracking",
+      affiliatedLessonLabel: "BT2",
+    });
+
+    for (const question of [...recursionLessons, ...backtrackingLessons]) {
+      expect(question.durationSeconds).toBeGreaterThan(0);
+      expect(question.videoUrl).toBeDefined();
+      const url = new URL(question.videoUrl ?? "");
+      expect(url.hostname).toBe("www.youtube.com");
+      expect(url.searchParams.get("v")).toBe(question.videoId);
+      expect(url.searchParams.get("list")).toBe(
+        "PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9",
       );
     }
   });

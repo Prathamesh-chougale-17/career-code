@@ -376,6 +376,396 @@ function heapCleanTitle(title: string) {
 
 export type { HeapQuestionDocument };
 
+const RECURSION_BACKTRACKING_PLAYLIST_ID = "PLgUwDviBIf0rGlzIn_7rsaR2FQ5e6ZOL9";
+const RECURSION_BACKTRACKING_PLAYLIST_URL = `https://www.youtube.com/playlist?list=${RECURSION_BACKTRACKING_PLAYLIST_ID}`;
+const RECURSION_TRACK_ID = "recursion";
+const BACKTRACKING_TRACK_ID = "backtracking";
+
+type RecursionBacktrackingLessonSeed = {
+  subtopicId: string;
+  lessonNumber: number;
+  title: string;
+  videoId: string;
+};
+
+const recursionSubtopics = [
+  {
+    id: "recursion-foundations",
+    title: "Foundations",
+    description:
+      "Recursion trees, stack space, parameterised recursion, functional recursion, and multiple calls.",
+  },
+  {
+    id: "recursion-subsequences-patterns",
+    title: "Subsequences and Patterns",
+    description:
+      "Subsequence recursion, print-all/print-one/count patterns, and recursive generation.",
+  },
+  {
+    id: "recursion-divide-conquer",
+    title: "Divide and Conquer",
+    description:
+      "Recursive sorting, partitioning, and inversion counting patterns.",
+  },
+  {
+    id: "recursion-combinatorics",
+    title: "Combinatorics and Partitions",
+    description:
+      "Combination sums, subsets, permutations, kth permutation, and palindrome partitioning.",
+  },
+] as const;
+
+const recursionLessons = [
+  {
+    subtopicId: "recursion-foundations",
+    lessonNumber: 1,
+    title: "Introduction to Recursion | Recursion Tree | Stack Space",
+    videoId: "yVdKa8dnKiE",
+  },
+  {
+    subtopicId: "recursion-foundations",
+    lessonNumber: 2,
+    title: "Problems on Recursion",
+    videoId: "un6PLygfXrA",
+  },
+  {
+    subtopicId: "recursion-foundations",
+    lessonNumber: 3,
+    title: "Parameterised and Functional Recursion",
+    videoId: "69ZCDFy-OUo",
+  },
+  {
+    subtopicId: "recursion-foundations",
+    lessonNumber: 4,
+    title: "Problems on Functional Recursion",
+    videoId: "twuC1F6gLI8",
+  },
+  {
+    subtopicId: "recursion-foundations",
+    lessonNumber: 5,
+    title: "Multiple Recursion Calls",
+    videoId: "kvRjNm4rVBE",
+  },
+  {
+    subtopicId: "recursion-subsequences-patterns",
+    lessonNumber: 6,
+    title: "Recursion on Subsequences | Printing Subsequences",
+    videoId: "AxNNVECce8c",
+  },
+  {
+    subtopicId: "recursion-subsequences-patterns",
+    lessonNumber: 7,
+    title: "Recursion Patterns | Print All | Print One | Count",
+    videoId: "eQCS_v3bw0Q",
+  },
+  {
+    subtopicId: "recursion-divide-conquer",
+    lessonNumber: 8,
+    title: "Merge Sort | Algorithm | Pseudocode | Dry Run | Code",
+    videoId: "ogjf7ORKfd8",
+  },
+  {
+    subtopicId: "recursion-divide-conquer",
+    lessonNumber: 9,
+    title: "Quick Sort",
+    videoId: "WIrA4YexLRQ",
+  },
+  {
+    subtopicId: "recursion-divide-conquer",
+    lessonNumber: 10,
+    title: "Count Inversions in an Array | Brute and Optimal",
+    videoId: "AseUmwVNaoY",
+  },
+  {
+    subtopicId: "recursion-combinatorics",
+    lessonNumber: 11,
+    title: "Combination Sum",
+    videoId: "OyZFFqQtu98",
+  },
+  {
+    subtopicId: "recursion-combinatorics",
+    lessonNumber: 12,
+    title: "Combination Sum II",
+    videoId: "G1fRTGRxXU8",
+  },
+  {
+    subtopicId: "recursion-combinatorics",
+    lessonNumber: 13,
+    title: "Subset Sum I",
+    videoId: "rYkfBRtMJr8",
+  },
+  {
+    subtopicId: "recursion-combinatorics",
+    lessonNumber: 14,
+    title: "Subset Sum II",
+    videoId: "RIn3gOkbhQE",
+  },
+  {
+    subtopicId: "recursion-combinatorics",
+    lessonNumber: 15,
+    title: "Print All Permutations of a String or Array | Approach 1",
+    videoId: "YK78FU5Ffjw",
+  },
+  {
+    subtopicId: "recursion-combinatorics",
+    lessonNumber: 16,
+    title: "Print All Permutations of a String or Array | Approach 2",
+    videoId: "f2ic2Rsc9pU",
+  },
+  {
+    subtopicId: "recursion-combinatorics",
+    lessonNumber: 17,
+    title: "Palindrome Partitioning",
+    videoId: "WBgsABoClE0",
+  },
+  {
+    subtopicId: "recursion-combinatorics",
+    lessonNumber: 18,
+    title: "K-th Permutation Sequence",
+    videoId: "wT7gcXLYoao",
+  },
+] as const satisfies readonly RecursionBacktrackingLessonSeed[];
+
+const backtrackingSubtopics = [
+  {
+    id: "backtracking-paths",
+    title: "Path Exploration",
+    description:
+      "Maze-style path construction and grid search with visited-state backtracking.",
+  },
+  {
+    id: "backtracking-placement",
+    title: "Placement Constraints",
+    description:
+      "Board placement problems that prune invalid row, column, and diagonal choices.",
+  },
+  {
+    id: "backtracking-graph-coloring",
+    title: "Graph Coloring",
+    description:
+      "Color assignment problems with adjacency constraints and recursive undo.",
+  },
+  {
+    id: "backtracking-constraint-solving",
+    title: "Constraint Solving",
+    description:
+      "Dense constraint puzzles that combine choice validation and recursive search.",
+  },
+] as const;
+
+const backtrackingLessons = [
+  {
+    subtopicId: "backtracking-paths",
+    lessonNumber: 1,
+    title: "Rat in a Maze",
+    videoId: "bLGZhJlt4y0",
+  },
+  {
+    subtopicId: "backtracking-placement",
+    lessonNumber: 2,
+    title: "N-Queens",
+    videoId: "i05Ju7AftcM",
+  },
+  {
+    subtopicId: "backtracking-graph-coloring",
+    lessonNumber: 3,
+    title: "M-Coloring Problem",
+    videoId: "wuVwUK25Rfc",
+  },
+  {
+    subtopicId: "backtracking-constraint-solving",
+    lessonNumber: 4,
+    title: "Sudoku Solver",
+    videoId: "FWAIf_EVUKE",
+  },
+] as const satisfies readonly RecursionBacktrackingLessonSeed[];
+
+const recursionLeetcodeLessonBySlug = {
+  subsets: 13,
+  "subsets-ii": 14,
+  combinations: 7,
+  "combination-sum": 11,
+  "combination-sum-ii": 12,
+  "combination-sum-iii": 11,
+  "generate-parentheses": 7,
+  "letter-case-permutation": 15,
+  permutations: 15,
+  "permutations-ii": 16,
+  "beautiful-arrangement": 16,
+  "construct-the-lexicographically-largest-valid-sequence": 18,
+  "numbers-with-same-consecutive-differences": 7,
+  "the-k-th-lexicographical-string-of-all-happy-strings-of-length-n": 7,
+  "palindrome-partitioning": 17,
+  "restore-ip-addresses": 17,
+  "additive-number": 17,
+  "expression-add-operators": 17,
+  "split-array-into-fibonacci-sequence": 17,
+  "word-break": 17,
+  "word-break-ii": 17,
+  "letter-combinations-of-a-phone-number": 7,
+} as const satisfies Record<string, number>;
+
+const backtrackingLeetcodeLessonBySlug = {
+  "matchsticks-to-square": 3,
+  "partition-to-k-equal-sum-subsets": 3,
+  "unique-paths-iii": 1,
+  "path-with-maximum-gold": 1,
+  "word-search": 1,
+  "word-search-ii": 1,
+  "n-queens": 2,
+  "n-queens-ii": 2,
+  "sudoku-solver": 4,
+  "valid-sudoku": 4,
+} as const satisfies Record<string, number>;
+
+export function buildRecursionDsaSeed(practiceQuestions: DsaQuestion[] = []) {
+  const track = dsaTrackMetadataSchema.parse({
+    id: RECURSION_TRACK_ID,
+    title: "Recursion",
+    sourceName: "Striver",
+    playlistTitle: "Recursion (Basics to Advanced) and Backtracking Series",
+    playlistUrl: RECURSION_BACKTRACKING_PLAYLIST_URL,
+    order: 225,
+    subtopics: recursionSubtopics.map((subtopic, index) => ({
+      ...subtopic,
+      order: index * 100,
+    })),
+  });
+  const lessons = recursionLessons.map((lesson) =>
+    recursionBacktrackingLessonQuestion(lesson, RECURSION_TRACK_ID, "R"),
+  );
+  const leetcodeQuestions = normalizeRecursionBacktrackingPracticeQuestions(
+    practiceQuestions,
+    RECURSION_TRACK_ID,
+    lessons,
+    recursionLeetcodeLessonBySlug,
+  );
+
+  return {
+    track,
+    questions: [...lessons, ...leetcodeQuestions],
+    lessons,
+    leetcodeQuestions,
+  };
+}
+
+export function buildBacktrackingDsaSeed(
+  practiceQuestions: DsaQuestion[] = [],
+) {
+  const track = dsaTrackMetadataSchema.parse({
+    id: BACKTRACKING_TRACK_ID,
+    title: "Backtracking",
+    sourceName: "Striver",
+    playlistTitle: "Recursion (Basics to Advanced) and Backtracking Series",
+    playlistUrl: RECURSION_BACKTRACKING_PLAYLIST_URL,
+    order: 250,
+    subtopics: backtrackingSubtopics.map((subtopic, index) => ({
+      ...subtopic,
+      order: index * 100,
+    })),
+  });
+  const lessons = backtrackingLessons.map((lesson) =>
+    recursionBacktrackingLessonQuestion(lesson, BACKTRACKING_TRACK_ID, "BT"),
+  );
+  const leetcodeQuestions = normalizeRecursionBacktrackingPracticeQuestions(
+    practiceQuestions,
+    BACKTRACKING_TRACK_ID,
+    lessons,
+    backtrackingLeetcodeLessonBySlug,
+  );
+
+  return {
+    track,
+    questions: [...lessons, ...leetcodeQuestions],
+    lessons,
+    leetcodeQuestions,
+  };
+}
+
+function recursionBacktrackingLessonQuestion(
+  lesson: RecursionBacktrackingLessonSeed,
+  trackId: typeof RECURSION_TRACK_ID | typeof BACKTRACKING_TRACK_ID,
+  lessonLabelPrefix: "R" | "BT",
+): DsaQuestion {
+  return dsaQuestionSchema.parse({
+    id: recursionBacktrackingLessonId(trackId, lesson),
+    trackId,
+    subtopicId: lesson.subtopicId,
+    sourceType: "lesson",
+    order: lesson.lessonNumber * 1000,
+    lessonNumber: lesson.lessonNumber,
+    lessonLabel: `${lessonLabelPrefix}${lesson.lessonNumber}`,
+    title: lesson.title,
+    videoId: lesson.videoId,
+    videoUrl: `https://www.youtube.com/watch?v=${lesson.videoId}&list=${RECURSION_BACKTRACKING_PLAYLIST_ID}`,
+    durationSeconds: DSA_VIDEO_DURATIONS_SECONDS[lesson.videoId],
+  });
+}
+
+function normalizeRecursionBacktrackingPracticeQuestions(
+  practiceQuestions: DsaQuestion[],
+  trackId: typeof RECURSION_TRACK_ID | typeof BACKTRACKING_TRACK_ID,
+  lessons: DsaQuestion[],
+  lessonBySlug: Record<string, number>,
+) {
+  const lessonByNumber = new Map(
+    lessons.map((lesson) => [lesson.lessonNumber ?? 0, lesson]),
+  );
+  const lessonOffsets = new Map<string, number>();
+  const normalizedQuestions: DsaQuestion[] = [];
+
+  for (const question of practiceQuestions) {
+    if (question.sourceType !== "leetcode" || !question.leetcodeSlug) {
+      continue;
+    }
+
+    const lessonNumber = lessonBySlug[question.leetcodeSlug];
+
+    if (!lessonNumber) {
+      continue;
+    }
+
+    const lesson = lessonByNumber.get(lessonNumber);
+
+    if (!lesson) {
+      continue;
+    }
+
+    const offset = (lessonOffsets.get(lesson.id) ?? 0) + 1;
+    lessonOffsets.set(lesson.id, offset);
+    normalizedQuestions.push(
+      dsaQuestionSchema.parse({
+        ...question,
+        trackId,
+        subtopicId: lesson.subtopicId,
+        order: lesson.order + offset,
+        lessonLabel: "LC",
+        videoId: undefined,
+        videoUrl: undefined,
+        durationSeconds: undefined,
+        affiliatedLessonId: lesson.id,
+        affiliatedLessonLabel: lesson.lessonLabel,
+      }),
+    );
+  }
+
+  return normalizedQuestions;
+}
+
+function recursionBacktrackingLessonId(
+  trackId: typeof RECURSION_TRACK_ID | typeof BACKTRACKING_TRACK_ID,
+  lesson: RecursionBacktrackingLessonSeed,
+) {
+  const lessonNumber = String(lesson.lessonNumber).padStart(2, "0");
+  const titleSlug = lesson.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64);
+
+  return `${trackId}-l${lessonNumber}-${titleSlug || "lesson"}`;
+}
+
 const DYNAMIC_PROGRAMMING_TRACK_ID = "dynamic-programming";
 const DYNAMIC_PROGRAMMING_PLAYLIST_ID = "PLgUwDviBIf0qUlt5H_kiKYaNSqJ81PMMY";
 const DYNAMIC_PROGRAMMING_PLAYLIST_URL = `https://www.youtube.com/playlist?list=${DYNAMIC_PROGRAMMING_PLAYLIST_ID}`;
