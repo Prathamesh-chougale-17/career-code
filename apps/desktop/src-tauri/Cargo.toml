@@ -1,6 +1,6 @@
 [package]
 name = "careeright-desktop"
-version = "1.0.23"
+version = "1.0.24"
 description = "Careeright desktop app"
 authors = ["ProFeoNix"]
 edition = "2021"
