@@ -10,6 +10,7 @@ import {
 } from "@careeright/domain/dsa/catalog";
 import { LINKED_LIST_LEETCODE_QUESTIONS } from "@careeright/domain/dsa/linked-list-leetcode";
 import {
+  dsaQuestionSchema,
   updateDsaQuestionProgressInputSchema,
   type DsaQuestion,
 } from "@careeright/domain/dsa/schema";
@@ -156,6 +157,36 @@ describe("DSA catalog", () => {
         .filter((question) => !question.durationSeconds)
         .map((question) => question.id),
     ).toEqual([]);
+  });
+
+  test("normalizes nullable optional fields from persisted DSA question rows", () => {
+    const lesson = lessonQuestions("linked-list")[0];
+    const leetcode = leetcodeQuestions("linked-list")[0];
+    const parsedLesson = dsaQuestionSchema.parse({
+      ...lesson,
+      leetcodeSlug: null,
+      leetcodeUrl: null,
+      difficulty: null,
+      affiliatedLessonId: null,
+      affiliatedLessonLabel: null,
+    });
+    const parsedLeetcode = dsaQuestionSchema.parse({
+      ...leetcode,
+      lessonNumber: null,
+      videoId: null,
+      videoUrl: null,
+      durationSeconds: null,
+    });
+
+    expect(parsedLesson.leetcodeSlug).toBeUndefined();
+    expect(parsedLesson.leetcodeUrl).toBeUndefined();
+    expect(parsedLesson.difficulty).toBeUndefined();
+    expect(parsedLesson.affiliatedLessonId).toBeUndefined();
+    expect(parsedLesson.affiliatedLessonLabel).toBeUndefined();
+    expect(parsedLeetcode.lessonNumber).toBeUndefined();
+    expect(parsedLeetcode.videoId).toBeUndefined();
+    expect(parsedLeetcode.videoUrl).toBeUndefined();
+    expect(parsedLeetcode.durationSeconds).toBeUndefined();
   });
 
   test("affiliates linked-list LeetCode questions with existing accordions", () => {

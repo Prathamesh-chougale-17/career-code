@@ -1,6 +1,13 @@
 import { z } from "zod";
 
 const dsaTextSchema = (max: number) => z.string().trim().min(1).max(max);
+const nullishOptionalSchema = <Schema extends z.ZodType>(schema: Schema) =>
+  z
+    .preprocess(
+      (value) => (value === null ? undefined : value),
+      schema.optional(),
+    )
+    .optional();
 
 const dsaHttpUrlSchema = z
   .string()
@@ -44,17 +51,17 @@ export const dsaQuestionSchema = z.object({
   subtopicId: dsaTextSchema(80),
   sourceType: dsaQuestionSourceSchema.default("lesson"),
   order: z.number().int().nonnegative(),
-  lessonNumber: z.number().int().min(1).max(999).optional(),
+  lessonNumber: nullishOptionalSchema(z.number().int().min(1).max(999)),
   lessonLabel: dsaTextSchema(24),
   title: dsaTextSchema(220),
-  videoId: dsaTextSchema(40).optional(),
-  videoUrl: dsaYoutubeUrlSchema.optional(),
-  durationSeconds: z.number().int().positive().optional(),
-  leetcodeSlug: dsaTextSchema(160).optional(),
-  leetcodeUrl: dsaLeetcodeUrlSchema.optional(),
-  difficulty: dsaDifficultySchema.optional(),
-  affiliatedLessonId: dsaTextSchema(120).optional(),
-  affiliatedLessonLabel: dsaTextSchema(24).optional(),
+  videoId: nullishOptionalSchema(dsaTextSchema(40)),
+  videoUrl: nullishOptionalSchema(dsaYoutubeUrlSchema),
+  durationSeconds: nullishOptionalSchema(z.number().int().positive()),
+  leetcodeSlug: nullishOptionalSchema(dsaTextSchema(160)),
+  leetcodeUrl: nullishOptionalSchema(dsaLeetcodeUrlSchema),
+  difficulty: nullishOptionalSchema(dsaDifficultySchema),
+  affiliatedLessonId: nullishOptionalSchema(dsaTextSchema(120)),
+  affiliatedLessonLabel: nullishOptionalSchema(dsaTextSchema(24)),
 });
 
 export const dsaSubtopicSchema = z.object({
