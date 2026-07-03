@@ -41,12 +41,15 @@ import type {
   SystemDesignVideoWatchEvent,
   UpdateSystemDesignItemProgressInput,
 } from "@careeright/domain/system-design/schema";
+import { jobReferralContactSchema } from "@careeright/domain/jobs/schema";
 import type {
   DeleteJobInput,
+  JobReferralContact,
   JobRecord,
   JobSearchProfile,
   UpdateJobSearchProfileInput,
   UpdateJobStatusInput,
+  UpdateJobWarmApplyInput,
 } from "@careeright/domain/jobs/schema";
 import type {
   DeleteDiaryDayInput,
@@ -143,6 +146,13 @@ type OfflineOperation =
       id: string;
       input: UpdateJobStatusInput;
       kind: "jobs.updateStatus";
+      updatedAt: string;
+    }
+  | {
+      createdAt: string;
+      id: string;
+      input: UpdateJobWarmApplyInput;
+      kind: "jobs.updateWarmApply";
       updatedAt: string;
     }
   | {
@@ -395,6 +405,11 @@ export function createOfflineCapableRpcClient(
       if (property === "updateStatus") {
         return (input: UpdateJobStatusInput) =>
           updateJobStatus(remoteRpcClient, queryClient, input);
+      }
+
+      if (property === "updateWarmApply") {
+        return (input: UpdateJobWarmApplyInput) =>
+          updateJobWarmApply(remoteRpcClient, queryClient, input);
       }
 
       if (property === "delete") {
@@ -898,6 +913,36 @@ async function deleteJob(
     const { jobs: nextJobs, job } = removeJobFromList(jobs, input.jobId);
 
     await enqueueOperation("jobs.delete", input);
+    setCachedJobs(queryClient, nextJobs);
+
+    return job;
+  }
+}
+
+async function updateJobWarmApply(
+  remoteRpcClient: CareerightRpcClient,
+  queryClient: QueryClient,
+  input: UpdateJobWarmApplyInput,
+) {
+  try {
+    if (isOffline()) {
+      throw new OfflineReplayError();
+    }
+
+    return await remoteRpcClient.jobs.updateWarmApply(input);
+  } catch (error) {
+    if (!shouldQueue(error)) {
+      throw error;
+    }
+
+    const jobs = requireCachedSnapshot<JobRecord[]>(
+      queryClient,
+      jobsQueryKey,
+      "Jobs",
+    );
+    const { jobs: nextJobs, job } = applyJobWarmApplyUpdate(jobs, input);
+
+    await enqueueOperation("jobs.updateWarmApply", input);
     setCachedJobs(queryClient, nextJobs);
 
     return job;
@@ -1750,6 +1795,10 @@ async function enqueueOperation(
   input: UpdateJobStatusInput,
 ): Promise<void>;
 async function enqueueOperation(
+  kind: "jobs.updateWarmApply",
+  input: UpdateJobWarmApplyInput,
+): Promise<void>;
+async function enqueueOperation(
   kind: "jobs.delete",
   input: DeleteJobInput,
 ): Promise<void>;
@@ -2087,6 +2136,11 @@ async function replayOperation(
     return;
   }
 
+  if (operation.kind === "jobs.updateWarmApply") {
+    await remoteRpcClient.jobs.updateWarmApply(operation.input);
+    return;
+  }
+
   if (operation.kind === "jobs.delete") {
     await remoteRpcClient.jobs.delete(operation.input);
     return;
@@ -2399,6 +2453,50 @@ export function applyJobStatusUpdate(
     job: updatedJob,
     jobs: jobs.map((item) => (item.id === input.jobId ? updatedJob : item)),
   };
+}
+
+export function applyJobWarmApplyUpdate(
+  jobs: JobRecord[],
+  input: UpdateJobWarmApplyInput,
+) {
+  const job = requireCachedJob(jobs, input.jobId);
+  const updatedAt = new Date().toISOString();
+  const updatedJob = {
+    ...job,
+    warmApplyStatus: input.warmApplyStatus ?? job.warmApplyStatus,
+    warmApplyFollowUpDueAt:
+      input.warmApplyFollowUpDueAt ?? job.warmApplyFollowUpDueAt,
+    referralContacts: input.referralContacts
+      ? input.referralContacts.map(localReferralContactFromInput)
+      : job.referralContacts,
+    updatedAt,
+  };
+
+  return {
+    job: updatedJob,
+    jobs: jobs.map((item) => (item.id === input.jobId ? updatedJob : item)),
+  };
+}
+
+function localReferralContactFromInput(
+  contact: NonNullable<UpdateJobWarmApplyInput["referralContacts"]>[number],
+): JobReferralContact {
+  return jobReferralContactSchema.parse({
+    id:
+      contact.id?.trim() ||
+      `local-job-referral-contact-${crypto.randomUUID()}`,
+    name: contact.name?.trim() ?? "",
+    title: contact.title?.trim() ?? "",
+    company: contact.company?.trim() ?? "",
+    linkedinUrl: contact.linkedinUrl?.trim() ?? "",
+    relationship: contact.relationship ?? "manual",
+    priority: contact.priority ?? "backup",
+    outreachStatus: contact.outreachStatus ?? "not_started",
+    draftMessage: contact.draftMessage?.trim() ?? "",
+    lastContactedAt: contact.lastContactedAt?.trim() ?? "",
+    followUpDueAt: contact.followUpDueAt?.trim() ?? "",
+    notes: contact.notes?.trim() ?? "",
+  });
 }
 
 export function removeJobFromList(jobs: JobRecord[], jobId: string) {
@@ -3519,6 +3617,7 @@ function isOperationKind(value: unknown): value is OperationKind {
     value === "task.revertToProposal" ||
     value === "task.reorder" ||
     value === "jobs.updateStatus" ||
+    value === "jobs.updateWarmApply" ||
     value === "jobs.delete" ||
     value === "jobs.updateSearchProfile" ||
     value === "diary.saveDay" ||

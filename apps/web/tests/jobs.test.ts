@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 
 import {
+  jobReferralContactInputSchema,
   type JobRecord,
   jobSearchProfileInputSchema,
   jobSchema,
@@ -27,6 +28,7 @@ import {
   seedRankedJobs,
   seedJobs,
   updateJobApplicationAttempt,
+  updateJobWarmApply,
   updateJobSearchProfile,
   updateJobStatus,
 } from "@careeright/domain/jobs/store";
@@ -135,6 +137,23 @@ describe("job schemas", () => {
 
     expect(input.fitBand).toBe("excellent");
     expect(input.fitReasons).toEqual(["Strong backend match"]);
+  });
+
+  test("defaults warm-apply fields on job records", () => {
+    const job = fixtureJob();
+
+    expect(job.warmApplyStatus).toBe("not_started");
+    expect(job.warmApplyFollowUpDueAt).toBe("");
+    expect(job.referralContacts).toEqual([]);
+  });
+
+  test("rejects unsafe referral profile URLs", () => {
+    expect(() =>
+      jobReferralContactInputSchema.parse({
+        name: "Recruiter",
+        linkedinUrl: "javascript:alert(1)",
+      }),
+    ).toThrow();
   });
 
   test("accepts editable job search profile preferences", () => {
@@ -474,6 +493,62 @@ describe("job store", () => {
     );
 
     expect(expired.status).toBe("expired");
+  });
+
+  test("updates warm-apply referral contacts without changing application status", async () => {
+    const userId = `jobs-warm-apply-${crypto.randomUUID()}`;
+    const [job] = await seedJobs(
+      {
+        source: "linkedin",
+        jobs: [
+          {
+            title: "Full Stack Engineer",
+            company: "Referral Co",
+            location: "Pune",
+            applyUrl: "https://example.com/jobs/referral",
+          },
+        ],
+      },
+      userId,
+    );
+
+    const updated = await updateJobWarmApply(
+      {
+        jobId: job.id,
+        warmApplyStatus: "message_sent",
+        warmApplyFollowUpDueAt: "2026-07-07",
+        referralContacts: [
+          {
+            name: "Priya Sharma",
+            title: "Talent Partner",
+            linkedinUrl: "https://www.linkedin.com/in/priya-sharma",
+            relationship: "recruiter",
+            priority: "best_first",
+            outreachStatus: "message_sent",
+            draftMessage:
+              "Hi Priya, I saw the Full Stack Engineer role at Referral Co and the TypeScript backend work looks close to my experience.",
+            followUpDueAt: "2026-07-07",
+            notes: "Job poster on LinkedIn.",
+          },
+        ],
+      },
+      userId,
+    );
+    const listedJob = (await listJobs(userId)).find(
+      (item) => item.id === job.id,
+    );
+
+    expect(updated.status).toBe("not_applied");
+    expect(updated.warmApplyStatus).toBe("message_sent");
+    expect(updated.referralContacts[0]).toMatchObject({
+      name: "Priya Sharma",
+      priority: "best_first",
+      relationship: "recruiter",
+      outreachStatus: "message_sent",
+    });
+    expect(updated.referralContacts[0]?.id).toMatch(/^job-referral-contact-/);
+    expect(listedJob?.warmApplyFollowUpDueAt).toBe("2026-07-07");
+    expect(listedJob?.status).toBe("not_applied");
   });
 
   test("filters only latest seeded date and not-applied jobs", () => {

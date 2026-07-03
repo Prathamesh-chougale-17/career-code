@@ -31,6 +31,7 @@ import {
   applyDiaryDelete,
   applyDiarySave,
   applyJobSearchProfileUpdate,
+  applyJobWarmApplyUpdate,
   applyJobStatusUpdate,
   applyProjectArchive,
   applyProjectAttributeCreate,
@@ -201,6 +202,48 @@ describe("desktop offline Kanban cache updates", () => {
       applyJobStatusUpdate(jobs, {
         jobId: "missing-job",
         status: "applied",
+      }),
+    ).toThrow("Job cannot be queued until it has loaded once.");
+  });
+
+  test("updates cached job warm apply data without changing application status", () => {
+    const jobs = makeJobs();
+    const { jobs: nextJobs, job } = applyJobWarmApplyUpdate(jobs, {
+      jobId: "job-1",
+      warmApplyStatus: "connection_sent",
+      warmApplyFollowUpDueAt: "2026-07-07",
+      referralContacts: [
+        {
+          name: "Priya Sharma",
+          title: "Talent Partner",
+          linkedinUrl: "https://www.linkedin.com/in/priya-sharma",
+          relationship: "recruiter",
+          priority: "best_first",
+          outreachStatus: "connection_sent",
+          draftMessage: "Hi Priya, I saw the Backend Engineer role.",
+          followUpDueAt: "2026-07-07",
+        },
+      ],
+    });
+
+    expect(job.status).toBe("not_applied");
+    expect(job.warmApplyStatus).toBe("connection_sent");
+    expect(job.referralContacts[0]).toMatchObject({
+      name: "Priya Sharma",
+      priority: "best_first",
+      relationship: "recruiter",
+      outreachStatus: "connection_sent",
+    });
+    expect(job.referralContacts[0]?.id).toMatch(
+      /^local-job-referral-contact-/,
+    );
+    expect(nextJobs.find((item) => item.id === "job-1")?.status).toBe(
+      "not_applied",
+    );
+    expect(() =>
+      applyJobWarmApplyUpdate(jobs, {
+        jobId: "missing-job",
+        warmApplyStatus: "message_sent",
       }),
     ).toThrow("Job cannot be queued until it has loaded once.");
   });
@@ -850,6 +893,9 @@ function makeJob(
     title,
     updatedAt: createdAt,
     userId: "user-1",
+    warmApplyFollowUpDueAt: "",
+    warmApplyStatus: "not_started",
+    referralContacts: [],
   };
 }
 

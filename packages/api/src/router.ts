@@ -110,6 +110,7 @@ import {
   updateJobApplicationAttempt,
   updateJobSearchProfile,
   updateJobStatus,
+  updateJobWarmApply,
 } from "@careeright/domain/jobs/store";
 import {
   createJobApplicationRunInputSchema,
@@ -118,6 +119,7 @@ import {
   updateJobApplicationAttemptInputSchema,
   updateJobSearchProfileInputSchema,
   updateJobStatusInputSchema,
+  updateJobWarmApplyInputSchema,
 } from "@careeright/domain/jobs/schema";
 import {
   breakdownPromptInputSchema,
@@ -419,6 +421,11 @@ export const appRouter = {
       .input(updateJobStatusInputSchema)
       .handler(async ({ context, input }) => {
         return updateJobStatus(input, context.userId);
+      }),
+    updateWarmApply: protectedProcedure
+      .input(updateJobWarmApplyInputSchema)
+      .handler(async ({ context, input }) => {
+        return updateJobWarmApply(input, context.userId);
       }),
     delete: protectedProcedure
       .input(deleteJobInputSchema)

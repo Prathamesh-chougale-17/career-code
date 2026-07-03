@@ -40,6 +40,97 @@ export const jobFitBandSchema = z.enum([
 
 export const jobFitBandOptions = jobFitBandSchema.options;
 
+export const jobWarmApplyStatusSchema = z.enum([
+  "not_started",
+  "finding_contact",
+  "draft_ready",
+  "connection_sent",
+  "message_sent",
+  "follow_up_due",
+  "replied",
+  "referred",
+  "applied",
+  "interviewing",
+  "no_contact_found",
+  "no_response",
+  "not_a_fit",
+  "rejected",
+]);
+
+export const jobWarmApplyStatusOptions = jobWarmApplyStatusSchema.options;
+
+export const jobReferralRelationshipSchema = z.enum([
+  "job_poster",
+  "recruiter",
+  "founder",
+  "engineering",
+  "hr",
+  "employee",
+  "manual",
+]);
+
+export const jobReferralRelationshipOptions =
+  jobReferralRelationshipSchema.options;
+
+export const jobReferralPrioritySchema = z.enum([
+  "best_first",
+  "backup",
+  "low_confidence",
+]);
+
+export const jobReferralPriorityOptions = jobReferralPrioritySchema.options;
+
+export const jobReferralOutreachStatusSchema = z.enum([
+  "not_started",
+  "draft_ready",
+  "connection_sent",
+  "message_sent",
+  "follow_up_due",
+  "replied",
+  "referred",
+  "no_response",
+  "not_a_fit",
+]);
+
+export const jobReferralOutreachStatusOptions =
+  jobReferralOutreachStatusSchema.options;
+
+export const jobReferralContactSchema = z.object({
+  id: z.string().trim().min(1),
+  name: jobTextSchema(140).default(""),
+  title: jobTextSchema(180).default(""),
+  company: jobTextSchema(140).default(""),
+  linkedinUrl: optionalUrlSchema.default(""),
+  relationship: jobReferralRelationshipSchema.default("manual"),
+  priority: jobReferralPrioritySchema.default("backup"),
+  outreachStatus: jobReferralOutreachStatusSchema.default("not_started"),
+  draftMessage: jobTextSchema(2000).default(""),
+  lastContactedAt: jobTextSchema(80).default(""),
+  followUpDueAt: jobTextSchema(80).default(""),
+  notes: jobTextSchema(2000).default(""),
+});
+
+export const jobReferralContactInputSchema = jobReferralContactSchema
+  .partial({
+    id: true,
+  })
+  .refine(
+    (value) =>
+      Boolean(
+        value.name?.trim() ||
+          value.title?.trim() ||
+          value.company?.trim() ||
+          value.linkedinUrl?.trim() ||
+          value.draftMessage?.trim() ||
+          value.lastContactedAt?.trim() ||
+          value.followUpDueAt?.trim() ||
+          value.notes?.trim(),
+      ),
+    {
+      message: "At least one contact field must be provided.",
+    },
+  );
+
 export const jobSearchProfileInputSchema = z.object({
   targetRoles: jobTextListSchema,
   primarySkills: jobTextListSchema,
@@ -88,6 +179,9 @@ export const jobSchema = z.object({
   riskFlags: z.array(z.string()).default([]),
   scoreVersion: z.string().default(""),
   scoredAt: z.string().default(""),
+  warmApplyStatus: jobWarmApplyStatusSchema.default("not_started"),
+  warmApplyFollowUpDueAt: jobTextSchema(80).default(""),
+  referralContacts: z.array(jobReferralContactSchema).default([]),
   raw: z.record(z.string(), z.unknown()),
   seededAt: z.string(),
   createdAt: z.string(),
@@ -125,6 +219,23 @@ export const updateJobStatusInputSchema = z.object({
   jobId: z.string().trim().min(1),
   status: jobStatusSchema,
 });
+
+export const updateJobWarmApplyInputSchema = z
+  .object({
+    jobId: z.string().trim().min(1),
+    warmApplyStatus: jobWarmApplyStatusSchema.optional(),
+    warmApplyFollowUpDueAt: jobTextSchema(80).optional(),
+    referralContacts: z.array(jobReferralContactInputSchema).max(20).optional(),
+  })
+  .refine(
+    (value) =>
+      value.warmApplyStatus !== undefined ||
+      value.warmApplyFollowUpDueAt !== undefined ||
+      value.referralContacts !== undefined,
+    {
+      message: "At least one warm-apply field must be provided.",
+    },
+  );
 
 export const deleteJobInputSchema = z.object({
   jobId: z.string().trim().min(1),
@@ -249,6 +360,15 @@ export const jobApplicationRunListSchema = z.array(jobApplicationRunSchema);
 
 export type JobStatus = z.infer<typeof jobStatusSchema>;
 export type JobFitBand = z.infer<typeof jobFitBandSchema>;
+export type JobWarmApplyStatus = z.infer<typeof jobWarmApplyStatusSchema>;
+export type JobReferralRelationship = z.infer<
+  typeof jobReferralRelationshipSchema
+>;
+export type JobReferralPriority = z.infer<typeof jobReferralPrioritySchema>;
+export type JobReferralOutreachStatus = z.infer<
+  typeof jobReferralOutreachStatusSchema
+>;
+export type JobReferralContact = z.infer<typeof jobReferralContactSchema>;
 export type JobRecord = z.infer<typeof jobSchema>;
 export type JobSearchProfile = z.infer<typeof jobSearchProfileSchema>;
 export type JobSearchProfileInput = z.input<typeof jobSearchProfileInputSchema>;
@@ -272,6 +392,9 @@ export type ScoreJobCandidatesInput = z.input<
 >;
 export type SeedRankedJobsInput = z.input<typeof seedRankedJobsInputSchema>;
 export type UpdateJobStatusInput = z.input<typeof updateJobStatusInputSchema>;
+export type UpdateJobWarmApplyInput = z.input<
+  typeof updateJobWarmApplyInputSchema
+>;
 export type DeleteJobInput = z.input<typeof deleteJobInputSchema>;
 export type CreateJobApplicationRunInput = z.input<
   typeof createJobApplicationRunInputSchema

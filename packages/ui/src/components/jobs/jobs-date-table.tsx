@@ -6,7 +6,13 @@ import {
   useReactTable,
   type ColumnDef,
 } from "@tanstack/react-table";
-import { Download, ExternalLink, Loader2, Trash2 } from "lucide-react";
+import {
+  Download,
+  ExternalLink,
+  Loader2,
+  MessageSquare,
+  Trash2,
+} from "lucide-react";
 import { useMemo } from "react";
 
 import { Badge } from "../ui/badge";
@@ -42,9 +48,11 @@ import {
 } from "../ui/tooltip";
 import {
   jobStatusOptions,
+  type JobReferralContact,
   type JobFitBand,
   type JobRecord,
   type JobStatus,
+  type JobWarmApplyStatus,
 } from "@careeright/domain/jobs/schema";
 import { cn } from "../../lib/utils";
 
@@ -63,6 +71,7 @@ type JobMetadata = {
   workMode: string;
   industry: string;
   posterName: string;
+  posterTitle: string;
   posterUrl: string;
 };
 
@@ -98,6 +107,46 @@ const jobFitBandBadgeVariants = {
   rejected: "destructive",
 } satisfies Record<JobFitBand, "default" | "secondary" | "outline" | "destructive">;
 
+const warmApplyStatusLabels = {
+  not_started: "Not started",
+  finding_contact: "Finding contact",
+  draft_ready: "Draft ready",
+  connection_sent: "Connection sent",
+  message_sent: "Message sent",
+  follow_up_due: "Follow-up due",
+  replied: "Replied",
+  referred: "Referred",
+  applied: "Applied after outreach",
+  interviewing: "Interviewing",
+  no_contact_found: "No contact found",
+  no_response: "No response",
+  not_a_fit: "Not a fit",
+  rejected: "Rejected",
+} satisfies Record<JobWarmApplyStatus, string>;
+
+function dateInputValue(value: string) {
+  return value.trim().slice(0, 10);
+}
+
+function bestReferralContact(job: JobRecord): JobReferralContact | null {
+  return (
+    job.referralContacts.find((contact) => contact.priority === "best_first") ??
+    job.referralContacts[0] ??
+    null
+  );
+}
+
+function warmApplyDueAt(job: JobRecord) {
+  return (
+    dateInputValue(job.warmApplyFollowUpDueAt) ||
+    job.referralContacts
+      .map((contact) => dateInputValue(contact.followUpDueAt))
+      .filter(Boolean)
+      .sort()[0] ||
+    ""
+  );
+}
+
 export function JobDateTable({
   section,
   updatingJobId,
@@ -105,6 +154,7 @@ export function JobDateTable({
   nowMs,
   exportingDateKey,
   onStatusChange,
+  onEditWarmApply,
   onDeleteJob,
   onDownloadJobs,
 }: {
@@ -114,6 +164,7 @@ export function JobDateTable({
   nowMs: number;
   exportingDateKey: string | null;
   onStatusChange: (jobId: string, status: JobStatus) => void;
+  onEditWarmApply: (job: JobRecord) => void;
   onDeleteJob: (job: JobRecord) => void;
   onDownloadJobs: (section: JobDateSection) => Promise<void>;
 }) {
@@ -199,6 +250,45 @@ export function JobDateTable({
                 </SelectGroup>
               </SelectContent>
             </Select>
+          );
+        },
+      },
+      {
+        accessorKey: "warmApplyStatus",
+        header: "Warm apply",
+        cell: ({ row }) => {
+          const job = row.original;
+          const contact = bestReferralContact(job);
+          const dueAt = warmApplyDueAt(job);
+
+          return (
+            <div className="flex min-w-52 max-w-72 flex-col gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Badge
+                  variant={
+                    job.warmApplyStatus === "referred" ? "default" : "outline"
+                  }
+                >
+                  {warmApplyStatusLabels[job.warmApplyStatus]}
+                </Badge>
+                {dueAt ? <Badge variant="secondary">Due {dueAt}</Badge> : null}
+              </div>
+              <span className="truncate text-sm text-muted-foreground">
+                {contact
+                  ? `${contact.name || "Contact"} · ${contact.title || contact.company || "LinkedIn"}`
+                  : "No contact yet"}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                onClick={() => onEditWarmApply(job)}
+              >
+                <MessageSquare data-icon="inline-start" aria-hidden="true" />
+                Warm
+              </Button>
+            </div>
           );
         },
       },
@@ -376,7 +466,14 @@ export function JobDateTable({
         ),
       },
     ],
-    [deletingJobIds, nowMs, onDeleteJob, onStatusChange, updatingJobId],
+    [
+      deletingJobIds,
+      nowMs,
+      onDeleteJob,
+      onEditWarmApply,
+      onStatusChange,
+      updatingJobId,
+    ],
   );
 
   const table = useReactTable({
@@ -689,6 +786,14 @@ function jobMetadata(job: JobRecord): JobMetadata {
       "posted_by",
       "posterName",
       "poster_name",
+    ]),
+    posterTitle: firstRawString(raw, [
+      "jobPosterTitle",
+      "job_poster_title",
+      "posterTitle",
+      "poster_title",
+      "recruiterTitle",
+      "recruiter_title",
     ]),
     posterUrl: firstRawUrl(raw, [
       "jobPosterProfileUrl",

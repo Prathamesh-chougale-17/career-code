@@ -3,7 +3,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Briefcase,
+  Copy,
   Loader2,
+  Plus,
   Search,
   Settings2,
   Sparkles,
@@ -59,15 +61,33 @@ import {
 import { Separator } from "../ui/separator";
 import { SidebarTrigger } from "../ui/sidebar";
 import { Skeleton } from "../ui/skeleton";
+import { Textarea } from "../ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 import {
   jobFitBandOptions,
+  jobReferralOutreachStatusOptions,
+  jobReferralPriorityOptions,
+  jobReferralRelationshipOptions,
   jobStatusOptions,
+  jobWarmApplyStatusOptions,
+  type JobReferralContact,
+  type JobReferralOutreachStatus,
+  type JobReferralPriority,
+  type JobReferralRelationship,
   type JobDigest,
   type JobFitBand,
   type JobRecord,
   type JobSearchProfile,
   type JobSearchProfileInput,
   type JobStatus,
+  type JobWarmApplyStatus,
 } from "@careeright/domain/jobs/schema";
 import { useCareerightUi } from "../../providers/careeright-ui-provider";
 import {
@@ -88,6 +108,7 @@ type JobDateSection = {
 type JobsSortMode = "fit_score" | "status";
 type StatusFilter = JobStatus | "all";
 type FitBandFilter = JobFitBand | "all";
+type WarmApplyFilter = "all" | "warm_apply" | "due_today";
 
 type JobSearchProfileDraft = {
   targetRoles: string;
@@ -110,7 +131,14 @@ type JobMetadata = {
   workMode: string;
   industry: string;
   posterName: string;
+  posterTitle: string;
   posterUrl: string;
+};
+
+type WarmApplyDraft = {
+  warmApplyStatus: JobWarmApplyStatus;
+  warmApplyFollowUpDueAt: string;
+  referralContacts: JobReferralContact[];
 };
 
 const JobDateTable = lazy(() =>
@@ -149,6 +177,51 @@ const jobFitBandBadgeVariants = {
   "default" | "secondary" | "outline" | "destructive"
 >;
 
+const warmApplyStatusLabels = {
+  not_started: "Not started",
+  finding_contact: "Finding contact",
+  draft_ready: "Draft ready",
+  connection_sent: "Connection sent",
+  message_sent: "Message sent",
+  follow_up_due: "Follow-up due",
+  replied: "Replied",
+  referred: "Referred",
+  applied: "Applied after outreach",
+  interviewing: "Interviewing",
+  no_contact_found: "No contact found",
+  no_response: "No response",
+  not_a_fit: "Not a fit",
+  rejected: "Rejected",
+} satisfies Record<JobWarmApplyStatus, string>;
+
+const referralRelationshipLabels = {
+  job_poster: "Job poster",
+  recruiter: "Recruiter",
+  founder: "Founder",
+  engineering: "Engineering",
+  hr: "HR",
+  employee: "Employee",
+  manual: "Manual",
+} satisfies Record<JobReferralRelationship, string>;
+
+const referralPriorityLabels = {
+  best_first: "Best first",
+  backup: "Backup",
+  low_confidence: "Low confidence",
+} satisfies Record<JobReferralPriority, string>;
+
+const referralOutreachStatusLabels = {
+  not_started: "Not started",
+  draft_ready: "Draft ready",
+  connection_sent: "Connection sent",
+  message_sent: "Message sent",
+  follow_up_due: "Follow-up due",
+  replied: "Replied",
+  referred: "Referred",
+  no_response: "No response",
+  not_a_fit: "Not a fit",
+} satisfies Record<JobReferralOutreachStatus, string>;
+
 const seededDateFormatter = new Intl.DateTimeFormat("en-IN", {
   dateStyle: "full",
   timeZone: "UTC",
@@ -175,6 +248,63 @@ function formatDigestDateTime(value: string) {
 
 function optionalText(value: string, fallback = "Not listed") {
   return value.trim() || fallback;
+}
+
+function todayDateKey(nowMs = Date.now()) {
+  return new Date(nowMs).toISOString().slice(0, 10);
+}
+
+function dateInputValue(value: string) {
+  return value.trim().slice(0, 10);
+}
+
+function isDueByToday(value: string, nowMs: number) {
+  const dateKey = dateInputValue(value);
+
+  return Boolean(dateKey) && dateKey <= todayDateKey(nowMs);
+}
+
+function bestReferralContact(job: JobRecord) {
+  return (
+    job.referralContacts.find((contact) => contact.priority === "best_first") ??
+    job.referralContacts[0] ??
+    null
+  );
+}
+
+function warmApplyDueAt(job: JobRecord) {
+  return (
+    dateInputValue(job.warmApplyFollowUpDueAt) ||
+    job.referralContacts
+      .map((contact) => dateInputValue(contact.followUpDueAt))
+      .filter(Boolean)
+      .sort()[0] ||
+    ""
+  );
+}
+
+function hasWarmApplyDueToday(job: JobRecord, nowMs: number) {
+  return (
+    isDueByToday(job.warmApplyFollowUpDueAt, nowMs) ||
+    job.referralContacts.some((contact) =>
+      isDueByToday(contact.followUpDueAt, nowMs),
+    )
+  );
+}
+
+function hasReferralSignal(job: JobRecord) {
+  const metadata = jobMetadata(job);
+  return Boolean(metadata.posterName || metadata.posterUrl || metadata.companyUrl);
+}
+
+function isWarmApplyCandidate(job: JobRecord) {
+  return (
+    job.warmApplyStatus !== "not_started" ||
+    job.referralContacts.length > 0 ||
+    (job.status === "not_applied" &&
+      (job.fitScore ?? 0) >= 75 &&
+      hasReferralSignal(job))
+  );
 }
 
 function pluralize(value: number, unit: string) {
@@ -377,6 +507,14 @@ function jobMetadata(job: JobRecord): JobMetadata {
       "posterName",
       "poster_name",
     ]),
+    posterTitle: firstRawString(raw, [
+      "jobPosterTitle",
+      "job_poster_title",
+      "posterTitle",
+      "poster_title",
+      "recruiterTitle",
+      "recruiter_title",
+    ]),
     posterUrl: firstRawUrl(raw, [
       "jobPosterProfileUrl",
       "job_poster_profile_url",
@@ -482,6 +620,21 @@ function jobSearchText(job: JobRecord) {
     job.salary,
     job.description,
     job.fitScore,
+    warmApplyStatusLabels[job.warmApplyStatus],
+    job.warmApplyFollowUpDueAt,
+    ...job.referralContacts.flatMap((contact) => [
+      contact.name,
+      contact.title,
+      contact.company,
+      contact.linkedinUrl,
+      referralRelationshipLabels[contact.relationship],
+      referralPriorityLabels[contact.priority],
+      referralOutreachStatusLabels[contact.outreachStatus],
+      contact.draftMessage,
+      contact.lastContactedAt,
+      contact.followUpDueAt,
+      contact.notes,
+    ]),
     ...Object.values(metadata),
     searchValue(job.raw),
   ]
@@ -535,11 +688,17 @@ function safeWorksheetName(value: string) {
 function jobsToExcelRows(section: JobDateSection, nowMs: number) {
   return section.jobs.map((job) => {
     const metadata = jobMetadata(job);
+    const bestContact = bestReferralContact(job);
 
     return {
       Role: job.title,
       Company: job.company,
       Status: jobStatusLabels[job.status],
+      "Warm apply": warmApplyStatusLabels[job.warmApplyStatus],
+      "Best contact": bestContact?.name ?? "",
+      "Best contact title": bestContact?.title ?? "",
+      "Best contact URL": bestContact?.linkedinUrl ?? "",
+      "Warm follow-up due": warmApplyDueAt(job),
       Location: job.location,
       "Fit score": job.fitScore ?? "",
       Posted: formatRelativePostedAt(job.postedAt, nowMs),
@@ -562,6 +721,20 @@ function jobsToExcelRows(section: JobDateSection, nowMs: number) {
       "Job URL": metadata.jobUrl,
       "Company URL": metadata.companyUrl,
       "Poster URL": metadata.posterUrl,
+      "Referral contacts": job.referralContacts
+        .map((contact) =>
+          [
+            contact.name,
+            contact.title,
+            referralRelationshipLabels[contact.relationship],
+            referralOutreachStatusLabels[contact.outreachStatus],
+            contact.followUpDueAt,
+            contact.linkedinUrl,
+          ]
+            .filter(Boolean)
+            .join(" | "),
+        )
+        .join("; "),
       "Seeded date": section.label,
       "Seeded at": job.seededAt,
       "Updated at": job.updatedAt,
@@ -686,6 +859,125 @@ function inputFromSearchProfileDraft(
   };
 }
 
+function firstName(value: string) {
+  return value.trim().split(/\s+/)[0] || "";
+}
+
+function contactRelationshipFromTitle(title: string): JobReferralRelationship {
+  if (/founder|co-founder|ceo|cto|chief/i.test(title)) {
+    return "founder";
+  }
+
+  if (/recruit|talent|sourc|hiring/i.test(title)) {
+    return "recruiter";
+  }
+
+  if (/\bhr\b|people|human resources/i.test(title)) {
+    return "hr";
+  }
+
+  if (/engineer|developer|architect|technical|technology/i.test(title)) {
+    return "engineering";
+  }
+
+  return "job_poster";
+}
+
+function contactFromJobPoster(job: JobRecord): JobReferralContact | null {
+  const metadata = jobMetadata(job);
+
+  if (!metadata.posterName && !metadata.posterUrl) {
+    return null;
+  }
+
+  const relationship = contactRelationshipFromTitle(metadata.posterTitle);
+
+  return {
+    id: `local-job-referral-contact-${crypto.randomUUID()}`,
+    name: metadata.posterName,
+    title: metadata.posterTitle,
+    company: job.company,
+    linkedinUrl: metadata.posterUrl,
+    relationship,
+    priority: "best_first",
+    outreachStatus: "draft_ready",
+    draftMessage: draftReferralMessage(job, {
+      name: metadata.posterName,
+      title: metadata.posterTitle,
+      relationship,
+    }),
+    lastContactedAt: "",
+    followUpDueAt: "",
+    notes: "Prefilled from the LinkedIn job poster.",
+  };
+}
+
+function newReferralContact(job: JobRecord, priority: JobReferralPriority) {
+  const relationship: JobReferralRelationship = "manual";
+
+  return {
+    id: `local-job-referral-contact-${crypto.randomUUID()}`,
+    name: "",
+    title: "",
+    company: job.company,
+    linkedinUrl: "",
+    relationship,
+    priority,
+    outreachStatus: "draft_ready",
+    draftMessage: draftReferralMessage(job, { relationship }),
+    lastContactedAt: "",
+    followUpDueAt: "",
+    notes: "",
+  } satisfies JobReferralContact;
+}
+
+function draftReferralMessage(
+  job: JobRecord,
+  contact: {
+    name?: string;
+    title?: string;
+    relationship: JobReferralRelationship;
+  },
+) {
+  const greeting = firstName(contact.name ?? "") || "there";
+  const company = optionalText(job.company, "your team");
+  const skillProof =
+    job.matchedSkills.slice(0, 5).join(", ") ||
+    "Node.js, TypeScript, React/Next.js, and backend APIs";
+  const role = optionalText(job.title, "the role");
+  const directHiringContact = ["job_poster", "recruiter", "hr"].includes(
+    contact.relationship,
+  );
+  const ask = directHiringContact
+    ? "Would it be okay if I shared my resume or applied through the right path?"
+    : "Would it be okay if I asked 1-2 quick questions about what the team is looking for before I apply?";
+
+  return [
+    `Hi ${greeting}, I saw ${company} is hiring for ${role}.`,
+    `I have been building with ${skillProof}, and this role looked closely aligned with the kind of product engineering work I am trying to do.`,
+    ask,
+  ].join("\n\n");
+}
+
+function draftFromJobWarmApply(job: JobRecord): WarmApplyDraft {
+  const posterContact = contactFromJobPoster(job);
+  const referralContacts =
+    job.referralContacts.length > 0
+      ? job.referralContacts
+      : posterContact
+        ? [posterContact]
+        : [newReferralContact(job, "best_first")];
+
+  return {
+    warmApplyStatus:
+      job.warmApplyStatus === "not_started" && referralContacts.length > 0
+        ? "draft_ready"
+        : job.warmApplyStatus,
+    warmApplyFollowUpDueAt: dateInputValue(job.warmApplyFollowUpDueAt),
+    referralContacts,
+  };
+}
+
 export function JobsApp({
   initialJobs,
   initialSearchProfile,
@@ -699,6 +991,8 @@ export function JobsApp({
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [fitBandFilter, setFitBandFilter] = useState<FitBandFilter>("all");
+  const [warmApplyFilter, setWarmApplyFilter] =
+    useState<WarmApplyFilter>("all");
   const [sortMode, setSortMode] = useState<JobsSortMode>("fit_score");
   const [searchProfileDraft, setSearchProfileDraft] =
     useState<JobSearchProfileDraft>(() =>
@@ -709,6 +1003,10 @@ export function JobsApp({
     initialDigests !== undefined,
   );
   const [deleteJobTarget, setDeleteJobTarget] = useState<JobRecord | null>(
+    null,
+  );
+  const [warmApplyTarget, setWarmApplyTarget] = useState<JobRecord | null>(null);
+  const [warmApplyDraft, setWarmApplyDraft] = useState<WarmApplyDraft | null>(
     null,
   );
   const [exportingDateKey, setExportingDateKey] = useState<string | null>(null);
@@ -778,6 +1076,30 @@ export function JobsApp({
     },
   });
 
+  const updateWarmApplyMutation = useMutation({
+    mutationFn: ({
+      jobId,
+      draft,
+    }: {
+      jobId: string;
+      draft: WarmApplyDraft;
+    }) =>
+      rpcClient.jobs.updateWarmApply({
+        jobId,
+        warmApplyStatus: draft.warmApplyStatus,
+        warmApplyFollowUpDueAt: draft.warmApplyFollowUpDueAt,
+        referralContacts: draft.referralContacts,
+      }),
+    onSuccess: () => {
+      setWarmApplyTarget(null);
+      setWarmApplyDraft(null);
+      void queryClient.invalidateQueries({ queryKey: jobsQueryKey });
+      void queryClient.invalidateQueries({
+        queryKey: dashboardAnalyticsQueryKey,
+      });
+    },
+  });
+
   const deleteJobMutation = useMutation({
     mutationFn: (jobId: string) => rpcClient.jobs.delete({ jobId }),
     onMutate: (jobId) => {
@@ -818,6 +1140,29 @@ export function JobsApp({
     },
     [updateStatusMutation],
   );
+
+  const onEditWarmApply = useCallback((job: JobRecord) => {
+    setWarmApplyTarget(job);
+    setWarmApplyDraft(draftFromJobWarmApply(job));
+  }, []);
+
+  const onSaveWarmApply = useCallback(() => {
+    if (!warmApplyTarget || !warmApplyDraft) {
+      return;
+    }
+
+    updateWarmApplyMutation.mutate({
+      jobId: warmApplyTarget.id,
+      draft: warmApplyDraft,
+    });
+  }, [updateWarmApplyMutation, warmApplyDraft, warmApplyTarget]);
+
+  const onWarmApplyDialogOpenChange = useCallback((open: boolean) => {
+    if (!open) {
+      setWarmApplyTarget(null);
+      setWarmApplyDraft(null);
+    }
+  }, []);
 
   const onRequestDeleteJob = useCallback((job: JobRecord) => {
     setDeleteJobTarget(job);
@@ -876,11 +1221,24 @@ export function JobsApp({
       fitBandFilter === "all"
         ? statusJobs
         : statusJobs.filter((job) => job.fitBand === fitBandFilter);
+    const warmJobs =
+      warmApplyFilter === "all"
+        ? fitJobs
+        : warmApplyFilter === "warm_apply"
+          ? fitJobs.filter(isWarmApplyCandidate)
+          : fitJobs.filter((job) => hasWarmApplyDueToday(job, nowMs));
 
     return deferredSearchQuery.trim()
-      ? fitJobs.filter((job) => matchesJobSearch(job, deferredSearchQuery))
-      : fitJobs;
-  }, [deferredSearchQuery, fitBandFilter, jobs, statusFilter]);
+      ? warmJobs.filter((job) => matchesJobSearch(job, deferredSearchQuery))
+      : warmJobs;
+  }, [
+    deferredSearchQuery,
+    fitBandFilter,
+    jobs,
+    nowMs,
+    statusFilter,
+    warmApplyFilter,
+  ]);
   const sections = useMemo(
     () => groupJobsBySeededDate(filteredJobs, sortMode),
     [filteredJobs, sortMode],
@@ -952,6 +1310,7 @@ export function JobsApp({
                   <JobsTableControls
                     statusFilter={statusFilter}
                     fitBandFilter={fitBandFilter}
+                    warmApplyFilter={warmApplyFilter}
                     searchQuery={searchQuery}
                     sortMode={sortMode}
                     filteredCount={filteredJobs.length}
@@ -959,6 +1318,7 @@ export function JobsApp({
                     onSearchQueryChange={setSearchQuery}
                     onStatusFilterChange={setStatusFilter}
                     onFitBandFilterChange={setFitBandFilter}
+                    onWarmApplyFilterChange={setWarmApplyFilter}
                     onSortModeChange={setSortMode}
                   />
                   {sections.length === 0 ? (
@@ -991,6 +1351,7 @@ export function JobsApp({
                           nowMs={nowMs}
                           exportingDateKey={exportingDateKey}
                           onStatusChange={onStatusChange}
+                          onEditWarmApply={onEditWarmApply}
                           onDeleteJob={onRequestDeleteJob}
                           onDownloadJobs={onDownloadJobs}
                         />
@@ -1003,6 +1364,15 @@ export function JobsApp({
           )}
         </div>
       </main>
+
+      <WarmApplyDialog
+        job={warmApplyTarget}
+        draft={warmApplyDraft}
+        isSaving={updateWarmApplyMutation.isPending}
+        onDraftChange={setWarmApplyDraft}
+        onSave={onSaveWarmApply}
+        onOpenChange={onWarmApplyDialogOpenChange}
+      />
 
       <AlertDialog
         open={Boolean(deleteJobTarget)}
@@ -1036,9 +1406,419 @@ export function JobsApp({
   );
 }
 
+function WarmApplyDialog({
+  job,
+  draft,
+  isSaving,
+  onDraftChange,
+  onSave,
+  onOpenChange,
+}: {
+  job: JobRecord | null;
+  draft: WarmApplyDraft | null;
+  isSaving: boolean;
+  onDraftChange: (draft: WarmApplyDraft | null) => void;
+  onSave: () => void;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const open = Boolean(job && draft);
+
+  function patchDraft(patch: Partial<WarmApplyDraft>) {
+    if (!draft) {
+      return;
+    }
+
+    onDraftChange({ ...draft, ...patch });
+  }
+
+  function patchContact(contactId: string, patch: Partial<JobReferralContact>) {
+    if (!draft) {
+      return;
+    }
+
+    patchDraft({
+      referralContacts: draft.referralContacts.map((contact) =>
+        contact.id === contactId ? { ...contact, ...patch } : contact,
+      ),
+    });
+  }
+
+  async function copyDraft(message: string) {
+    try {
+      await navigator.clipboard.writeText(message);
+    } catch (error) {
+      console.error("[jobs/warm-apply] Failed to copy draft.", error);
+      window.alert("Could not copy the draft. Select the text and copy it manually.");
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {job && draft ? (
+        <DialogContent className="max-h-[calc(100svh-2rem)] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Warm apply</DialogTitle>
+            <DialogDescription>
+              {job.title} at {optionalText(job.company)}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-4">
+            <div className="grid gap-3 rounded-lg border border-border p-3 md:grid-cols-2">
+              <label className="grid gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Status
+                </span>
+                <Select
+                  value={draft.warmApplyStatus}
+                  onValueChange={(value) =>
+                    patchDraft({
+                      warmApplyStatus: value as JobWarmApplyStatus,
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {jobWarmApplyStatusOptions.map((status) => (
+                        <SelectItem key={status} value={status}>
+                          {warmApplyStatusLabels[status]}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className="grid gap-1.5">
+                <span className="text-xs font-medium text-muted-foreground">
+                  Follow-up due
+                </span>
+                <Input
+                  type="date"
+                  value={draft.warmApplyFollowUpDueAt}
+                  onChange={(event) =>
+                    patchDraft({
+                      warmApplyFollowUpDueAt: event.target.value,
+                    })
+                  }
+                />
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium">Contacts</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  patchDraft({
+                    warmApplyStatus:
+                      draft.warmApplyStatus === "not_started"
+                        ? "draft_ready"
+                        : draft.warmApplyStatus,
+                    referralContacts: [
+                      ...draft.referralContacts,
+                      newReferralContact(
+                        job,
+                        draft.referralContacts.length === 0
+                          ? "best_first"
+                          : "backup",
+                      ),
+                    ],
+                  })
+                }
+              >
+                <Plus data-icon="inline-start" aria-hidden="true" />
+                Add contact
+              </Button>
+            </div>
+
+            <div className="grid gap-3">
+              {draft.referralContacts.map((contact, index) => (
+                <div
+                  key={contact.id}
+                  className="grid gap-3 rounded-lg border border-border p-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {contact.name || `Contact ${index + 1}`}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {referralPriorityLabels[contact.priority]} ·{" "}
+                        {referralRelationshipLabels[contact.relationship]}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Remove ${contact.name || `contact ${index + 1}`}`}
+                      onClick={() =>
+                        patchDraft({
+                          referralContacts: draft.referralContacts.filter(
+                            (item) => item.id !== contact.id,
+                          ),
+                        })
+                      }
+                    >
+                      <Trash2 aria-hidden="true" />
+                    </Button>
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <WarmApplyInput
+                      idSuffix={contact.id}
+                      label="Name"
+                      value={contact.name}
+                      onChange={(value) =>
+                        patchContact(contact.id, { name: value })
+                      }
+                    />
+                    <WarmApplyInput
+                      idSuffix={contact.id}
+                      label="Title"
+                      value={contact.title}
+                      onChange={(value) =>
+                        patchContact(contact.id, { title: value })
+                      }
+                    />
+                    <WarmApplyInput
+                      idSuffix={contact.id}
+                      label="Company"
+                      value={contact.company}
+                      onChange={(value) =>
+                        patchContact(contact.id, { company: value })
+                      }
+                    />
+                    <WarmApplyInput
+                      idSuffix={contact.id}
+                      label="LinkedIn URL"
+                      value={contact.linkedinUrl}
+                      onChange={(value) =>
+                        patchContact(contact.id, { linkedinUrl: value })
+                      }
+                    />
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-3">
+                    <WarmApplySelect
+                      label="Relationship"
+                      value={contact.relationship}
+                      options={jobReferralRelationshipOptions}
+                      labels={referralRelationshipLabels}
+                      onChange={(value) =>
+                        patchContact(contact.id, {
+                          relationship: value,
+                        })
+                      }
+                    />
+                    <WarmApplySelect
+                      label="Priority"
+                      value={contact.priority}
+                      options={jobReferralPriorityOptions}
+                      labels={referralPriorityLabels}
+                      onChange={(value) =>
+                        patchContact(contact.id, {
+                          priority: value,
+                        })
+                      }
+                    />
+                    <WarmApplySelect
+                      label="Outreach"
+                      value={contact.outreachStatus}
+                      options={jobReferralOutreachStatusOptions}
+                      labels={referralOutreachStatusLabels}
+                      onChange={(value) =>
+                        patchContact(contact.id, {
+                          outreachStatus: value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <WarmApplyInput
+                      idSuffix={contact.id}
+                      label="Last contacted"
+                      type="date"
+                      value={dateInputValue(contact.lastContactedAt)}
+                      onChange={(value) =>
+                        patchContact(contact.id, { lastContactedAt: value })
+                      }
+                    />
+                    <WarmApplyInput
+                      idSuffix={contact.id}
+                      label="Follow-up due"
+                      type="date"
+                      value={dateInputValue(contact.followUpDueAt)}
+                      onChange={(value) =>
+                        patchContact(contact.id, { followUpDueAt: value })
+                      }
+                    />
+                  </div>
+
+                  <label className="grid gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Draft
+                    </span>
+                    <Textarea
+                      value={contact.draftMessage}
+                      onChange={(event) =>
+                        patchContact(contact.id, {
+                          draftMessage: event.target.value,
+                        })
+                      }
+                      className="min-h-32"
+                    />
+                  </label>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        patchContact(contact.id, {
+                          draftMessage: draftReferralMessage(job, contact),
+                        })
+                      }
+                    >
+                      Regenerate
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => void copyDraft(contact.draftMessage)}
+                    >
+                      <Copy data-icon="inline-start" aria-hidden="true" />
+                      Copy
+                    </Button>
+                  </div>
+
+                  <label className="grid gap-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      Notes
+                    </span>
+                    <Textarea
+                      value={contact.notes}
+                      onChange={(event) =>
+                        patchContact(contact.id, { notes: event.target.value })
+                      }
+                    />
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSaving}
+              onClick={() => onOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="button" disabled={isSaving} onClick={onSave}>
+              {isSaving ? (
+                <Loader2
+                  data-icon="inline-start"
+                  className="animate-spin"
+                  aria-hidden="true"
+                />
+              ) : null}
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      ) : null}
+    </Dialog>
+  );
+}
+
+function WarmApplyInput({
+  idSuffix,
+  label,
+  value,
+  type = "text",
+  onChange,
+}: {
+  idSuffix?: string;
+  label: string;
+  value: string;
+  type?: "text" | "date";
+  onChange: (value: string) => void;
+}) {
+  const idParts = [
+    "warm-apply",
+    idSuffix?.replace(/[^a-zA-Z0-9_-]+/g, "-"),
+    label.toLowerCase().replace(/\s+/g, "-"),
+  ].filter(Boolean);
+  const id = idParts.join("-");
+
+  return (
+    <label htmlFor={id} className="grid gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <Input
+        id={id}
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
+  );
+}
+
+function WarmApplySelect<T extends string>({
+  label,
+  value,
+  options,
+  labels,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: readonly T[];
+  labels: Record<T, string>;
+  onChange: (value: T) => void;
+}) {
+  return (
+    <label className="grid gap-1.5">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <Select
+        value={value}
+        onValueChange={(nextValue) => {
+          if (nextValue !== null) {
+            onChange(nextValue);
+          }
+        }}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectGroup>
+            {options.map((option) => (
+              <SelectItem key={option} value={option}>
+                {labels[option]}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
+    </label>
+  );
+}
+
 function JobsTableControls({
   statusFilter,
   fitBandFilter,
+  warmApplyFilter,
   searchQuery,
   sortMode,
   filteredCount,
@@ -1046,10 +1826,12 @@ function JobsTableControls({
   onSearchQueryChange,
   onStatusFilterChange,
   onFitBandFilterChange,
+  onWarmApplyFilterChange,
   onSortModeChange,
 }: {
   statusFilter: StatusFilter;
   fitBandFilter: FitBandFilter;
+  warmApplyFilter: WarmApplyFilter;
   searchQuery: string;
   sortMode: JobsSortMode;
   filteredCount: number;
@@ -1057,6 +1839,7 @@ function JobsTableControls({
   onSearchQueryChange: (query: string) => void;
   onStatusFilterChange: (status: StatusFilter) => void;
   onFitBandFilterChange: (fitBand: FitBandFilter) => void;
+  onWarmApplyFilterChange: (filter: WarmApplyFilter) => void;
   onSortModeChange: (sortMode: JobsSortMode) => void;
 }) {
   return (
@@ -1132,6 +1915,28 @@ function JobsTableControls({
                     {jobFitBandLabels[fitBand]}
                   </SelectItem>
                 ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-muted-foreground">
+            Warm
+          </span>
+          <Select
+            value={warmApplyFilter}
+            onValueChange={(value) =>
+              onWarmApplyFilterChange(value as WarmApplyFilter)
+            }
+          >
+            <SelectTrigger size="sm" className="min-w-40">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="all">All jobs</SelectItem>
+                <SelectItem value="warm_apply">Warm apply</SelectItem>
+                <SelectItem value="due_today">Due today</SelectItem>
               </SelectGroup>
             </SelectContent>
           </Select>

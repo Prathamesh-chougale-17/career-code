@@ -26,6 +26,7 @@ import {
   jobSearchBriefSchema,
   jobSearchProfileInputSchema,
   jobSearchProfileSchema,
+  jobReferralContactSchema,
   latestUnappliedJobBatchSchema,
   jobListSchema,
   jobSchema,
@@ -37,6 +38,7 @@ import {
   seedRankedJobsInputSchema,
   seedJobsInputSchema,
   updateJobApplicationAttemptInputSchema,
+  updateJobWarmApplyInputSchema,
   updateJobSearchProfileInputSchema,
   updateJobStatusInputSchema,
   type CreateJobApplicationRunInput,
@@ -48,12 +50,14 @@ import {
   type JobRecord,
   type JobSearchProfile,
   type JobSearchBrief,
+  type JobReferralContact,
   type ListJobApplicationRunsInput,
   type ParsedSeedJob,
   type ScoreJobCandidatesInput,
   type SeedRankedJobsInput,
   type SeedJobsInput,
   type UpdateJobApplicationAttemptInput,
+  type UpdateJobWarmApplyInput,
   type UpdateJobSearchProfileInput,
   type UpdateJobStatusInput,
 } from "@careeright/domain/jobs/schema";
@@ -72,6 +76,10 @@ type JobsCollections = {
   digests: Collection<JobDigest>;
   applicationRuns: Collection<JobApplicationRun>;
 };
+
+type ReferralContactInput = NonNullable<
+  UpdateJobWarmApplyInput["referralContacts"]
+>[number];
 
 const globalForJobs = globalThis as typeof globalThis & {
   __careerightJobsMemoryState?: JobsMemoryState;
@@ -288,6 +296,29 @@ function createQueuedAttempt(
     status: "queued",
     createdAt,
     updatedAt: createdAt,
+  });
+}
+
+function createReferralContactId() {
+  return id("job-referral-contact");
+}
+
+function normalizeReferralContact(
+  contact: ReferralContactInput,
+): JobReferralContact {
+  return jobReferralContactSchema.parse({
+    id: contact.id?.trim() || createReferralContactId(),
+    name: contact.name,
+    title: contact.title,
+    company: contact.company,
+    linkedinUrl: contact.linkedinUrl,
+    relationship: contact.relationship,
+    priority: contact.priority,
+    outreachStatus: contact.outreachStatus,
+    draftMessage: contact.draftMessage,
+    lastContactedAt: contact.lastContactedAt,
+    followUpDueAt: contact.followUpDueAt,
+    notes: contact.notes,
   });
 }
 
@@ -970,6 +1001,61 @@ export async function updateJobStatus(
     updatedAt,
   });
 
+  memory.jobs[index] = job;
+  return job;
+}
+
+export async function updateJobWarmApply(
+  input: UpdateJobWarmApplyInput,
+  userId = SOLO_USER_ID,
+) {
+  const parsed = updateJobWarmApplyInputSchema.parse(input);
+  const updatedAt = now();
+
+  function updateJob(job: JobRecord) {
+    return jobSchema.parse({
+      ...job,
+      warmApplyStatus: parsed.warmApplyStatus ?? job.warmApplyStatus,
+      warmApplyFollowUpDueAt:
+        parsed.warmApplyFollowUpDueAt ?? job.warmApplyFollowUpDueAt,
+      referralContacts: parsed.referralContacts
+        ? parsed.referralContacts.map(normalizeReferralContact)
+        : job.referralContacts,
+      updatedAt,
+    });
+  }
+
+  if (isMongoConfigured()) {
+    const collections = await getCollections();
+    const existing = await collections.jobs.findOne({
+      id: parsed.jobId,
+      ...activeJobFilter(userId),
+    });
+
+    if (!existing) {
+      throw new Error("Job not found.");
+    }
+
+    const updated = updateJob(jobSchema.parse(withoutMongoId(existing)));
+    await collections.jobs.updateOne(
+      { id: parsed.jobId, ...activeJobFilter(userId) },
+      { $set: updated },
+    );
+
+    return updated;
+  }
+
+  const memory = getMemoryState();
+  const index = memory.jobs.findIndex(
+    (job) =>
+      job.id === parsed.jobId && job.userId === userId && isActiveJob(job),
+  );
+
+  if (index === -1) {
+    throw new Error("Job not found.");
+  }
+
+  const job = updateJob(memory.jobs[index]);
   memory.jobs[index] = job;
   return job;
 }
